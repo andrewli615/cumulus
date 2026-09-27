@@ -11,7 +11,7 @@ We want to understand the measurements ourselves: inspect available Watch data, 
 ## Open the first chunk in Xcode
 
 1. Open Xcode and complete any setup prompts. Local verification used Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if you want a simulated Watch; no Watch simulator device was available during verification.
-2. Open `Cumulus.xcodeproj`. Select the **Cumulus Watch App** scheme and a Watch simulator or paired physical Watch. The project targets watchOS 27.0, matching the installed SDK and the owner's latest-version preference.
+2. Open `Cumulus.xcodeproj`. Select the **Cumulus Watch App** scheme and a Watch simulator or paired physical Watch. The minimum deployment target is watchOS 26.6, allowing installation on the owner's Series 8 running that version. Xcode can still build with the watchOS 27 SDK; the SDK and minimum supported OS are separate settings. Device installation and runtime behavior still require verification.
 3. For a physical Watch, select your development team in Signing & Capabilities and replace `com.example.cumulus.watchkitapp` with your own unique bundle identifier. Provisioning must support HealthKit.
 4. Run the app, tap **Start monitoring**, and respond to the heart-data permission request. Watch the acceleration values and sample count. Heart data can be absent or old; its displayed age is part of the experiment.
 5. Tap **Stop monitoring**, or leave the app. Collection stops on background entry; reopening does not automatically restart it. Retained values are labeled and remain only in memory.
