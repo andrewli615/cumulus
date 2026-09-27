@@ -12,9 +12,9 @@ Define observable behavior before writing code. The initial goal is one next-occ
 
 ## State sketch
 
-`Unset → Requested → Confirmed scheduled → Running → Alerted`
+`Unset → Scheduling requested → Session scheduled → Session running → Haptic requested`
 
-Also define transitions to `Canceled`, `Needs attention`, and `Unverified after relaunch`. This is a discussion sketch; change it when the Watch experiments reveal real behavior.
+Also define transitions to `Canceled`, `Needs attention`, and `Unverified after relaunch`. “Haptic requested” means the app called the API; it does not claim the wearer felt it. “Session scheduled” means the scheduling call was accepted; it does not guarantee the later session will start. This is an experiment state sketch; change it when physical Watch observations provide evidence.
 
 ## Failure cases to design explicitly
 

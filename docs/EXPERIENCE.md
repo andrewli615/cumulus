@@ -4,7 +4,7 @@
 
 How would we describe the value to someone who wears Apple Watch to sleep?
 
-TBD
+For this first experiment, the wearer opens Cumulus, schedules a test haptic a few minutes ahead, and sees the requested time with a status that says whether scheduling was accepted or failed. They may lower their wrist or leave the app while waiting. When the session starts, the app asks the system to play its alarm haptic; after returning to the app, the wearer can inspect the recorded event times or cancel a still-pending session. This tests the delivery mechanism only; it is not yet the full sleep-alarm experience.
 
 ## A single night
 
@@ -16,7 +16,7 @@ Write this as a short story in the person's words:
 4. **Waking:** What should an early alert and a latest-time alert feel and look like?
 5. **Something went wrong:** How will they know the app could not set or complete the alarm?
 
-An example scenario to critique, not a decided UI: “Wake me by 7:30; look for an earlier moment after 7:00.”
+The product scenario remains undecided. The experiment uses a short relative delay (a few minutes) to make the session behavior observable without deciding the eventual wake-window interaction.
 
 ## Experience principles
 
