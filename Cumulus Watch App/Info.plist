@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSMotionUsageDescription</key>
+    <string>Cumulus shows wrist acceleration while you run a foreground data experiment.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>Cumulus reads heart-rate records to show their values and age during your data experiment. It does not save or export them.</string>
+    <key>WKApplication</key>
+    <true/>
+    <key>WKWatchOnly</key>
+    <true/>
+</dict>
+</plist>

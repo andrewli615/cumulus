@@ -8,3 +8,11 @@
 - Keep HealthKit data and raw device logs out of the repository.
 - Run relevant builds and tests when available. A simulator does not establish alarm reliability.
 - At completion, summarize changed files, verification, remaining uncertainty, and one learning exercise.
+
+# Coding Style Guidelines
+
+- Keep code simple, flat, and direct. Avoid unnecessary abstraction.
+- Use clear, descriptive variable and function names.
+- Do not add broad try/catch blocks; let errors propagate explicitly.
+- Write self-explanatory code with minimal comments.
+- Match existing file formatting and conventions.
