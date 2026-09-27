@@ -1,7 +1,8 @@
 # Experiment 002: Live Watch data availability
 
 Date drafted: 2026-09-26  
-Status: foreground source implemented; full build and physical Watch trials pending  
+Status: foreground probe simulator build passed; runtime and physical Watch trials pending
+
 Device / watchOS / Xcode: record exact values before each run
 
 ## Question
@@ -63,7 +64,9 @@ No pass condition establishes biological accuracy, overnight reliability, or tha
 
 ## Result
 
-Foreground probe source and native Xcode project are present. Xcode 27.0 (27A266a) was detected locally; build verification is blocked by its unaccepted license. Instrumentation and background/alert stages remain future work. No sensor measurements have been collected for this experiment.
+Foreground probe source and native Xcode project are present. A signing-free Debug build for the watchOS 27.0 simulator SDK passed with Xcode 27.0 (27A266a) on 2026-09-26. Project/permission property lists passed validation. The only build warning was skipped App Intents metadata extraction because the app has no App Intents dependency.
+
+No Watch simulator device was available, so the screen was not exercised. Physical permission flows, Start/Stop behavior, data delivery, and background-stop handling remain unverified at runtime. Instrumentation and background/alert stages remain future work. No sensor measurements have been collected for this experiment.
 
 ## Learning exercise
 

@@ -10,13 +10,13 @@ We want to understand the measurements ourselves: inspect available Watch data, 
 
 ## Open the first chunk in Xcode
 
-1. Open Xcode and complete its license/setup prompts, including the watchOS platform download if requested. Local inspection found Xcode 27.0 (27A266a), but command-line builds are blocked by its unaccepted license.
+1. Open Xcode and complete any setup prompts. Local verification used Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if you want a simulated Watch; no Watch simulator device was available during verification.
 2. Open `Cumulus.xcodeproj`. Select the **Cumulus Watch App** scheme and a Watch simulator or paired physical Watch. The project targets watchOS 27.0, matching the installed SDK and the owner's latest-version preference.
 3. For a physical Watch, select your development team in Signing & Capabilities and replace `com.example.cumulus.watchkitapp` with your own unique bundle identifier. Provisioning must support HealthKit.
 4. Run the app, tap **Start monitoring**, and respond to the heart-data permission request. Watch the acceleration values and sample count. Heart data can be absent or old; its displayed age is part of the experiment.
 5. Tap **Stop monitoring**, or leave the app. Collection stops on background entry; reopening does not automatically restart it. Retained values are labeled and remain only in memory.
 
-Simulator use can check build/layout only. Use a physical Watch for [Experiment 002](docs/experiments/002-live-data.md). No real measurements have been collected yet, and the initial implementation has not passed a full Xcode build.
+The signing-free Debug build for the watchOS simulator SDK passed on 2026-09-26. Project and permission property lists also passed validation. The app has not been launched in a Watch simulator or on a physical Watch; layout, permissions, lifecycle behavior, and measurements remain unverified. Use a physical Watch for [Experiment 002](docs/experiments/002-live-data.md). No real measurements have been collected yet.
 
 After Xcode setup, a signing-free simulator build can be requested from the repository root with:
 
