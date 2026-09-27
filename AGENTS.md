@@ -1,6 +1,10 @@
 # Codex guidance
 
-- Design and research phase: add no Swift code, generated project, dependency, or feature roadmap beyond the user's chosen step.
-- Start from the Watch experience and truthful alarm status. Use Apple's public Human Interface Guidelines as a reference, without claiming an internal Apple process.
-- Keep one decision per record; distinguish documented behavior, inference, and observed device behavior.
-- Read only the document relevant to the current task. A simulator does not validate alarm reliability.
+- Before editing files, show the proposed changes and wait for the owner's review. Explain each file's purpose and use case. The owner reviews and commits; never commit.
+- Read only documents relevant to the task. Treat plans and architecture as revisable when evidence changes.
+- Implement only the approved milestone. Before coding, explain the user behavior, technical risk, data flow, and one alternative.
+- For unfamiliar or changing watchOS APIs, use Context7 and verify against official Apple documentation. Separate documented behavior, inference, and physical Watch observations.
+- Keep alarm status truthful. Do not claim a reliable wake deadline without device evidence; recommend an independent alarm during development.
+- Keep HealthKit data and raw device logs out of the repository.
+- Run relevant builds and tests when available. A simulator does not establish alarm reliability.
+- At completion, summarize changed files, verification, remaining uncertainty, and one learning exercise.
