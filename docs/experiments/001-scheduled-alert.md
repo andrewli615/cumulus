@@ -3,7 +3,7 @@
 Date drafted: 2026-09-26  
 Device / OS / Xcode: record exact values before each run
 
-Implementation: scheduled-alert screen and coordinator implemented; physical trials pending
+Implementation: scheduled-alert screen and coordinator implemented; October 5 physical results inconclusive
 
 ## Hypothesis
 
@@ -72,7 +72,16 @@ Any simulator-only run is useful for build/UI checks but is not evidence for the
 
 ## Result
 
-Pending physical Watch testing.
+**2026-10-05 — Inconclusive (owner-reported physical Watch results)**
+
+Three scheduled trials and one cancellation trial were completed.
+
+- **Run 1:** A session-start callback and haptic-request event were recorded, but no haptic or system alert was observed. The owner later tapped **Stop alert**; invalidation reason was 0.
+- **Run 2:** The Cumulus **Open / Stop** alert appeared, and the owner felt a haptic and heard sound. The owner stopped the alert; invalidation reason was 0.
+- **Run 3:** The Cumulus **Open / Stop** alert appeared, and the owner felt a haptic. The owner stopped the alert.
+- **Cancellation:** No alert appeared after cancellation. The app recorded **Cancellation requested** and **Session invalidated (reason 0)**.
+
+Results were mixed and do not meet the three-run pass criteria. Watch model, watchOS version, battery level, and exact timing offsets were not recorded. Missing details are not inferred; no raw logs are included. These results do not establish reliable wake delivery.
 
 ### Software verification, 2026-10-02
 
@@ -81,7 +90,7 @@ Pending physical Watch testing.
 - A temporary Swift harness exercised the actual coordinator source against fake WatchKit types. It passed active-only scheduling, delayed scheduled-state observation, the three-minute request, duplicate start handling, persisted haptic-request recovery, stop/invalidation, cancellation racing with start, stale-session callback rejection, expiry, errors, the 40-event bound, and unreadable-storage handling. This checks coordinator logic, not WatchKit behavior. Harness files are outside the repository in `/tmp` and are not a permanent test target.
 - Project/permission property lists and whitespace checks passed. The build's App Intents metadata warning reflects the absence of an App Intents dependency.
 
-No physical alert or cancellation outcome has been recorded. Delivery feasibility is not yet established.
+Physical outcomes are recorded above for October 5. Delivery feasibility remains inconclusive.
 
 ## Next step
 
