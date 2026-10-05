@@ -94,4 +94,4 @@ Physical outcomes are recorded above for October 5. Delivery feasibility remains
 
 ## Next step
 
-Use the observed callback sequence and timing to decide whether to repeat with overnight/low-battery conditions or investigate another alert mechanism. Do not add motion sensing until this delivery path has been characterized.
+Preserve the October 5 result as **inconclusive**; do not repeat these alert trials in the next milestone. Plan background measurement separately in [Experiment 003](003-background-motion.md). Any successful sensor result will not resolve alert reliability or justify a wake-deadline claim.

@@ -16,8 +16,8 @@ A foreground Watch app can obtain motion samples on supported hardware. Readable
 ## Staged implementation
 
 1. Foreground screen: Start/Stop, current motion, latest readable heart rate, and sample age. Hold data in memory; stop collection on background entry.
-2. First complete the separate scheduled-alert feasibility trial in Experiment 001. It does not sample sensors. Review its physical results before approving background measurement work.
-3. Measurement instrumentation: quantify sample spacing, receipt delay, gaps, errors, and bounded private recording. Review storage and export before adding them. After alert feasibility review, add sensor collection to a separately approved background experiment and compare wrist-lowered and another-app conditions.
+2. Experiment 001's October 5 alert results remain inconclusive. Preserve that conclusion; do not repeat the alert series as a prerequisite for the separate measurement plan.
+3. Follow [Experiment 003](003-background-motion.md) for the proposed background sensor window, bounded diagnostic metadata, and predefined physical criteria. Its implementation needs separate review. No raw acceleration vectors or HealthKit records are persisted by that trial.
 
 The first stage cannot establish background or overnight collection. Do not substitute a workout session for a smart alarm.
 
@@ -50,7 +50,7 @@ Use a monotonic clock for motion intervals. Map motion uptime to wall-clock time
 3. Tap Stop. Verify collection stops and the screen does not describe retained values as actively monitored. Start again and check for duplicate callbacks or counters from the prior run.
 4. In the foreground-only version, leave the app and reopen it. Verify the UI reports stopped collection rather than implying monitoring continued. This checks the boundary, not background feasibility.
 5. After instrumentation exists, repeat the foreground trial three times. Inspect sample intervals, delay distribution, and longest gaps. An empty HealthKit query is "No readable samples," not proof of a denied permission or absent sensor.
-6. After the background/alert chunk exists, schedule a short smart-alarm trial. Compare app-open, wrist-lowered, and another-app-open conditions in separate runs. Trigger and record the required test alert; use Experiment 001 for alert observations. Repeat without a debugger so development tooling does not mask suspension behavior.
+6. For background measurement, use the prewritten procedure and criteria in Experiment 003 after implementation. Run with the debugger detached. Its required haptic request occurs after motion collection and does not repeat or rescore Experiment 001.
 7. Repeat only after recording the result and changing one condition at a time. Overnight trials come later, after short-window behavior is understood.
 
 ## Outcome criteria
@@ -72,7 +72,7 @@ During the initial 2026-09-26 build check, no Watch simulator device was availab
 
 One foreground motion run succeeded: samples responded to wrist movement and stopped when the owner stopped monitoring. The run's exact date/time, device model, watchOS version, sample counts, rates, and debugger attachment were unrecorded. Do not fill these gaps from the intended device or project settings. No raw measurements are stored here.
 
-This supports foreground motion response and manual stop for one reported run. It does not establish heart-rate freshness, permission behavior, background-stop handling, sampling quality, biological interpretation, or alarm reliability. The motion callback isolation fix remains preserved in the working tree. Alert outcomes will be recorded only after physical Experiment 001 trials.
+This supports foreground motion response and manual stop for one reported run. It does not establish heart-rate freshness, permission behavior, background-stop handling, sampling quality, biological interpretation, or alarm reliability. Experiment 001 now records the inconclusive October 5 alert outcomes. Background measurement results remain pending under Experiment 003.
 
 ## Learning exercise
 

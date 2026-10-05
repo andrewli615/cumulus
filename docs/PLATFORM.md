@@ -16,13 +16,15 @@ For each API, record **Apple's documented behavior**, **our inference**, and **w
 
 ## Evidence boundary
 
-The statements above describe documented API behavior, not observed Cumulus behavior. The exact app lifecycle, timing, haptic perception, and cancellation outcome remain unverified on a physical Watch. Simulator results cannot establish alarm reliability.
+The table describes documented API behavior, not Cumulus guarantees. Limited physical observations are summarized below; alert delivery remains inconclusive and background motion collection untested. Simulator results cannot establish alarm reliability.
 
 ## Data access investigation
 
 Documentation reviewed for this scope on 2026-09-26 using Context7 and official Apple documentation. Record exact Xcode, watchOS, and hardware versions when running; "latest" is not a reproducible device configuration.
 
-The first measurement experiment is [Experiment 002: Live data](experiments/002-live-data.md). Its initial implementation is a foreground probe. Background collection is a later step, using a correctly configured smart-alarm session and the separate [scheduled-alert experiment](experiments/001-scheduled-alert.md).
+The first measurement experiment is [Experiment 002: Live data](experiments/002-live-data.md). Its initial implementation is a foreground probe. [Experiment 003: Background motion](experiments/003-background-motion.md) is the next planned measurement investigation. It preserves the separate [scheduled-alert experiment](experiments/001-scheduled-alert.md) as inconclusive without repeating those trials.
+
+Background-motion constraints were rechecked with Context7 and Apple documentation on 2026-10-05: [extended runtime sessions](https://developer.apple.com/documentation/watchkit/using-extended-runtime-sessions), [invalidation](https://developer.apple.com/documentation/watchkit/wkextendedruntimesession/invalidate()), and [accelerometer interval](https://developer.apple.com/documentation/coremotion/cmmotionmanager/accelerometerupdateinterval).
 
 ### Documented behavior
 
@@ -30,6 +32,9 @@ The first measurement experiment is [Experiment 002: Live data](experiments/002-
 - HealthKit stores measurements and derived records. Observing a store change does not instruct the Watch to take a new heart-rate measurement.
 - Smart-alarm extended runtime sessions are background-capable and limited to 30 minutes. They are not an unrestricted overnight execution mode.
 - Calling a haptic API does not establish that the wearer perceived it.
+- A running smart-alarm session must request a haptic. The proposed sensor trial requests it after measurement stops; haptic perception is not a measurement pass criterion.
+- App-initiated invalidation of a session scheduled with `start(at:)` requires the app to be active. Stopping the motion subscription does not terminate the runtime session.
+- Actual accelerometer frequency must be calculated from sample timestamps rather than assumed from the requested interval.
 
 ### Working inference to test
 
@@ -39,7 +44,11 @@ Do not assume access to a continuous raw optical (PPG) waveform from a heart-rat
 
 ### Physical Watch observations
 
-None yet. All collection rates, freshness, background continuity, battery costs, and alert outcomes remain unverified for Cumulus.
+The owner reported one successful foreground motion run: readings responded to wrist movement and stopped on request. Its device model, OS, exact sample counts, and timing were unrecorded. See Experiment 002.
+
+The October 5 alert trials are **inconclusive**: two of three produced an observed alert and haptic, one did not despite start and haptic-request events, and no alert appeared after cancellation. See Experiment 001 for the evidence and missing configuration details. These observations do not establish reliable alert delivery.
+
+Background motion rates, freshness, continuity, and battery costs remain untested. Experiment 003's 60-second window and acceptance thresholds are engineering choices to test, not documented platform guarantees.
 
 ## Measurement contract
 

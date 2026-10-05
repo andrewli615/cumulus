@@ -8,6 +8,8 @@ Set the latest time you need to wake. During a short window beforehand, Apple Wa
 
 We want to understand the measurements ourselves: inspect available Watch data, calculate explainable features, test biological interpretations, and use suitable live inputs in a wake decision. Historical records and live measurements must remain distinct.
 
+Next is the **planned, not implemented** [background motion experiment](docs/experiments/003-background-motion.md): two short background collection trials and a manual-stop check, with predefined sample/lifecycle criteria and bounded diagnostic metadata. The October 5 alert result stays **inconclusive**; those trials will not be repeated. Successful sensor collection would not establish reliable alerts or wake timing.
+
 ## Open the experiments in Xcode
 
 1. Open Xcode and complete any setup prompts. Local builds use Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if needed.

@@ -9,7 +9,7 @@ Each chunk requires owner review before editing its files. Explain the behavior,
 | 1. Data experiment specification | Live-data procedure and documented access limits | Do we agree what to measure and what counts as fresh data? |
 | 2. Foreground probe | Standard Xcode watchOS app; Start/Stop, motion measurements, latest readable heart rate with sample age | Can the physical Watch supply samples, and does the screen distinguish current from stale data? |
 | 3. Scheduled-alert feasibility | Separate alert screen, scheduled smart-alarm session, relaunch handling, and physical Watch trials | Do three alerts and a cancellation trial satisfy Experiment 001 under the recorded conditions? |
-| 4. Measurement quality and background sensor trials | Sample intervals, receipt delays, gaps, and bounded private recording; only add background sensors after reviewing alert results | Can we quantify coverage and freshness in the intended wake window? |
+| 4. Background motion feasibility | Separate Experiment 003: short background collection, bounded timestamp/count metadata, and prewritten device criteria | Is motion collection supported under the tested conditions, independently of unresolved alert reliability? |
 | 5. Explainable calculation | One motion feature, synthetic tests, and private recording replay | Can we explain and reproduce the calculation, including missing-data handling? |
 | 6. Biological comparison | Compare features with available heart and sleep records | What evidence supports the interpretation, and where does it fail? |
 | 7. Alarm product slice | Next-occurrence wake time, tested decision rule, honest status and fallback behavior | Can the rule operate using only information actually available at decision time? |
@@ -28,7 +28,7 @@ Start from Xcode's standard watchOS App template, keeping its usual app entry, v
 
 Read [Experiment 002](experiments/002-live-data.md) for the staged procedure. Preserve [Experiment 001](experiments/001-scheduled-alert.md) as the separate alert-delivery test; its number does not imply it must run first. Background measurement trials must honor the smart-alarm session's intended use, including its alert requirement.
 
-## Current chunk: scheduled-alert feasibility
+## Implemented chunk: scheduled-alert feasibility
 
 The owner reported one successful physical foreground motion run: movement changed the samples, and Stop stopped collection. Device model, OS, exact sample counts, and timing were not recorded for that run. This is useful preliminary evidence, not completed data-quality validation.
 
@@ -42,7 +42,15 @@ Data flow: screen action → coordinator → WatchKit → lifecycle callbacks �
 
 Risks: relaunch ordering, cancellation racing with session start, callback delay, and process termination around the haptic request or persistence. The local record cannot prove haptic delivery or provide a transactional exactly-once guarantee across crashes. Alternative: a foreground alert prototype is simpler but does not answer the scheduled/relaunch question.
 
-Before background sensor implementation, review the three physical alert runs and separate cancellation trial in Experiment 001. Simulator builds and synthetic lifecycle checks do not satisfy those criteria.
+The October 5 physical results in Experiment 001 are **inconclusive**. Preserve that result and do not repeat the alert trials as part of the next milestone. Simulator builds and synthetic lifecycle checks do not change the physical conclusion.
+
+## Next chunk: background motion feasibility plan
+
+[Experiment 003](experiments/003-background-motion.md) defines two 60-second background measurement trials at a requested 10 Hz and a separate manual-stop check. The plan fixes sample coverage, freshness, lifecycle criteria, and diagnostic bounds before implementation. Only metadata is retained; raw acceleration and HealthKit data are excluded.
+
+The sensor window ends before the platform-required haptic request. That request is not a new alert-delivery assessment. Keep the foreground probe available between trials and distinguish collection stopping from session invalidation. Do not silently restart an interrupted measurement window on relaunch.
+
+Implementation requires a separate file-level proposal and review. Build and simulator navigation checks precede debugger-detached physical trials. A successful measurement trial supports only the recorded conditions; alert reliability and any wake-deadline claim remain unresolved.
 
 ## Verification and learning
 
