@@ -1,7 +1,7 @@
 # Experiment 002: Live Watch data availability
 
 Date drafted: 2026-09-26  
-Status: foreground probe simulator build passed; runtime and physical Watch trials pending
+Status: one successful physical foreground motion run reported; heart-data quality and background trials pending
 
 Device / watchOS / Xcode: record exact values before each run
 
@@ -16,8 +16,8 @@ A foreground Watch app can obtain motion samples on supported hardware. Readable
 ## Staged implementation
 
 1. Foreground screen: Start/Stop, current motion, latest readable heart rate, and sample age. Hold data in memory; stop collection on background entry.
-2. Measurement instrumentation: quantify sample spacing, receipt delay, gaps, errors, and bounded private recording. Review storage and export before adding them.
-3. Background experiment: integrate a scheduled smart-alarm session and its alert behavior, then repeat measurements with the wrist lowered and another app open. This stage depends on the lifecycle and alert work in Experiment 001.
+2. First complete the separate scheduled-alert feasibility trial in Experiment 001. It does not sample sensors. Review its physical results before approving background measurement work.
+3. Measurement instrumentation: quantify sample spacing, receipt delay, gaps, errors, and bounded private recording. Review storage and export before adding them. After alert feasibility review, add sensor collection to a separately approved background experiment and compare wrist-lowered and another-app conditions.
 
 The first stage cannot establish background or overnight collection. Do not substitute a workout session for a smart alarm.
 
@@ -66,7 +66,13 @@ No pass condition establishes biological accuracy, overnight reliability, or tha
 
 Foreground probe source and native Xcode project are present. A signing-free Debug build for the watchOS 27.0 simulator SDK passed with Xcode 27.0 (27A266a) on 2026-09-26. Project/permission property lists passed validation. The only build warning was skipped App Intents metadata extraction because the app has no App Intents dependency.
 
-No Watch simulator device was available, so the screen was not exercised. Physical permission flows, Start/Stop behavior, data delivery, and background-stop handling remain unverified at runtime. Instrumentation and background/alert stages remain future work. No sensor measurements have been collected for this experiment.
+During the initial 2026-09-26 build check, no Watch simulator device was available. This historical limitation is separate from the later device observation below.
+
+### Owner-reported physical observation, recorded 2026-10-02
+
+One foreground motion run succeeded: samples responded to wrist movement and stopped when the owner stopped monitoring. The run's exact date/time, device model, watchOS version, sample counts, rates, and debugger attachment were unrecorded. Do not fill these gaps from the intended device or project settings. No raw measurements are stored here.
+
+This supports foreground motion response and manual stop for one reported run. It does not establish heart-rate freshness, permission behavior, background-stop handling, sampling quality, biological interpretation, or alarm reliability. The motion callback isolation fix remains preserved in the working tree. Alert outcomes will be recorded only after physical Experiment 001 trials.
 
 ## Learning exercise
 

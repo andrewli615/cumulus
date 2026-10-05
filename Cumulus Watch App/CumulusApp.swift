@@ -2,9 +2,11 @@ import SwiftUI
 
 @main
 struct CumulusApp: App {
+    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ExperimentChooserView(coordinator: appDelegate.alertCoordinator)
         }
     }
 }

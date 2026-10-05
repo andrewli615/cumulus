@@ -8,6 +8,10 @@
     <string>Cumulus reads heart-rate records to show their values and age during your data experiment. It does not save or export them.</string>
     <key>WKApplication</key>
     <true/>
+    <key>WKBackgroundModes</key>
+    <array>
+        <string>alarm</string>
+    </array>
     <key>WKWatchOnly</key>
     <true/>
 </dict>

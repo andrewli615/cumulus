@@ -8,8 +8,8 @@ Each chunk requires owner review before editing its files. Explain the behavior,
 | --- | --- | --- |
 | 1. Data experiment specification | Live-data procedure and documented access limits | Do we agree what to measure and what counts as fresh data? |
 | 2. Foreground probe | Standard Xcode watchOS app; Start/Stop, motion measurements, latest readable heart rate with sample age | Can the physical Watch supply samples, and does the screen distinguish current from stale data? |
-| 3. Measurement quality | Sample intervals, receipt delays, gaps, and bounded private recording | Can we quantify coverage without confusing sample time with arrival time? |
-| 4. Background and alert feasibility | Scheduled smart-alarm session, lifecycle handling, and physical Watch trials | Does collection continue in the intended wake window, and does the alert occur? |
+| 3. Scheduled-alert feasibility | Separate alert screen, scheduled smart-alarm session, relaunch handling, and physical Watch trials | Do three alerts and a cancellation trial satisfy Experiment 001 under the recorded conditions? |
+| 4. Measurement quality and background sensor trials | Sample intervals, receipt delays, gaps, and bounded private recording; only add background sensors after reviewing alert results | Can we quantify coverage and freshness in the intended wake window? |
 | 5. Explainable calculation | One motion feature, synthetic tests, and private recording replay | Can we explain and reproduce the calculation, including missing-data handling? |
 | 6. Biological comparison | Compare features with available heart and sleep records | What evidence supports the interpretation, and where does it fail? |
 | 7. Alarm product slice | Next-occurrence wake time, tested decision rule, honest status and fallback behavior | Can the rule operate using only information actually available at decision time? |
@@ -27,6 +27,22 @@ Start from Xcode's standard watchOS App template, keeping its usual app entry, v
 - Alternative: implement motion alone first, then add the HealthKit adapter after the screen works.
 
 Read [Experiment 002](experiments/002-live-data.md) for the staged procedure. Preserve [Experiment 001](experiments/001-scheduled-alert.md) as the separate alert-delivery test; its number does not imply it must run first. Background measurement trials must honor the smart-alarm session's intended use, including its alert requirement.
+
+## Current chunk: scheduled-alert feasibility
+
+The owner reported one successful physical foreground motion run: movement changed the samples, and Stop stopped collection. Device model, OS, exact sample counts, and timing were not recorded for that run. This is useful preliminary evidence, not completed data-quality validation.
+
+The chooser keeps both experiments accessible. Leaving the probe stops its sensors, and an unresolved alert test disables entry to the probe. The alert coordinator owns the session for the app lifetime; navigating away from the alert screen does not cancel it. No motion or heart readings are collected by the alert session.
+
+Tap Schedule test alert while active to request a session three minutes ahead. Show Session scheduled only after reading `.scheduled`. A running session requests the notification haptic with `repeatHandler: nil`, using Apple's documented three-second interval. Cancel and Stop alert request invalidation while the app is active. Final status follows the invalidation callback.
+
+The app delegate attaches the delivered session's delegate synchronously on relaunch, then checks its state. The coordinator stores the requested date, unresolved-session and haptic-request bookkeeping, and the latest 40 timestamped events in local UserDefaults. A saved request alone is Unverified after relaunch; the app blocks another schedule and cannot cancel a session it has not received. Keep an independent alarm. Do not clear history or reinstall while a trial is pending.
+
+Data flow: screen action → coordinator → WatchKit → lifecycle callbacks → local event history and displayed state. SwiftUI state updates run on MainActor; session callbacks hand off identity and timestamped event details. Old-session callbacks are ignored.
+
+Risks: relaunch ordering, cancellation racing with session start, callback delay, and process termination around the haptic request or persistence. The local record cannot prove haptic delivery or provide a transactional exactly-once guarantee across crashes. Alternative: a foreground alert prototype is simpler but does not answer the scheduled/relaunch question.
+
+Before background sensor implementation, review the three physical alert runs and separate cancellation trial in Experiment 001. Simulator builds and synthetic lifecycle checks do not satisfy those criteria.
 
 ## Verification and learning
 

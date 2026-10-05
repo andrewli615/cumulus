@@ -1,6 +1,6 @@
 # Cumulus
 
-A watchOS smart-alarm research project. The first implementation is a **foreground data probe**: it displays acceleration and the latest readable heart-rate record with its age. It does not schedule an alarm, infer sleep stages, or collect overnight.
+A watchOS smart-alarm research project with two experiments: a **foreground motion probe** showing acceleration and readable heart-rate age, and a **scheduled alert test** requesting a WatchKit session three minutes ahead. Alert delivery is not yet validated on a physical Watch. The app does not infer sleep stages or collect overnight sensor data.
 
 ## The idea
 
@@ -8,15 +8,18 @@ Set the latest time you need to wake. During a short window beforehand, Apple Wa
 
 We want to understand the measurements ourselves: inspect available Watch data, calculate explainable features, test biological interpretations, and use suitable live inputs in a wake decision. Historical records and live measurements must remain distinct.
 
-## Open the first chunk in Xcode
+## Open the experiments in Xcode
 
-1. Open Xcode and complete any setup prompts. Local verification used Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if you want a simulated Watch; no Watch simulator device was available during verification.
+1. Open Xcode and complete any setup prompts. Local builds use Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if needed.
 2. Open `Cumulus.xcodeproj`. Select the **Cumulus Watch App** scheme and a Watch simulator or paired physical Watch. The minimum deployment target is watchOS 26.6, allowing installation on the owner's Series 8 running that version. Xcode can still build with the watchOS 27 SDK; the SDK and minimum supported OS are separate settings. Device installation and runtime behavior still require verification.
 3. For a physical Watch, select your development team in Signing & Capabilities and replace `com.example.cumulus.watchkitapp` with your own unique bundle identifier. Provisioning must support HealthKit.
-4. Run the app, tap **Start monitoring**, and respond to the heart-data permission request. Watch the acceleration values and sample count. Heart data can be absent or old; its displayed age is part of the experiment.
-5. Tap **Stop monitoring**, or leave the app. Collection stops on background entry; reopening does not automatically restart it. Retained values are labeled and remain only in memory.
+4. Choose **Motion probe**, tap **Start monitoring**, and respond to the heart-data permission request. Watch the acceleration values and sample count. Heart data can be absent or old; its displayed age is part of the experiment. Stop or leave the probe to end collection.
+5. Choose **Scheduled alert test** and tap **Schedule test alert** while active. Requested start is three minutes ahead. **Session scheduled** describes the observed WatchKit state; **Haptic requested** describes an API call, not a perceived alert. Use **Cancel** while pending or **Stop alert** while running, with the app active.
+6. For physical alert trials, launch from the Watch app icon without an attached debugger and follow [Experiment 001](docs/experiments/001-scheduled-alert.md). Keep an independent alarm for any real wake requirement. Do not reinstall or clear app data during a pending trial.
 
-The signing-free Debug build for the watchOS simulator SDK passed on 2026-09-26. Project and permission property lists also passed validation. The app has not been launched in a Watch simulator or on a physical Watch; layout, permissions, lifecycle behavior, and measurements remain unverified. Use a physical Watch for [Experiment 002](docs/experiments/002-live-data.md). No real measurements have been collected yet.
+The owner reported one successful physical foreground motion run: samples reacted to wrist movement and stopped on request. Its device model, OS, and exact counts were unrecorded; see [Experiment 002](docs/experiments/002-live-data.md). Three physical alert runs and a separate cancellation trial remain pending. Simulator results are not alarm evidence.
+
+On 2026-10-02, the alert milestone passed a signing-free simulator build and synthetic coordinator checks, and installed/launched on a 40 mm Watch simulator. Interactive navigation and layout verification remain pending because Computer Use permission was not granted. See Experiment 001 for the verification limits and private trial worksheet.
 
 After Xcode setup, a signing-free simulator build can be requested from the repository root with:
 
@@ -30,14 +33,17 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 ## Read the implementation
 
-- `Cumulus Watch App/CumulusApp.swift`: SwiftUI app entry, following the standard Watch template.
+- `Cumulus Watch App/CumulusApp.swift` and `ExperimentChooserView.swift`: app entry and navigation between experiments.
+- `Cumulus Watch App/WatchAppDelegate.swift`: immediately attaches sessions delivered by WatchKit during relaunch.
+- `Cumulus Watch App/ScheduledAlertCoordinator.swift`: session lifecycle, truthful status, and a local history capped at 40 events.
+- `Cumulus Watch App/ScheduledAlertView.swift`: scheduling, cancellation, stop, requested time, and event inspection.
 - `Cumulus Watch App/ContentView.swift`: Start/Stop controls, displayed values, and background-stop handling.
 - `Cumulus Watch App/MotionMonitor.swift`: requests 10 Hz acceleration updates and measures observed average frequency from sample timestamps.
 - `Cumulus Watch App/HeartRateReader.swift`: requests read-only heart-rate access, queries records starting 24 hours before Start, and watches for stored updates. It does not turn on continuous heart sensing.
-- `Cumulus Watch App/Info.plist` and `Cumulus.entitlements`: permission explanations and HealthKit capability. There is no background mode in this chunk.
+- `Cumulus Watch App/Info.plist` and `Cumulus.entitlements`: permission explanations, HealthKit capability, and the single Alarm background mode.
 - `Cumulus.xcodeproj/project.pbxproj` and `Assets.xcassets`: native target/build configuration and starter asset slots. The app icon is a placeholder.
 
-No measurements are persisted, exported, or logged by this probe. Keep any future personal data and raw device logs outside this checkout.
+The motion probe keeps readings in memory and stops when you leave it. The alert test stores only its requested date, lifecycle bookkeeping, and last 40 timestamped events in local UserDefaults. It collects no motion or HealthKit readings; entry to the motion probe is disabled while an alert is attached or unresolved. A saved pending request alone displays **Unverified after relaunch**, blocks another schedule, and cannot be canceled until WatchKit supplies the session. Keep personal data and raw device logs outside this checkout.
 
 ## Working approach
 
@@ -57,7 +63,7 @@ cumulus/
 ├── README.md
 ├── AGENTS.md
 ├── Cumulus.xcodeproj/       Native watchOS project
-├── Cumulus Watch App/      Foreground probe source and assets
+├── Cumulus Watch App/      Motion and scheduled-alert experiments
 └── docs/
     ├── EXPERIENCE.md          User moment and Watch interaction
     ├── BEHAVIOR.md            States, promises, and failure cases
@@ -68,6 +74,6 @@ cumulus/
     └── experiments/README.md Physical Watch experiment notes
 ```
 
-Start with `docs/BUILD_PLAN.md` and `docs/experiments/002-live-data.md` for the current data milestone. `EXPERIENCE.md`, `BEHAVIOR.md`, and the session-coordinator portion of `ARCHITECTURE.md` describe the later alarm experiment, not the foreground probe's implemented behavior. Leave unanswered sections open rather than inventing certainty.
+Start with `docs/BUILD_PLAN.md` and `docs/experiments/001-scheduled-alert.md` for the current milestone. The broader experience and architecture documents remain revisable proposals. Alert feasibility precedes background sensor trials; leave unanswered questions open rather than inventing certainty.
 
 References: [Designing for watchOS](https://developer.apple.com/design/human-interface-guidelines/designing-for-watchos), [watchOS Pathway](https://developer.apple.com/watchos/get-started/).

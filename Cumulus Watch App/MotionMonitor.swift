@@ -45,19 +45,20 @@ final class MotionMonitor: ObservableObject {
         status = "Waiting for motion"
         // A requested rate, not a guarantee. Measure the actual timestamps below.
         manager.accelerometerUpdateInterval = 0.1
-        manager.startAccelerometerUpdates(to: queue) { [weak self] data, error in
+        manager.startAccelerometerUpdates(to: queue) { @Sendable [weak self] data, error in
             let message = error?.localizedDescription
-            let reading = data.map {
-                Reading(x: $0.acceleration.x, y: $0.acceleration.y,
-                        z: $0.acceleration.z, timestamp: $0.timestamp)
-            }
+            let x = data?.acceleration.x
+            let y = data?.acceleration.y
+            let z = data?.acceleration.z
+            let timestamp = data?.timestamp
             Task { @MainActor [weak self] in
                 guard let self, self.isMonitoring, self.runID == currentRun else { return }
                 if let message {
                     self.stop(reason: "Motion error: \(message)")
                     return
                 }
-                guard let reading else { return }
+                guard let x, let y, let z, let timestamp else { return }
+                let reading = Reading(x: x, y: y, z: z, timestamp: timestamp)
                 self.latest = reading
                 self.sampleCount += 1
                 if let first = self.firstTimestamp, reading.timestamp > first {

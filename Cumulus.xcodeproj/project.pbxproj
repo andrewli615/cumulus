@@ -12,6 +12,10 @@
 		A00000000000000000000003 /* MotionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* MotionMonitor.swift */; };
 		A00000000000000000000004 /* HeartRateReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* HeartRateReader.swift */; };
 		A00000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* Assets.xcassets */; };
+		A00000000000000000000009 /* WatchAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* WatchAppDelegate.swift */; };
+		A0000000000000000000000A /* ExperimentChooserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* ExperimentChooserView.swift */; };
+		A0000000000000000000000B /* ScheduledAlertCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ScheduledAlertCoordinator.swift */; };
+		A0000000000000000000000C /* ScheduledAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000C /* ScheduledAlertView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +27,10 @@
 		B00000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B00000000000000000000007 /* Cumulus.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Cumulus.entitlements; sourceTree = "<group>"; };
 		B00000000000000000000008 /* Cumulus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cumulus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000009 /* WatchAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppDelegate.swift; sourceTree = "<group>"; };
+		B0000000000000000000000A /* ExperimentChooserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentChooserView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000B /* ScheduledAlertCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledAlertCoordinator.swift; sourceTree = "<group>"; };
+		B0000000000000000000000C /* ScheduledAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledAlertView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,6 +56,10 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000001 /* CumulusApp.swift */,
+				B0000000000000000000000C /* ScheduledAlertView.swift */,
+				B0000000000000000000000B /* ScheduledAlertCoordinator.swift */,
+				B0000000000000000000000A /* ExperimentChooserView.swift */,
+				B00000000000000000000009 /* WatchAppDelegate.swift */,
 				B00000000000000000000002 /* ContentView.swift */,
 				B00000000000000000000003 /* MotionMonitor.swift */,
 				B00000000000000000000004 /* HeartRateReader.swift */,
@@ -99,6 +111,9 @@
 					E00000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 						SystemCapabilities = {
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
 							com.apple.HealthKit = {
 								enabled = 1;
 							};
@@ -141,6 +156,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				A00000000000000000000001 /* CumulusApp.swift in Sources */,
+				A0000000000000000000000C /* ScheduledAlertView.swift in Sources */,
+				A0000000000000000000000B /* ScheduledAlertCoordinator.swift in Sources */,
+				A0000000000000000000000A /* ExperimentChooserView.swift in Sources */,
+				A00000000000000000000009 /* WatchAppDelegate.swift in Sources */,
 				A00000000000000000000002 /* ContentView.swift in Sources */,
 				A00000000000000000000003 /* MotionMonitor.swift in Sources */,
 				A00000000000000000000004 /* HeartRateReader.swift in Sources */,

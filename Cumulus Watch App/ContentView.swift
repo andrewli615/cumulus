@@ -28,7 +28,7 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(!isMonitoring && (heart.isRequestingAccess || scenePhase != .active))
 
-                Text("Foreground only. Stops in the background. No alarm is set.")
+                Text("Foreground only. Stops when you leave this probe. This screen does not schedule alerts.")
                     .font(.caption2)
 
                 Divider()
@@ -45,6 +45,9 @@ struct ContentView: View {
             if phase == .background {
                 stop(reason: "Stopped on background entry")
             }
+        }
+        .onDisappear {
+            stop(reason: "Stopped on leaving the probe")
         }
     }
 
