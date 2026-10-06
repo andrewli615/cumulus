@@ -250,7 +250,8 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     }
     var pilotQualified: Bool {
         guard mode == .pilot, requestCount == 1, phase == .elapsed, !clockDiscontinuity,
-              fullSummary?.meetsTimingCriteria == true, let observed = firstUsefulProbeAt else { return false }
+              fullSummary?.meetsTimingCriteria == true, latestProbe?.useful == true,
+              let observed = firstUsefulProbeAt else { return false }
         return observed >= start.addingTimeInterval(600) && observed <= start.addingTimeInterval(840)
     }
     var timingStatus: String {

@@ -94,6 +94,10 @@ import Foundation
         trial.requestCount = 1
         trial.fullSummary = good
         trial.firstUsefulProbeAt = origin.addingTimeInterval(840)
+        trial.latestProbe = .init(pilotProbe: true, requestedAt: origin.addingTimeInterval(839),
+            completedAt: origin.addingTimeInterval(840), count: 3000, useful: true,
+            first: origin.addingTimeInterval(540), last: origin.addingTimeInterval(599.98),
+            nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
         expect(trial.pilotQualified, "Pilot visibility threshold is inclusive")
         trial.firstUsefulProbeAt = origin.addingTimeInterval(840.01)
         expect(!trial.pilotQualified, "Late pilot cannot unlock overnight")
@@ -105,6 +109,20 @@ import Foundation
         invalidatedPilot.trials[0].clockDiscontinuity = true
         invalidatedPilot.updatePilotEvidence()
         expect(invalidatedPilot.pilotEvidence == nil && invalidatedPilot.trials[0].morningVisibility.contains("inconclusive"), "Uncertainty in the trial's recording/retrieval evidence invalidates its pass")
+        var missingProbe = trial
+        missingProbe.latestProbe = nil
+        expect(!missingProbe.pilotQualified, "A first-success date without its latest probe cannot qualify a pilot")
+        var contradictedPilot = OvernightMotionArchive(trials: [trial])
+        contradictedPilot.updatePilotEvidence()
+        contradictedPilot.trials[0].latestProbe = .init(pilotProbe: true, requestedAt: origin.addingTimeInterval(900),
+            completedAt: origin.addingTimeInterval(901), count: 0, useful: false,
+            first: nil, last: nil, nilChunks: 1, emptyChunks: 0, cancelled: false, error: nil)
+        contradictedPilot.updatePilotEvidence()
+        expect(!contradictedPilot.trials[0].pilotQualified && contradictedPilot.pilotEvidence == nil,
+            "A newer incomplete probe revokes qualification despite an earlier timely success")
+        expect(contradictedPilot.trials[0].firstUsefulProbeAt == trial.firstUsefulProbeAt
+            && contradictedPilot.trials[0].fullSummary?.count == good.count,
+            "Revoking qualification retains the earlier visibility date and full summary")
         for _ in 0..<4 {
             var finished = OvernightMotionTrial(mode: .comparison, start: origin, uptime: 1000, configuration: .init(), battery: nil)
             finished.phase = .elapsed
@@ -254,6 +272,10 @@ import Foundation
         qualified.configuration.watchOS = WKInterfaceDevice.current().systemVersion
         qualified.configuration.appBuild = retrieval.build
         qualified.firstUsefulProbeAt = qualified.start.addingTimeInterval(700)
+        qualified.latestProbe = .init(pilotProbe: true, requestedAt: qualified.start.addingTimeInterval(699),
+            completedAt: qualified.start.addingTimeInterval(700), count: 3000, useful: true,
+            first: qualified.start.addingTimeInterval(540), last: qualified.start.addingTimeInterval(599.98),
+            nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
         var qualification = OvernightMotionArchive(trials: [qualified])
         qualification.updatePilotEvidence()
         var previousBuild = qualification
@@ -283,6 +305,32 @@ import Foundation
         SyntheticRecorder.shared.configure()
         let unlocked = OvernightMotionCoordinator(owner: owner, defaults: defaults)
         expect(unlocked.canStart(.overnight), "Qualified pilot unlocks overnight on matching OS/build")
+        SyntheticRecorder.shared.configure(output: .missing)
+        unlocked.retrieve(pilotProbe: true)
+        await settle(unlocked)
+        expect(!unlocked.pilotReady && !unlocked.canStart(.overnight)
+            && unlocked.latest?.latestProbe?.useful == false,
+            "Actual incomplete retrieval closes the overnight gate")
+        expect(unlocked.latest?.firstUsefulProbeAt == qualified.firstUsefulProbeAt
+            && unlocked.latest?.fullSummary?.count == 60_000,
+            "The coordinator retains earlier successful evidence alongside the conflicting probe")
+        let rejectedAfterRelaunch = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(!rejectedAfterRelaunch.pilotReady && !rejectedAfterRelaunch.canStart(.overnight),
+            "Revoked qualification remains revoked after relaunch")
+        SyntheticRecorder.shared.configure()
+        unlocked.retrieve(pilotProbe: true)
+        await settle(unlocked)
+        expect(unlocked.pilotReady && unlocked.canStart(.overnight)
+            && unlocked.latest?.firstUsefulProbeAt == qualified.firstUsefulProbeAt,
+            "A usable retry restores qualification using the retained early visibility observation")
+        SyntheticRecorder.shared.configure(output: .slow)
+        unlocked.retrieve(pilotProbe: true)
+        unlocked.applicationStateChanged("background")
+        await settle(unlocked)
+        expect(unlocked.pilotReady && unlocked.latest?.latestProbe?.useful == true
+            && unlocked.latest?.observations.last?.cancelled == true,
+            "A cancelled probe retains qualification and cannot replace completed evidence")
+        SyntheticRecorder.shared.configure()
         unlocked.refreshClock(now: Date().addingTimeInterval(86400), uptime: 100)
         expect(unlocked.latest?.clockDiscontinuity == false && unlocked.pilotReady && unlocked.latest?.firstUsefulReadAt == firstRead,
                "A reboot after completed retrieval cannot rewrite past evidence or remove qualification")
@@ -297,6 +345,12 @@ import Foundation
             "A later clock-uncertain read retains the completed summary and first observation")
         expect(laterRead.latest?.observations.last?.clockDiscontinuity == true
             && laterRead.latest?.observations.last?.useful == false, "A new read with uncertain timing cannot claim visibility")
+        laterRead.retrieve(pilotProbe: true)
+        await settle(laterRead)
+        expect(laterRead.pilotReady && laterRead.latest?.latestProbe?.useful == true
+            && laterRead.latest?.observations.last?.clockDiscontinuity == true
+            && laterRead.latest?.observations.last?.useful == false,
+            "A clock-uncertain probe preserves completed qualification without claiming new visibility")
         unlocked.start(.overnight, configuration: .init())
         expect(unlocked.latest?.mode == .overnight && SyntheticRecorder.shared.recordCount == 1, "Qualified overnight issues one request")
         owner.release(.overnightMotion)
@@ -329,6 +383,6 @@ import Foundation
         expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
         night.configuration.charging = "Yes"
         expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
-        print("PASS: streaming chunks, timing failures, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, cancellation, summary replacement and battery comparisons")
+        print("PASS: streaming chunks, timing failures, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, conflicting probes, cancellation, summary replacement and battery comparisons")
     }
 }

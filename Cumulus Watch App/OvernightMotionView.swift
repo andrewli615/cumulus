@@ -109,6 +109,10 @@ struct OvernightMotionView: View {
                         Text(trial.morningVisibility).font(.caption2).foregroundStyle(.secondary)
                         if let probe = trial.latestProbe {
                             ExperimentMetric(label: "Latest pilot block", value: "\(probe.count) samples · \(probe.useful ? "criteria met" : "incomplete")")
+                            if !probe.useful && trial.firstUsefulProbeAt != nil {
+                                Text("Earlier success retained; the latest block has not met criteria. Pilot not qualified.")
+                                    .font(.caption2).foregroundStyle(.orange)
+                            }
                         }
                     }
                     NavigationLink("Timing, battery & history") {
