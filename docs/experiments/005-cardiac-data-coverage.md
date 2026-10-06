@@ -1,6 +1,6 @@
 # Experiment 005: Cardiac-data coverage
 
-Status: reader and screen implemented; physical trial pending. Software verification is recorded below.
+Status: reader and screen implemented; physical trial completion and outcomes unknown. Software verification is recorded below.
 
 ## Question
 
@@ -70,7 +70,29 @@ The synthetic suite compiles the actual reader and summary calculations against 
 
 ## Result
 
-Pending physical cardiac inspection. The owner reported completing the previous UI, sleep-history, and reporting steps on 2026-10-06; detailed sleep-history outcomes and configuration were not supplied, so no further result is inferred here. Preserve the prior experiment observations and their evidence limits.
+No specific Experiment 005 observation or completion report has been supplied. The earlier “steps 1–3 done” statement concerned the UI/sleep-history procedure before this screen was implemented; it does not establish a cardiac result.
+
+| Observation | Recorded evidence |
+| --- | --- |
+| Cardiac physical trial performed | **Unknown**. |
+| Readable heart-rate, SDNN, or heartbeat-series results | **Unknown** for each type. |
+| Grouped heart-rate records with quantity count greater than one | **Unknown**. |
+| Readable heartbeat series | **Unknown**. |
+| Counts, source spans/gaps, units, dates, and Health comparisons | **Unknown**. |
+| Errors, invalid-record/truncation warnings, refresh, and clearing | **Unknown**. |
+| Watch model, watchOS, build, time zone, settings, and trial times | **Unknown**. |
+| Independent inspection of physical records | Not performed by Codex. |
+
+Historical availability is **unclassified pending physical observations**. No personal values or raw records need to enter Git.
+
+### Conditional internal-timing follow-up
+
+- If grouped heart-rate records are confirmed, consider a focused quantity-series reader to inspect contained value timestamps, boundaries, and gaps. A grouped count alone does not establish continuous sensing.
+- If heartbeat series are confirmed, consider a focused beat-timing reader that preserves gap flags and excludes intervals crossing missing beats.
+- If neither appears in the observed window, do not add either reader solely because the API exists. Record the window and sources. Broader inspection needs a specific reason, such as a known source or night expected to contain series.
+- While both outcomes remain unknown, defer that implementation and obtain the observation first. No internal-timing reader is added by this documentation change.
+
+[Experiment 006](006-overnight-motion.md) independently plans overnight motion feasibility. It is plan only and cannot be run in the current app.
 
 ## Learning exercise
 

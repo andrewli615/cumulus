@@ -9,12 +9,12 @@ A watchOS smart-alarm research app for learning which Watch measurements can sup
 | Motion probe | Foreground acceleration and readable heart-rate age | One owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
 | Scheduled alert test | Requests a session three minutes ahead and a haptic while running | Original mixed results, then owner-reported successful retest after changing Watch haptics. [Experiment 001](docs/experiments/001-scheduled-alert.md) |
 | Background motion test | Collects 60 seconds of sample timing/count summaries | Owner reports both background trials and manual-stop check passed. [Experiment 003](docs/experiments/003-background-motion.md) |
-| Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; owner reports completing UI and sleep-history checks; detailed outcomes were not supplied. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
-| Cardiac history | Reads stored heart rate, SDNN, and heartbeat-series metadata with source-specific gap summaries | Implemented; physical inspection pending. [Experiment 005](docs/experiments/005-cardiac-data-coverage.md) |
+| Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; owner reports procedure completion; individual outcomes and trial details are unknown. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
+| Cardiac history | Reads stored heart rate, SDNN, and heartbeat-series metadata with source-specific gap summaries | Implemented; physical outcomes, grouped quantities, and series availability unknown. [Experiment 005](docs/experiments/005-cardiac-data-coverage.md) |
 
 The physical reports support only the tested conditions. Exact trial measurements and setup details were not supplied, and summaries were not independently inspected. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** inspect Cardiac history using Experiment 005. Then use its observations to review internal series timing and overnight motion feasibility. See [the build plan](docs/BUILD_PLAN.md) and [sleep research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md).
+**Next:** record the nonpersonal observations from Experiments 004/005. Internal cardiac timing inspection is conditional on observed grouped quantities or heartbeat series. [Experiment 006](docs/experiments/006-overnight-motion.md) now plans overnight motion feasibility; the current app has no overnight recorder, so review and implement that milestone before trying its procedure. See [the build plan](docs/BUILD_PLAN.md) and [sleep research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md).
 
 ## Open in Xcode
 

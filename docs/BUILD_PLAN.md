@@ -2,7 +2,7 @@
 
 Cumulus will investigate accessible Watch measurements, apply explainable mathematical features, test their biological interpretation, and use validated inputs to inform a wake decision. Raw motion, derived health measurements, and Apple's sleep classifications are different kinds of evidence. Access to historical data does not establish access to timely live data.
 
-Each chunk requires owner review before editing its files. Explain the behavior, data flow, technical risk, and one alternative; then show the diff and relevant verification. The owner commits. Approval of one chunk does not approve later chunks.
+Each chunk requires owner review before editing its files. Explain the behavior, data flow, technical risk, and one alternative; then show the diff and relevant verification. Under the owner's standing request, Codex makes periodic commits after relevant checks pass. Approval of one chunk does not approve later chunks.
 
 | Chunk | Deliverable | Exit question |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ The reviewed implementation now adds the background screen, session coordinator,
 
 [Experiment 004](experiments/004-sleep-stage-feasibility.md) now has a read-only HealthKit reader and Sleep history screen showing category, original start/end dates, and source. Read / Refresh takes an in-memory snapshot of intervals overlapping the preceding seven days. It shows up to 500 intervals with explicit truncation, preserves overlaps, and clears records on screen exit or background entry. Empty results do not imply permission denial. This is historical reference-data inspection, not Cumulus sleep detection.
 
-Signing-free device/simulator builds and focused synthetic reader checks passed. Interactive UI checks and physical record availability remain pending. The owner subsequently reported completing the UI, sleep-history, and reporting steps on October 6. Detailed outcomes and configuration were not supplied; retain that evidence limit before using the records as a reference.
+Signing-free device/simulator builds and focused synthetic reader checks passed. Codex has not independently inspected the physical/UI outcomes. The owner subsequently reported completing the UI, sleep-history, and reporting steps on October 6. Detailed outcomes and configuration were not supplied; retain that evidence limit before using the records as a reference.
 
 The reader checks are now repeatable through `./scripts/check-sleep-history.sh`; see [test coverage](../Tests/README.md). Software implementation is complete for this chunk; the owner reports completing physical inspection, with detailed outcomes unspecified.
 
@@ -68,9 +68,15 @@ The reader checks are now repeatable through `./scripts/check-sleep-history.sh`;
 
 Records and summaries stay in memory and clear on exit/background. Verify physical availability and UI behavior with Experiment 005 before selecting model inputs. The repeatable reader checks run through `./scripts/check-cardiac-history.sh`.
 
+## Planned chunk: overnight motion feasibility
+
+[Experiment 006](experiments/006-overnight-motion.md) is a documentation plan, not an app feature. It defines a recorder availability gate and 20-minute pilot before two eight-hour recording nights and a comparable nonrecording night. Prewritten criteria cover sample/bucket timing, gaps, retrieval observations, battery change, and errors. Retrospective usefulness and timely visibility are separate decisions.
+
+The next implementation requires owner review, bounded off-main-thread retrieval/diagnostics, permission and interruption handling, and software checks. No overnight trial can be run in the current app. Raw motion stays outside Git; this plan authorizes no private raw-data export.
+
 ## Subsequent proposals
 
-After reviewing cardiac coverage, propose internal series timing and other stored-record coverage checks separately. Overnight motion recording, offline model comparison, and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
+Internal series timing is conditional on observed grouped quantities or heartbeat series in Experiment 005. Both are currently unknown; defer that reader unless observations provide a reason. Other stored-record coverage remains separately reviewed. Overnight motion recording, offline model comparison, and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
 
 The research changes the order of work: an explainable feature remains valuable as a baseline, but signal availability and timing must inform its design. A 30-minute alarm session does not exclude a different system-managed recording path. Conversely, retrospective data access does not establish timely availability for an alarm.
 

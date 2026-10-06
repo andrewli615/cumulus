@@ -1,6 +1,6 @@
 # Experiment 004: Inspect stored sleep-stage records
 
-Status: reader and screen implemented; software checks passed; physical record availability and interactive UI checks pending.
+Status: reader and screen implemented; software checks passed. Owner reports completing the UI and sleep-history procedure; detailed outcomes remain unknown.
 
 ## Question
 
@@ -37,7 +37,7 @@ Apple Health may combine or present records differently from this source-preserv
 3. Open Sleep history and tap Read / Refresh. Respond to the read-access request as intended. Record whether the result is readable intervals, empty, unavailable, or an explicit error. Do not interpret an empty result as confirmed denial.
 4. For readable records, privately compare several intervals against the same dates and sources in Apple Health, including a night crossing midnight and any overlapping in-bed/stage intervals available. Record category, boundaries, source, query window, and read time. Note truncation and unknown category values rather than hiding them.
 5. Refresh and confirm records are replaced rather than appended. Navigate away and return: the list should be cleared until another read. Repeat by backgrounding the app. Where practical, leave while a query is pending and verify old results do not reappear.
-6. Inspect the screen on the Watch, especially long source identifiers, dates, scrolling, and error/truncation messages. Check navigation among all four destinations. Simulator layout checks may also help, but cannot establish physical HealthKit availability.
+6. Inspect the screen on the Watch, especially long source identifiers, dates, scrolling, and error/truncation messages. Check navigation among the implemented destinations. Simulator layout checks may also help, but cannot establish physical HealthKit availability.
 7. Record missing stages and discrepancies without inventing missing data. An optional later read can establish when a record was first observed by Cumulus; a single historical query cannot reveal its original availability time.
 
 ## Decision criteria
@@ -46,17 +46,30 @@ Apple Health may combine or present records differently from this source-preserv
 - **Availability inconclusive:** no readable records, unexplained source/date discrepancies, errors, or incomplete observations prevent that conclusion. Identify one next check rather than assuming permission denial or no sleep.
 - **Software defect:** displayed categories/dates/sources disagree with the queried records, stale requests repopulate cleared state, refresh duplicates records, or the UI incorrectly claims live sensing or complete coverage. Fix and retest the affected behavior.
 
-No outcome establishes sleep-stage accuracy or suitability for a live alarm. After this inspection, propose cardiac/other record coverage work separately. Overnight motion and algorithm evaluation remain later reviewed chunks in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md).
+No outcome establishes sleep-stage accuracy or suitability for a live alarm. Cardiac coverage is now implemented in [Experiment 005](005-cardiac-data-coverage.md); use its observations before proposing internal timing work. Overnight motion and algorithm evaluation remain later reviewed chunks in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md).
 
 ## Software verification
 
 - Signing-free Debug builds passed for generic watchOS and watchOS Simulator with Xcode 27 and the existing watchOS 26.6 minimum. Only the skipped AppIntents metadata-extraction warning was reported.
-- A temporary macOS harness compiled the actual reader against synthetic HealthKit doubles. It checked read-only authorization, unavailable/empty/error states, every category and unknown fallback, source/date preservation, truncation, query cancellation, and late authorization/query callbacks. The harness is outside the repository at `/tmp/cumulus-sleep-checks`; it contains no personal records and is not a permanent test target.
-- Interactive navigation/layout remains unverified; Computer Use permission was unavailable during this project. No physical sleep records were queried in these software checks.
+- The reader harness is now repeatable in `Tests/SleepHistoryChecks.swift` through `./scripts/check-sleep-history.sh`. It compiles the actual reader against synthetic HealthKit doubles and checks read-only authorization, unavailable/empty/error states, categories, source/date preservation, truncation, cancellation, and late authorization/query callbacks. It uses no personal records.
+- Codex did not inspect interactive navigation/layout because Computer Use permission was unavailable. The owner later reported completing the UI procedure. No physical sleep records were queried in the synthetic checks.
 
 ## Result
 
-Pending owner-run physical inspection. No sleep records, screenshots, or raw device logs are stored here. Experiments 001 and 003 retain their existing owner-reported results and evidence limits.
+On 2026-10-06, the owner said the prior UI, sleep-history, and reporting steps were done. This confirms reported procedure completion, without supplying the individual observations required for the availability decision.
+
+| Observation | Recorded evidence |
+| --- | --- |
+| UI and sleep-history procedure performed | Owner reports completion. |
+| Readable intervals versus empty/error result | **Unknown**; no specific result supplied. |
+| Category/date/source comparison with Apple Health | **Unknown**. |
+| Refresh replacement and clear-on-exit/background outcomes | **Unknown**; no individual outcome supplied. |
+| Errors, truncation, unknown categories, and discrepancies | **Unknown**. |
+| Watch model, watchOS, build, time zone, and permission choices | **Unknown** for this trial; do not reuse earlier device assumptions. |
+| Trial date/time, counts, query window, and read time | **Unknown**; October 6 is the report date. |
+| Independent inspection of records or summaries | Not performed by Codex. |
+
+Readable reference-data availability remains **unclassified pending details**, rather than inferred from “done.” No personal records, screenshots, or raw device logs are needed to report the outcome. Experiments 001 and 003 retain their existing observations and evidence limits.
 
 ## Learning exercise
 

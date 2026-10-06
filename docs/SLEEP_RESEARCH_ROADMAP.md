@@ -2,7 +2,7 @@
 
 Research reviewed: 2026-10-05
 
-Status: sleep-history and cardiac-history readers implemented. The owner reports completing the sleep/UI procedure, with detailed outcomes unspecified; cardiac inspection is pending. Later implementation chunks require separate owner review. No production staging algorithm is selected.
+Status: sleep-history and cardiac-history readers implemented. The owner reports completing the sleep/UI procedure, with detailed outcomes unspecified; cardiac outcomes are unknown. Experiment 006 is plan only; no overnight recorder is implemented. Later implementation chunks require separate owner review. No production staging algorithm is selected.
 
 ## Evidence we have
 
@@ -18,13 +18,13 @@ See [Experiment 001](experiments/001-scheduled-alert.md), [Experiment 003](exper
 | Step | Proposed work | Evidence needed before building on it |
 | --- | --- | --- |
 | 1. Align documentation | Preserve results, qualify evidence, and record this sequence. | Consistent status summaries and source links. Implemented; keep summaries aligned as evidence changes. |
-| 2. Inspect available records | Sleep and cardiac history implemented; cardiac availability inspection pending. Respiratory rate, wrist temperature, and internal series timing remain separately reviewed queries. | Categories, source attribution, measurement dates, coverage/gaps, and first observed availability. Empty records are not proof of denied permission. |
-| 3. Test overnight motion | A separate `CMSensorRecorder` feasibility experiment, starting with a short availability check before an overnight trial. | Predefined criteria for continuity, sample rate, retrieval lag, battery, and storage; record actual configuration. Decide separately whether data suits offline research and timely decisions. |
+| 2. Inspect available records | Sleep and cardiac history implemented; detailed physical outcomes unknown. Internal cardiac timing is conditional on confirmed grouped quantities or heartbeat series; respiratory rate and wrist temperature remain separately reviewed. | Categories, source attribution, measurement dates, coverage/gaps, and first observed availability. Empty records are not proof of denied permission. |
+| 3. Test overnight motion | [Experiment 006](experiments/006-overnight-motion.md) planned: availability gate, pilot, two eight-hour trials, and battery comparison. No app implementation yet. | Predefined criteria for continuity, sample rate, retrieval lag, battery, and storage; record actual configuration. Decide separately whether data suits offline research and timely decisions. |
 | 4. Reproduce offline baselines | Audit BIDSleep/SLAMSS-IFS code, dataset version, license, labels, preprocessing, and acquisition requirements; compare with an explainable feature model. | Reproducible participant-separated evaluation, per-class errors, and compatible signal coverage. Do not mix one participant's nights between train and test. |
 | 5. Evaluate an alarm-window estimator | Use only data available by the decision time, with explicit missing-data and uncertain outputs. | Causal replay, measured latency, calibration, useful coverage, and performance under missing/stale inputs. Define acceptance thresholds before testing. |
 | 6. Evaluate the alarm experience | Separate alert-reliability testing from testing whether the timing rule improves waking outcomes. | A prewritten comparison protocol and outcome measures. Stage agreement alone does not establish an improved waking experience. |
 
-The next action is physical cardiac inspection in [Experiment 005](experiments/005-cardiac-data-coverage.md). The owner reports completing the previous UI/sleep-history steps on October 6; detailed outcomes and configuration were not supplied. Both readers are implemented; additional record and internal-series queries require a separate proposal. No personal-data recording, dataset download, model training, SensorKit application, or later code change is authorized by this plan. The owner reviews and commits each chunk.
+The next actions are recording the missing physical observations in [Experiments 004](experiments/004-sleep-stage-feasibility.md) and [005](experiments/005-cardiac-data-coverage.md), and reviewing the [Experiment 006 plan](experiments/006-overnight-motion.md) before an implementation proposal. Internal timing work is deferred while grouped-record and beat-series outcomes are unknown. The owner reports completing the previous UI/sleep-history steps on October 6; detailed outcomes and configuration were not supplied. Both readers are implemented; additional record and internal-series queries require a separate proposal. No personal-data recording, dataset download, model training, SensorKit application, or later code change is authorized by this plan. The owner reviews each chunk; Codex makes periodic verified commits under the standing request.
 
 ## Signal access determines model choice
 
