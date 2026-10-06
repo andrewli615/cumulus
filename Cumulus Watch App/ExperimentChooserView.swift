@@ -12,7 +12,7 @@ struct ExperimentChooserView: View {
                     Text("Explore your\nWatch data.")
                         .font(.title2.bold())
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Four small experiments.")
+                    Text("Five small experiments.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if owner.current != .none {
@@ -20,7 +20,7 @@ struct ExperimentChooserView: View {
                         ExperimentHeading(title: "Session status", symbol: "clock")
                         Text(owner.current == .unresolved ? "Session ownership unresolved" : (owner.current == .alert ? coordinator.status : background.status))
                             .font(.caption)
-                        Text("Finish the scheduled experiment before opening motion or sleep history.")
+                        Text("Finish the scheduled experiment before opening motion or health history.")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                 }
@@ -44,6 +44,12 @@ struct ExperimentChooserView: View {
                     SleepHistoryView()
                 } label: {
                     ExperimentDestination(title: "Sleep history", subtitle: "Explore stored intervals", symbol: "moon.zzz.fill")
+                }
+                .disabled(owner.current != .none)
+                NavigationLink {
+                    CardiacHistoryView()
+                } label: {
+                    ExperimentDestination(title: "Cardiac history", subtitle: "Heart records & coverage", symbol: "heart.text.square")
                 }
                 .disabled(owner.current != .none)
                 Text("Research in progress. Keep an independent alarm.")

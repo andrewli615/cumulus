@@ -5,7 +5,7 @@
     <key>NSMotionUsageDescription</key>
     <string>Cumulus uses motion for a foreground probe and an explicitly scheduled 60-second background measurement experiment. Only bounded timing and count summaries are saved for the background test.</string>
     <key>NSHealthShareUsageDescription</key>
-    <string>Cumulus reads heart-rate records to show their values and age, and sleep records to show historical categories, times, and sources. These health records stay in memory and are not saved or exported.</string>
+    <string>Cumulus reads heart-rate, heart-rate variability (SDNN), and heartbeat-series records to inspect values, dates, sources, and coverage, and sleep records to show historical categories, times, and sources. These health records stay in memory and are not saved or exported.</string>
     <key>WKApplication</key>
     <true/>
     <key>WKBackgroundModes</key>
