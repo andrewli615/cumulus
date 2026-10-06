@@ -194,6 +194,11 @@ private struct OvernightTrialView: View {
                         ExperimentMetric(label: "Largest gap", value: seconds(summary.maximumGap))
                         ExperimentMetric(label: "Leading / trailing", value: "\(seconds(summary.leadingGap)) / \(seconds(summary.trailingGap))")
                         ExperimentMetric(label: "Invalid / order anomalies", value: "\(summary.invalid) / \(summary.outOfOrder)")
+                        if summary.outOfOrder > 0 {
+                            NavigationLink("Inspect order anomalies") {
+                                OvernightOrderAnomaliesView(summary: summary)
+                            }
+                        }
                         ExperimentMetric(label: "Expected overlap / outside window", value: "\(summary.boundaryDuplicates) / \(summary.outsideWindow)")
                         ExperimentMetric(label: "Nil / empty chunks", value: "\(summary.nilChunks) / \(summary.emptyChunks)")
                         ExperimentMetric(label: "Unexpected objects", value: String(summary.unexpectedObjects))
@@ -263,5 +268,26 @@ private struct OvernightTrialView: View {
                 }
             } else { Text("Trial no longer retained; only three recent trials are stored.") }
         }.navigationTitle("Trial details")
+    }
+}
+
+private struct OvernightOrderAnomaliesView: View {
+    let summary: OvernightMotionSummary
+    var body: some View {
+        ExperimentPage {
+            ExperimentCard {
+                ExperimentHeading(title: "Order anomalies", symbol: "list.bullet")
+                ExperimentMetric(label: "Recorded total", value: String(summary.outOfOrder))
+                if let counts = summary.orderAnomalyCounts {
+                    ExperimentMetric(label: "Repeated time pair", value: String(counts.exactTimeRepeats))
+                    ExperimentMetric(label: "Date only", value: String(counts.dateOnly))
+                    ExperimentMetric(label: "Sensor time only", value: String(counts.sensorTimeOnly))
+                    ExperimentMetric(label: "Both time fields", value: String(counts.bothTimes))
+                    Text("Compared with the last accepted sample. Counts identify times that did not increase, not their cause. Expected chunk overlap is separate.").font(.caption2)
+                } else {
+                    Text("Breakdown unavailable for this older summary. The recorded total is unchanged.").font(.caption2)
+                }
+            }
+        }.navigationTitle("Order anomalies")
     }
 }

@@ -28,6 +28,9 @@ import Foundation
     static func invalid(_ archive: OvernightMotionArchive, _ message: String) {
         do { try archive.validate(); fatalError(message) } catch {}
     }
+    static func invalid(_ summary: OvernightMotionSummary, _ message: String) throws {
+        do { try summary.validate(); fatalError(message) } catch OvernightArchiveError.invalid {}
+    }
 
     @MainActor static func main() async throws {
         let good = uniform()
@@ -58,6 +61,47 @@ import Foundation
         expect(anomalies.clockDiscontinuity && !anomalies.meetsTimingCriteria, "Uptime/wall-clock mismatch fails timing")
         expect(OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(-10)).buckets.isEmpty, "Invalid window cannot allocate a negative range")
         expect(OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(28800)).buckets.count == 960, "Eight-hour bucket bound")
+
+        var orderTypes = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(60))
+        let acceptedDate = origin.addingTimeInterval(10)
+        orderTypes.receive(date: acceptedDate, uptime: 1010, axesFinite: true, chunkStart: origin)
+        orderTypes.receive(date: acceptedDate, uptime: 1010, axesFinite: true, chunkStart: acceptedDate)
+        expect(orderTypes.boundaryDuplicates == 1 && orderTypes.orderAnomalyCounts?.total == 0,
+               "Expected chunk overlap is excluded from the anomaly breakdown")
+        orderTypes.receive(date: acceptedDate, uptime: 1010, axesFinite: true, chunkStart: origin)
+        orderTypes.receive(date: origin.addingTimeInterval(9), uptime: 1011, axesFinite: true, chunkStart: origin)
+        orderTypes.receive(date: origin.addingTimeInterval(11), uptime: 1009, axesFinite: true, chunkStart: origin)
+        orderTypes.receive(date: origin.addingTimeInterval(9), uptime: 1009, axesFinite: true, chunkStart: origin)
+        let orderCounts = orderTypes.orderAnomalyCounts!
+        expect(orderCounts.exactTimeRepeats == 1 && orderCounts.dateOnly == 1
+            && orderCounts.sensorTimeOnly == 1 && orderCounts.bothTimes == 1,
+               "Order counters distinguish repeated time pairs and each nonincreasing time field")
+        expect(orderTypes.count == 1 && orderTypes.outOfOrder == 4 && orderTypes.buckets[0].outOfOrder == 4
+            && orderCounts.total == orderTypes.outOfOrder && orderTypes.last == acceptedDate && orderTypes.lastUptime == 1010,
+               "Rejected samples retain the existing total and last accepted timestamps")
+        try orderTypes.validate()
+        let encodedOrder = try JSONEncoder().encode(orderTypes)
+        let decodedOrder = try JSONDecoder().decode(OvernightMotionSummary.self, from: encodedOrder)
+        try decodedOrder.validate()
+        expect(decodedOrder.orderAnomalyCounts?.exactTimeRepeats == 1 && decodedOrder.orderAnomalyCounts?.total == 4,
+               "New order counters survive persistence")
+        var legacyOrderJSON = try JSONSerialization.jsonObject(with: encodedOrder) as! [String: Any]
+        legacyOrderJSON.removeValue(forKey: "orderAnomalyCounts")
+        let legacyOrder = try JSONDecoder().decode(OvernightMotionSummary.self,
+            from: JSONSerialization.data(withJSONObject: legacyOrderJSON))
+        try legacyOrder.validate()
+        expect(legacyOrder.orderAnomalyCounts == nil && legacyOrder.outOfOrder == 4
+            && !legacyOrder.meetsTimingCriteria && legacyOrder.timingFailures.contains("Sample order anomalies"),
+               "Older summaries preserve their failure without inventing a breakdown")
+        var invalidCounts = orderTypes
+        invalidCounts.orderAnomalyCounts!.dateOnly = -1
+        try invalid(invalidCounts, "Negative order subtype accepted")
+        invalidCounts = orderTypes
+        invalidCounts.orderAnomalyCounts!.dateOnly = 2
+        try invalid(invalidCounts, "Order breakdown different from its recorded total accepted")
+        invalidCounts = orderTypes
+        invalidCounts.orderAnomalyCounts!.dateOnly = Int.max
+        try invalid(invalidCounts, "Unbounded order subtype accepted")
 
         let recorder = OvernightMotionRecorder()
         SyntheticRecorder.shared.configure()
@@ -383,6 +427,6 @@ import Foundation
         expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
         night.configuration.charging = "Yes"
         expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
-        print("PASS: streaming chunks, timing failures, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, conflicting probes, cancellation, summary replacement and battery comparisons")
+        print("PASS: streaming chunks, timing failures, order anomaly categories and legacy compatibility, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, conflicting probes, cancellation, summary replacement and battery comparisons")
     }
 }

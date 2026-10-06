@@ -90,6 +90,8 @@ The latest qualification fix is **0.1 (3)**. An early useful probe no longer kee
 
 The regression failed before the fix and the overnight suite passed afterward, including revocation/relaunch/retry and preservation during cancelled or clock-uncertain probes. Signing-free Debug Watch/simulator builds passed; both generated apps report **0.1 (3)**. Links, project parsing, and whitespace checks passed. Interactive layout and physical qualification remain unverified.
 
+The current diagnostic build is **0.1 (4)**. New full-window reads split order anomalies into repeated time pairs, date-only, sensor-time-only, and both-field failures relative to the last accepted sample. Expected chunk overlap remains separate; no sample acceptance or qualification threshold changes. **Inspect order anomalies** shows these four bounded counts. Older summaries retain their total with an unknown breakdown. Category, storage-bound, round-trip, and legacy checks passed, including loading the privately copied pilot with its 59,586 samples and 11 anomalies unchanged. Signing-free Debug Watch/simulator builds passed and both generated apps report **0.1 (4)**; interactive layout and physical qualification remain unverified.
+
 ## Current input gate
 
 | Required evidence | Current evidence | Next action |

@@ -1,6 +1,13 @@
 import Foundation
 
 struct OvernightMotionSummary: Codable, Sendable {
+    struct OrderAnomalyCounts: Codable, Sendable {
+        var exactTimeRepeats = 0
+        var dateOnly = 0
+        var sensorTimeOnly = 0
+        var bothTimes = 0
+        var total: Int { exactTimeRepeats + dateOnly + sensorTimeOnly + bothTimes }
+    }
     struct Bucket: Codable, Identifiable, Sendable {
         let id: Int
         var count = 0
@@ -21,6 +28,7 @@ struct OvernightMotionSummary: Codable, Sendable {
     var maximumGap: TimeInterval = 0
     var invalid = 0
     var outOfOrder = 0
+    var orderAnomalyCounts: OrderAnomalyCounts?
     var boundaryDuplicates = 0
     var outsideWindow = 0
     var nilChunks = 0
@@ -35,6 +43,7 @@ struct OvernightMotionSummary: Codable, Sendable {
         let duration = end.timeIntervalSince(start)
         let size = duration.isFinite && duration > 0 && duration <= 28800 ? Int(ceil(duration / 30)) : 0
         buckets = (0..<size).map { Bucket(id: $0) }
+        orderAnomalyCounts = OrderAnomalyCounts()
     }
 
     mutating func receive(date: Date, uptime: TimeInterval, axesFinite: Bool, chunkStart: Date) {
@@ -52,6 +61,13 @@ struct OvernightMotionSummary: Codable, Sendable {
         }
         if let last, let lastUptime, date <= last || uptime <= lastUptime {
             outOfOrder += 1
+            if var counts = orderAnomalyCounts {
+                if date == last, uptime == lastUptime { counts.exactTimeRepeats += 1 }
+                else if date <= last, uptime <= lastUptime { counts.bothTimes += 1 }
+                else if date <= last { counts.dateOnly += 1 }
+                else { counts.sensorTimeOnly += 1 }
+                orderAnomalyCounts = counts
+            }
             if !buckets.isEmpty { buckets[Int(date.timeIntervalSince(start) / 30)].outOfOrder += 1 }
             return
         }
@@ -127,6 +143,12 @@ struct OvernightMotionSummary: Codable, Sendable {
               (count == 0 ? first == nil && last == nil && firstUptime == nil && lastUptime == nil
                   : first != nil && last != nil && firstUptime != nil && lastUptime != nil) else {
             throw OvernightArchiveError.invalid
+        }
+        if let counts = orderAnomalyCounts {
+            guard [counts.exactTimeRepeats, counts.dateOnly, counts.sensorTimeOnly, counts.bothTimes]
+                .allSatisfy({ (0...3_000_000).contains($0) }), counts.total == outOfOrder else {
+                throw OvernightArchiveError.invalid
+            }
         }
         for bucket in buckets {
             let bucketStart = start.addingTimeInterval(Double(bucket.id) * 30)
