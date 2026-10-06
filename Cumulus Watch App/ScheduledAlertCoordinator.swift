@@ -26,9 +26,10 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
     @Published private(set) var canCancel = false
     @Published private(set) var canStop = false
 
-    var canSchedule: Bool { session == nil && !isUnverified && storageError == nil }
+    var canSchedule: Bool { session == nil && !isUnverified && storageError == nil && owner.current == .none }
     var blocksMotionProbe: Bool { session != nil || isUnverified }
 
+    private let owner: ExperimentSessionOwner
     private let defaults: UserDefaults
     private let storageKey = "scheduledAlertExperiment.v1"
     private var session: WKExtendedRuntimeSession?
@@ -38,7 +39,8 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
     private var pendingStop: String?
     private var unresolvedSession = false
 
-    init(defaults: UserDefaults = .standard) {
+    init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard) {
+        self.owner = owner
         self.defaults = defaults
         super.init()
         guard let data = defaults.data(forKey: storageKey) else { return }
@@ -58,7 +60,7 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
     }
 
     func schedule() {
-        guard WKApplication.shared().applicationState == .active, canSchedule else { return }
+        guard WKApplication.shared().applicationState == .active, canSchedule, owner.claim(.alert) else { return }
         let newSession = WKExtendedRuntimeSession()
         session = newSession
         newSession.delegate = self
@@ -195,6 +197,7 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
             self.pendingStop = nil
             self.record("Session invalidated (reason \(reasonCode))", at: date)
             if let errorDetails { self.record("Error: \(errorDetails)", at: date) }
+            self.owner.release(.alert)
         }
     }
 

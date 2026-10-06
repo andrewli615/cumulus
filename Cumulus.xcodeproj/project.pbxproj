@@ -16,6 +16,12 @@
 		A0000000000000000000000A /* ExperimentChooserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* ExperimentChooserView.swift */; };
 		A0000000000000000000000B /* ScheduledAlertCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* ScheduledAlertCoordinator.swift */; };
 		A0000000000000000000000C /* ScheduledAlertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000C /* ScheduledAlertView.swift */; };
+		A0000000000000000000000D /* BackgroundMotionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000D /* BackgroundMotionCoordinator.swift */; };
+		A0000000000000000000000E /* BackgroundMotionTrial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000E /* BackgroundMotionTrial.swift */; };
+		A0000000000000000000000F /* BackgroundMotionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000F /* BackgroundMotionView.swift */; };
+		A00000000000000000000010 /* ExperimentSessionOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ExperimentSessionOwner.swift */; };
+		A00000000000000000000011 /* SleepStageReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* SleepStageReader.swift */; };
+		A00000000000000000000012 /* SleepHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* SleepHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +37,12 @@
 		B0000000000000000000000A /* ExperimentChooserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentChooserView.swift; sourceTree = "<group>"; };
 		B0000000000000000000000B /* ScheduledAlertCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledAlertCoordinator.swift; sourceTree = "<group>"; };
 		B0000000000000000000000C /* ScheduledAlertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduledAlertView.swift; sourceTree = "<group>"; };
+		B0000000000000000000000D /* BackgroundMotionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundMotionCoordinator.swift; sourceTree = "<group>"; };
+		B0000000000000000000000E /* BackgroundMotionTrial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundMotionTrial.swift; sourceTree = "<group>"; };
+		B0000000000000000000000F /* BackgroundMotionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundMotionView.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* ExperimentSessionOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentSessionOwner.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* SleepStageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepStageReader.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* SleepHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +67,12 @@
 		D00000000000000000000002 /* Cumulus Watch App */ = {
 			isa = PBXGroup;
 			children = (
+				B0000000000000000000000D /* BackgroundMotionCoordinator.swift */,
+				B0000000000000000000000E /* BackgroundMotionTrial.swift */,
+				B0000000000000000000000F /* BackgroundMotionView.swift */,
+				B00000000000000000000010 /* ExperimentSessionOwner.swift */,
+				B00000000000000000000011 /* SleepStageReader.swift */,
+				B00000000000000000000012 /* SleepHistoryView.swift */,
 				B00000000000000000000001 /* CumulusApp.swift */,
 				B0000000000000000000000C /* ScheduledAlertView.swift */,
 				B0000000000000000000000B /* ScheduledAlertCoordinator.swift */,
@@ -155,6 +173,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A0000000000000000000000D /* BackgroundMotionCoordinator.swift in Sources */,
+				A0000000000000000000000E /* BackgroundMotionTrial.swift in Sources */,
+				A0000000000000000000000F /* BackgroundMotionView.swift in Sources */,
+				A00000000000000000000010 /* ExperimentSessionOwner.swift in Sources */,
+				A00000000000000000000011 /* SleepStageReader.swift in Sources */,
+				A00000000000000000000012 /* SleepHistoryView.swift in Sources */,
 				A00000000000000000000001 /* CumulusApp.swift in Sources */,
 				A0000000000000000000000C /* ScheduledAlertView.swift in Sources */,
 				A0000000000000000000000B /* ScheduledAlertCoordinator.swift in Sources */,
