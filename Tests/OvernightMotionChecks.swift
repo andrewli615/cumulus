@@ -256,6 +256,29 @@ import Foundation
         qualified.firstUsefulProbeAt = qualified.start.addingTimeInterval(700)
         var qualification = OvernightMotionArchive(trials: [qualified])
         qualification.updatePilotEvidence()
+        var previousBuild = qualification
+        previousBuild.trials[0].configuration.appBuild = "Previous app build"
+        previousBuild.updatePilotEvidence()
+        defaults.set(try JSONEncoder().encode(previousBuild), forKey: "overnightMotion.v1")
+        let buildMismatch = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        let requestsBeforeMismatch = SyntheticRecorder.shared.recordCount
+        buildMismatch.start(.overnight, configuration: .init())
+        expect(!buildMismatch.pilotReady && !buildMismatch.canStart(.overnight)
+            && SyntheticRecorder.shared.recordCount == requestsBeforeMismatch,
+            "A qualifying pilot from another app build cannot issue an overnight request")
+        expect(buildMismatch.storageError == nil && buildMismatch.latest?.start == qualified.start
+            && buildMismatch.latest?.fullSummary?.count == qualified.fullSummary?.count
+            && buildMismatch.latest?.firstUsefulProbeAt == qualified.firstUsefulProbeAt,
+            "A build mismatch preserves the original pilot evidence for inspection")
+        var previousOS = qualification
+        previousOS.trials[0].configuration.watchOS = "Previous watchOS"
+        previousOS.updatePilotEvidence()
+        defaults.set(try JSONEncoder().encode(previousOS), forKey: "overnightMotion.v1")
+        let osMismatch = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        osMismatch.start(.overnight, configuration: .init())
+        expect(!osMismatch.pilotReady && !osMismatch.canStart(.overnight)
+            && SyntheticRecorder.shared.recordCount == requestsBeforeMismatch,
+            "A qualifying pilot from another watchOS cannot issue an overnight request")
         defaults.set(try JSONEncoder().encode(qualification), forKey: "overnightMotion.v1")
         SyntheticRecorder.shared.configure()
         let unlocked = OvernightMotionCoordinator(owner: owner, defaults: defaults)

@@ -42,6 +42,10 @@ For an eight-hour request, retain at most 960 thirty-second bucket summaries, 40
 
 Raw motion data must stay outside Git. This implementation provides no raw-data export or new persistent private recording feature; such storage requires its own retention/deletion proposal. System-managed retention is distinct from Cumulus retaining data. Summaries and nonpersonal outcomes may be documented without adding health records or raw device logs.
 
+The corrected recorder-call timing is identified as app version **0.1 (2)** in both Debug and Release. Earlier revisions shared **0.1 (1)**, so that older identifier alone cannot establish which timing implementation ran. Preserve those trials without attributing a source revision from the number. The existing pilot gate compares the recorded build and watchOS against the running app; changing the build number requires a new qualifying pilot without deleting earlier summaries. Increment the build number whenever collection, timing, or qualification behavior changes. Do not install this build until the outstanding fixed window has ended and its result has been preserved.
+
+Software checks on 2026-10-06 passed for rejection of a qualifying pilot from another build or watchOS, preservation of earlier pilot evidence, and the existing overnight synthetic suite. Signing-free Debug builds passed for generic watchOS and watchOS Simulator; both generated apps report **0.1 (2)**. Project parsing and whitespace checks passed. These checks do not establish physical collection, alert behavior, or interactive layout.
+
 Main risk: readable daytime samples may conceal missing overnight periods, delayed retrieval, or unsustainable battery use. Alternative: retain the existing short session experiment and revisit other collection paths if the system recorder fails availability or continuity checks. No alternative implementation is selected here.
 
 ## Setup and measures
