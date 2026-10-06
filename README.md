@@ -86,4 +86,4 @@ The refresh changes presentation only. Collection, authorization, persistence, a
 - [Platform](docs/PLATFORM.md) and [architecture](docs/ARCHITECTURE.md) — API evidence and implementation boundaries.
 - [Experience](docs/EXPERIENCE.md), [behavior](docs/BEHAVIOR.md), and [decisions](docs/decisions/README.md) — revisable product questions and decision records.
 
-Review each proposed chunk before editing, then inspect its diff and relevant checks. Follow [AGENTS.md](AGENTS.md) for collaboration rules. Keep personal HealthKit data, screenshots, and raw device logs outside the repository.
+Codex explains meaningful changes while working, verifies and reviews each coherent chunk, then commits it with a concise message. Follow [AGENTS.md](AGENTS.md) for collaboration rules. Codex does not push unless asked. Keep personal HealthKit data, screenshots, and raw device logs outside the repository.

@@ -2,7 +2,7 @@
 
 Cumulus will investigate accessible Watch measurements, apply explainable mathematical features, test their biological interpretation, and use validated inputs to inform a wake decision. Raw motion, derived health measurements, and Apple's sleep classifications are different kinds of evidence. Access to historical data does not establish access to timely live data.
 
-Each chunk requires owner review before editing its files. Explain the behavior, data flow, technical risk, and one alternative; then show the diff and relevant verification. The owner reviews and commits the changes. Approval of one chunk does not approve later chunks.
+For each requested chunk, explain the behavior, data flow, technical risk, and one alternative, then implement and verify it without pausing for routine approval. Keep changes small and revisable; inspect the diff and relevant checks. Commit each coherent chunk after its checks pass, write a concise message, and report it. Do not push unless asked. Completing one chunk does not authorize unrelated later work.
 
 | Chunk | Deliverable | Exit question |
 | --- | --- | --- |
