@@ -7,7 +7,9 @@ struct SleepHistoryView: View {
     var body: some View {
         ExperimentPage {
             ExperimentCard {
-                ExperimentHeading(title: "Sleep history", symbol: "moon.zzz.fill")
+                ExperimentPageHeading {
+                    ExperimentHeading(title: "Sleep history", symbol: "moon.zzz.fill")
+                }
                 Text("Your stored intervals.")
                     .font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                 Text("Historical HealthKit records, not live sleep detection.")

@@ -21,7 +21,7 @@ For each requested chunk, explain the behavior, data flow, technical risk, and o
 
 ## Parallel visual design goal
 
-While physical sensor trials run, plan a presentation-only Cumulus identity in [the experience guide](EXPERIENCE.md): one small cloud accent, the existing dark cards and blue actions, and no decorative clutter in data screens. Use system symbols for in-app accents, preserve text and VoiceOver meaning, and create original app-icon artwork only as a later step. This visual work must not alter sensing, HealthKit access, sessions, or experiment outcomes. Verify layout and larger text on the physical Watch; simulator previews are for layout only.
+The presentation-only cloud pass is implemented in [the experience guide](EXPERIENCE.md): one small decorative system cloud at the chooser and each experiment's top heading, the existing dark cards and blue actions, and plain diagnostics. Watch/device-simulator builds and normal/larger-text preview compilation passed; interactive inspection was blocked by macOS screen-capture permission. Physical layout, larger text, and VoiceOver checks remain. Sensing, HealthKit access, sessions, and storage are unchanged. Original app-icon artwork remains a later step; simulator previews are for layout only.
 
 ## Implemented chunk: foreground probe
 

@@ -41,6 +41,16 @@ Start with one compact cloud motif on the experiment chooser or a shared heading
 
 This visual pass is presentation-only: it must not change sensor collection, permissions, alert sessions, or experiment results. Check the physical Watch at normal and larger text sizes, scrolling, and VoiceOver before adopting the treatment across the app.
 
+## Implemented cloud accent
+
+On 2026-10-06, the chooser and each experiment's top heading gained one small blue `cloud.fill` SF Symbol through the shared `ExperimentPageHeading`. The accent sits above the heading to preserve its text width, scales with a semantic caption font, and is hidden from VoiceOver. Existing heading text, experiment symbols, dark cards, and blue actions remain. Diagnostic headings, records, and event histories stay plain. No sensor, HealthKit, session, storage, dependency, asset, or project-setting changes are included.
+
+File purposes: `ExperimentStyle.swift` owns the decorative wrapper and synthetic normal/larger-text previews; `ExperimentChooserView.swift` applies it to the chooser introduction. `ContentView.swift`, `ScheduledAlertView.swift`, `BackgroundMotionView.swift`, `SleepHistoryView.swift`, and `CardiacHistoryView.swift` wrap only their existing top heading. `OvernightMotionView.swift` wraps its introductory title, keeping recorder diagnostics plain. This note records the treatment and verification limits.
+
+Signing-free Debug builds passed for generic watchOS and watchOS Simulator, including previews configured for `.large` and `.xxxLarge` text. Whitespace and diff review passed. Simulator runtimes were available, but interactive preview/layout inspection was blocked when macOS declined screen-capture permission. Compilation is not visual verification. Physical small-screen scrolling, normal/larger text, VoiceOver announcements, and symbol appearance on the minimum supported watchOS 26.6 remain unverified. The attached screenshot showed the earlier motion heading and scrolling/Crown runtime warnings; it is not evidence for the new layout or the cause of those warnings. The existing physical Watch run was left alone.
+
+Learning exercise: open the two `ExperimentStyle.swift` previews and explain why adding the cloud above the heading preserves its width as text grows. On the Watch, confirm that VoiceOver announces the heading without announcing the decorative cloud.
+
 ## First design exercise
 
 Sketch just three states on paper or in Figma: **unset**, **set**, and **needs attention**. For each, write the one thing someone must understand within a few seconds. Leave color, typography, and widgets until these states are clear.

@@ -7,7 +7,9 @@ struct CardiacHistoryView: View {
     var body: some View {
         ExperimentPage {
             ExperimentCard {
-                ExperimentHeading(title: "Cardiac history", symbol: "heart.text.square")
+                ExperimentPageHeading {
+                    ExperimentHeading(title: "Cardiac history", symbol: "heart.text.square")
+                }
                 Text("Explore the last 24 hours.")
                     .font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                 Button {

@@ -10,9 +10,12 @@ struct ExperimentChooserView: View {
         NavigationStack {
             ExperimentPage {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Explore your\nWatch data.")
-                        .font(.title2.bold())
-                        .fixedSize(horizontal: false, vertical: true)
+                    ExperimentPageHeading {
+                        Text("Explore your\nWatch data.")
+                            .font(.title2.bold())
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                    }
                     Text("Six small experiments.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

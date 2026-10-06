@@ -9,7 +9,9 @@ struct BackgroundMotionView: View {
         List {
             Section {
                 ExperimentCard {
-                    ExperimentHeading(title: "Background motion", symbol: "waveform.path")
+                    ExperimentPageHeading {
+                        ExperimentHeading(title: "Background motion", symbol: "waveform.path")
+                    }
                     Text(coordinator.status).font(.headline)
                     Text(coordinator.sensorStatus).font(.caption).foregroundStyle(.secondary)
                     if coordinator.isCollecting, let last = coordinator.latest?.samples?.last {

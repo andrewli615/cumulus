@@ -7,7 +7,9 @@ struct ScheduledAlertView: View {
     var body: some View {
         ExperimentPage {
             ExperimentCard {
-                ExperimentHeading(title: "Scheduled alert", symbol: "alarm")
+                ExperimentPageHeading {
+                    ExperimentHeading(title: "Scheduled alert", symbol: "alarm")
+                }
                 Text(coordinator.status).font(.headline)
                 if let date = coordinator.requestedStart {
                     ExperimentMetric(label: "Requested start", value: date.formatted(date: .abbreviated, time: .standard))

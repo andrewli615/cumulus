@@ -43,6 +43,21 @@ struct ExperimentHeading: View {
     }
 }
 
+struct ExperimentPageHeading<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: "cloud.fill")
+                .font(.caption)
+                .foregroundStyle(.blue.opacity(0.65))
+                .accessibilityHidden(true)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct ExperimentMetric: View {
     let label: String
     let value: String
@@ -59,12 +74,39 @@ struct ExperimentMetric: View {
     }
 }
 
-#Preview {
-    ExperimentPage {
-        ExperimentCard {
-            ExperimentHeading(title: "Sleep history", symbol: "moon.zzz.fill")
-            ExperimentMetric(label: "Source", value: "Synthetic preview")
-            Text("Historical records, ready to explore.").font(.caption)
+#Preview("Normal text") {
+    ExperimentStylePreview().dynamicTypeSize(.large)
+}
+
+#Preview("Larger text") {
+    ExperimentStylePreview().dynamicTypeSize(.xxxLarge)
+}
+
+private struct ExperimentStylePreview: View {
+    var body: some View {
+        ExperimentPage {
+            ExperimentPageHeading {
+                Text("Explore your\nWatch data.")
+                    .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            ExperimentCard {
+                ExperimentPageHeading {
+                    ExperimentHeading(title: "Background motion", symbol: "waveform.path")
+                }
+                Button {} label: {
+                    Text("Stop collection & session")
+                        .frame(maxWidth: .infinity)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            ExperimentCard {
+                ExperimentHeading(title: "Timing diagnostics", symbol: "clock")
+                ExperimentMetric(label: "Source", value: "Synthetic preview")
+                Text("Historical records, ready to explore.").font(.caption)
+            }
         }
     }
 }

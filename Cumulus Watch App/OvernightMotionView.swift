@@ -36,7 +36,12 @@ struct OvernightMotionView: View {
 
     private func page(at now: Date) -> some View {
         ExperimentPage {
-            Text("A night of\nmeasurements.").font(.title2.bold())
+            ExperimentPageHeading {
+                Text("A night of\nmeasurements.")
+                    .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            }
             Text("Experiment 006 · fixed requests, later retrieval")
                 .font(.caption).foregroundStyle(.secondary)
             ExperimentCard {

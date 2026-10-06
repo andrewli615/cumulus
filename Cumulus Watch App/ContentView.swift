@@ -12,7 +12,9 @@ struct ContentView: View {
     var body: some View {
         ExperimentPage {
             ExperimentCard {
-                ExperimentHeading(title: "Motion probe", symbol: "waveform.path.ecg")
+                ExperimentPageHeading {
+                    ExperimentHeading(title: "Motion probe", symbol: "waveform.path.ecg")
+                }
                 Text(isMonitoring ? "Monitoring requested" : "Collection stopped")
                     .font(.caption).foregroundStyle(.secondary)
                 Button {
