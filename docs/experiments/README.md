@@ -1,6 +1,15 @@
 # Experiment log
 
-Record one small experiment per file, for example `001-background-session.md`. A simulator observation does not establish physical Watch alarm behavior.
+Each note is the authoritative record of its procedure, observations, and limitations. Numbers are identifiers, not a required execution order. Simulator observations do not establish physical Watch alarm behavior.
+
+| Experiment | Implementation | Evidence / remaining work |
+| --- | --- | --- |
+| [001: Scheduled alert](001-scheduled-alert.md) | Implemented | Original mixed results preserved; later owner-reported pass after changing haptics. Supported for tested conditions by report; overnight reliability unestablished. |
+| [002: Live data](002-live-data.md) | Foreground probe implemented | One owner-reported motion run; heart freshness remains unresolved. Background evidence belongs to 003. |
+| [003: Background motion](003-background-motion.md) | Implemented | Owner reports two short background trials and manual-stop check passed. Exact summaries were not independently inspected. |
+| [004: Stored sleep records](004-sleep-stage-feasibility.md) | Reader and screen implemented | Software checks passed; physical record inspection and interactive UI checks pending. |
+
+Next: follow Experiment 004, then review subsequent coverage work in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Keep an independent alarm during development. Record only nonpersonal outcome summaries here; keep HealthKit records, screenshots, and raw device logs outside Git.
 
 Template:
 
@@ -17,7 +26,8 @@ If I do [action], I expect [observable result].
 2. ...
 
 ## Observations
-Requested time, actual timestamps, status, logs, battery, errors.
+Requested time, timing offsets, status, battery, and error summaries.
+State missing details explicitly; do not embed personal records or raw device logs.
 
 ## Conclusion
 Supported | contradicted | inconclusive. State limitations.

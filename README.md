@@ -1,31 +1,39 @@
 # Cumulus
 
-A watchOS smart-alarm research project with three experiments: a **foreground motion probe** showing acceleration and readable heart-rate age, a **scheduled alert test** requesting a WatchKit session three minutes ahead, and a **background motion test** collecting 60 seconds of timing/count summaries in a running session. The owner reports a successful physical alert retest after changing Watch haptics; overnight alert reliability remains unestablished. The app does not infer sleep stages or collect overnight sensor data.
+A watchOS smart-alarm research app for learning which Watch measurements can support an explainable wake decision. Four experiment screens are implemented. Cumulus does not yet infer sleep stages or collect overnight sensor data. Keep an independent alarm for real wake requirements.
 
-## The idea
+## Current experiments
 
-Set the latest time you need to wake. During a short window beforehand, Apple Watch may choose an earlier moment to alert you. If no suitable moment is found, it should attempt to alert at the latest time. The reliability of that last step must be measured on a real Watch; this is not yet a dependable replacement for Clock.
+| Screen | What it does | Evidence and next check |
+| --- | --- | --- |
+| Motion probe | Foreground acceleration and readable heart-rate age | One owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
+| Scheduled alert test | Requests a session three minutes ahead and a haptic while running | Original mixed results, then owner-reported successful retest after changing Watch haptics. [Experiment 001](docs/experiments/001-scheduled-alert.md) |
+| Background motion test | Collects 60 seconds of sample timing/count summaries | Owner reports both background trials and manual-stop check passed. [Experiment 003](docs/experiments/003-background-motion.md) |
+| Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; physical record inspection and interactive UI checks pending. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
 
-We want to understand the measurements ourselves: inspect available Watch data, calculate explainable features, test biological interpretations, and use suitable live inputs in a wake decision. Historical records and live measurements must remain distinct.
+The physical reports support only the tested conditions. Exact trial measurements and setup details were not supplied, and summaries were not independently inspected. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-The owner reports that both background runs and the manual-stop check in [Experiment 003](docs/experiments/003-background-motion.md) passed: **background collection is supported under the tested conditions, based on owner confirmation**. Exact measurements and trial-specific device details are unrecorded here; summaries were not independently inspected. The next proposed milestone is one explainable motion feature with synthetic checks, subject to review before implementation. Experiment 001 also has an owner-reported successful retest after changing Watch haptics; neither short experiment establishes overnight reliability or guaranteed wake timing.
+**Next:** inspect Sleep history on the Watch using Experiment 004. Then review a separate proposal for additional record coverage and overnight motion feasibility. See [the build plan](docs/BUILD_PLAN.md) and [sleep research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md).
 
-## Open the experiments in Xcode
+## Open in Xcode
 
-1. Open Xcode and complete any setup prompts. Local builds use Xcode 27.0 (27A266a). Install the watchOS simulator runtime in Xcode Settings → Components if needed.
-2. Open `Cumulus.xcodeproj`. Select the **Cumulus Watch App** scheme and a Watch simulator or paired physical Watch. The minimum deployment target is watchOS 26.6, allowing installation on the owner's Series 8 running that version. Xcode can still build with the watchOS 27 SDK; the SDK and minimum supported OS are separate settings. Device installation and runtime behavior still require verification.
-3. For a physical Watch, select your development team in Signing & Capabilities and replace `com.example.cumulus.watchkitapp` with your own unique bundle identifier. Provisioning must support HealthKit.
-4. Choose **Motion probe**, tap **Start monitoring**, and respond to the heart-data permission request. Watch the acceleration values and sample count. Heart data can be absent or old; its displayed age is part of the experiment. Stop or leave the probe to end collection.
-5. Choose **Scheduled alert test** and tap **Schedule test alert** while active. Requested start is three minutes ahead. **Session scheduled** describes the observed WatchKit state; **Haptic requested** describes an API call, not a perceived alert. Use **Cancel** while pending or **Stop alert** while running, with the app active.
-6. Choose **Background motion test**, enter the trial setup, and schedule while active. After UI review, follow [Experiment 003](docs/experiments/003-background-motion.md) with the debugger detached. The sensor stops after its 60-second window and then requests a haptic; the session ends separately. Do not repeat the October alert trials. Keep an independent alarm and do not reinstall or clear app data during a pending trial.
+1. Open `Cumulus.xcodeproj` and select the **Cumulus Watch App** scheme. Local verification uses Xcode 27; the minimum deployment target is watchOS 26.6. The SDK and minimum supported OS are separate settings.
+2. Select a Watch simulator or paired physical Watch. For device installation, choose your development team in Signing & Capabilities and a unique bundle identifier; provisioning must support HealthKit.
+3. Choose an experiment from the app's chooser. Motion probe uses **Start monitoring**; Sleep history uses **Read / Refresh**. HealthKit results may be empty or old; neither screen requests continuous optical sensing.
+4. Schedule alert and background trials while the app is active, following their linked procedures. **Session scheduled** is an observed software state; **Haptic requested** records an API call, not proof of perception. Cancel or stop with the app active. Do not reinstall or clear app data while a trial is pending.
 
-The owner reported one successful physical foreground motion run: samples reacted to wrist movement and stopped on request. Its device model, OS, and exact counts were unrecorded; see [Experiment 002](docs/experiments/002-live-data.md). October 5 physical testing was **inconclusive**: two of three scheduled trials produced an observed alert and haptic; one did not despite recorded start and haptic-request events. No alert appeared after cancellation. After changing the Watch’s haptics setting, the owner reported that all three repeated scheduled alerts and the cancellation trial passed. Experiment 001 is now **supported for the tested conditions, based on owner report**; the exact setting and retest timings are unspecified and the summaries were not independently inspected. See [Experiment 001](docs/experiments/001-scheduled-alert.md) for both result sets and their limits. Simulator results are not alarm evidence.
+Interactive navigation/layout remains unverified. Simulator builds and synthetic checks do not establish physical sensor or alarm behavior.
 
-On 2026-10-02, the alert milestone passed a signing-free simulator build and synthetic coordinator checks, and installed/launched on a 40 mm Watch simulator. Interactive navigation and layout verification remain pending because Computer Use permission was not granted. See Experiment 001 for the verification limits and private trial worksheet.
+## Verify changes
 
-On 2026-10-05, the background motion implementation passed signing-free device and simulator builds and `./scripts/check-background-motion.sh`. Interactive navigation/layout remains unverified because Computer Use permission was not granted. The physical background trials subsequently passed according to the owner; see Experiment 003 for the evidence limits.
+Run the synthetic suites from the repository root:
 
-After Xcode setup, a signing-free simulator build can be requested from the repository root with:
+```sh
+./scripts/check-background-motion.sh
+./scripts/check-sleep-history.sh
+```
+
+See [Tests/README.md](Tests/README.md) for coverage and limits. A signing-free simulator build:
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
@@ -35,52 +43,32 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -derivedDataPath /tmp/cumulus-derived-data CODE_SIGNING_ALLOWED=NO build
 ```
 
-## Read the implementation
+For a generic device build, use `-sdk watchos` and `-destination 'generic/platform=watchOS'`. Device installation additionally needs signing.
 
-- `Cumulus Watch App/CumulusApp.swift` and `ExperimentChooserView.swift`: app entry and navigation between experiments.
-- `Cumulus Watch App/WatchAppDelegate.swift`: immediately attaches sessions delivered by WatchKit during relaunch.
-- `Cumulus Watch App/ScheduledAlertCoordinator.swift`: session lifecycle, truthful status, and a local history capped at 40 events.
-- `Cumulus Watch App/ScheduledAlertView.swift`: scheduling, cancellation, stop, requested time, and event inspection.
-- `Cumulus Watch App/BackgroundMotionCoordinator.swift`, `BackgroundMotionTrial.swift`, and `BackgroundMotionView.swift`: background collection lifetime, bounded metadata, and trial inspection.
-- `Cumulus Watch App/ExperimentSessionOwner.swift`: exclusive ownership and conservative relaunch routing across scheduled experiments.
-- `Tests/BackgroundMotionChecks.swift` and `scripts/check-background-motion.sh`: repeatable synthetic model/coordinator checks using platform doubles.
-- `Cumulus Watch App/ContentView.swift`: Start/Stop controls, displayed values, and background-stop handling.
-- `Cumulus Watch App/MotionMonitor.swift`: requests 10 Hz acceleration updates and measures observed average frequency from sample timestamps.
-- `Cumulus Watch App/HeartRateReader.swift`: requests read-only heart-rate access, queries records starting 24 hours before Start, and watches for stored updates. It does not turn on continuous heart sensing.
-- `Cumulus Watch App/Info.plist` and `Cumulus.entitlements`: permission explanations, HealthKit capability, and the single Alarm background mode.
-- `Cumulus.xcodeproj/project.pbxproj` and `Assets.xcassets`: native target/build configuration and starter asset slots. The app icon is a placeholder.
+## Find the implementation
 
-The motion probe keeps readings in memory and stops when you leave it. The alert test stores only its requested date, lifecycle bookkeeping, and last 40 timestamped events in local UserDefaults. It collects no motion or HealthKit readings; entry to the motion probe is disabled while either scheduled experiment is attached or unresolved. The background experiment stores the latest five trial summaries, twelve five-second buckets per trial, and up to 40 lifecycle events per trial; it stores no raw vectors or HealthKit readings. A saved pending request alone displays **Unverified after relaunch**, blocks another schedule, and cannot be canceled until WatchKit supplies the session. Keep personal data and raw device logs outside this checkout.
+Xcode groups organize the files by responsibility; source files remain in `Cumulus Watch App/` on disk.
 
-## Working approach
+| Xcode group | Files and purpose |
+| --- | --- |
+| App | `CumulusApp.swift`, `ExperimentChooserView.swift`, `WatchAppDelegate.swift`, `ExperimentSessionOwner.swift`: entry, navigation, relaunch routing, and exclusive session ownership. |
+| Foreground probe | `ContentView.swift`, `MotionMonitor.swift`, `HeartRateReader.swift`: screen, motion callbacks, and read-only heart records. |
+| Scheduled alert | `ScheduledAlertView.swift`, `ScheduledAlertCoordinator.swift`: controls, lifecycle, and event history. |
+| Background motion | `BackgroundMotionView.swift`, `BackgroundMotionCoordinator.swift`, `BackgroundMotionTrial.swift`: trial setup, collection lifetime, and bounded summaries. |
+| Sleep history | `SleepHistoryView.swift`, `SleepStageReader.swift`: historical interval display and read-only snapshot query. |
+| Resources | `Info.plist`, `Cumulus.entitlements`, `Assets.xcassets`: permission explanations, capabilities, and starter assets. The app icon remains a placeholder. |
 
-Apple's public watchOS guidance favors brief, focused interactions and information that is useful at a glance. We will use that guidance to make product decisions, while treating the design as our own. A person should be able to understand the next wake time and whether it is set without navigating through a dashboard.
+Foreground readings and sleep intervals stay in memory. Sleep history clears on screen exit or background entry. Alert diagnostics retain the latest 40 events; background diagnostics retain five trials, twelve five-second buckets per trial, and up to 40 events per trial. These store no raw motion vectors or HealthKit readings. Shared session ownership blocks conflicting experiments and preserves uncertainty after relaunch. See [architecture](docs/ARCHITECTURE.md) for data flow.
 
-1. **Experience:** describe one night and the one or two interactions that matter.
-2. **Behavior:** define what the alarm promises, including uncertainty and failure.
-3. **Platform:** verify watchOS limits from documentation and short device experiments.
-4. **Architecture:** compare simple designs and record decisions.
-5. **Build:** implement one approved vertical slice at a time in the native Xcode Watch App.
-6. **Refine:** test on the wrist, observe timing and clarity, then remove unnecessary complexity.
+## Repository map
 
-## Structure
+- `Cumulus.xcodeproj/` — native Watch target and build configuration.
+- `Cumulus Watch App/` — app implementation and resources.
+- `Tests/` and `scripts/` — synthetic checks and repeatable runners.
+- [Experiment index](docs/experiments/README.md) — procedures, outcomes, and evidence limits.
+- [Build plan](docs/BUILD_PLAN.md) — implemented chunks and future milestones.
+- [Research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md) — signal access, candidate methods, and evaluation rules.
+- [Platform](docs/PLATFORM.md) and [architecture](docs/ARCHITECTURE.md) — API evidence and implementation boundaries.
+- [Experience](docs/EXPERIENCE.md), [behavior](docs/BEHAVIOR.md), and [decisions](docs/decisions/README.md) — revisable product questions and decision records.
 
-```text
-cumulus/
-├── README.md
-├── AGENTS.md
-├── Cumulus.xcodeproj/       Native watchOS project
-├── Cumulus Watch App/      Foreground, alert, and background experiments
-└── docs/
-    ├── EXPERIENCE.md          User moment and Watch interaction
-    ├── BEHAVIOR.md            States, promises, and failure cases
-    ├── PLATFORM.md            Apple API evidence and open questions
-    ├── ARCHITECTURE.md        Options and system boundaries
-    ├── BUILD_PLAN.md          Thin slices and exit criteria
-    ├── decisions/README.md    Why a design choice was made
-    └── experiments/README.md Physical Watch experiment notes
-```
-
-Start with `docs/BUILD_PLAN.md` and `docs/experiments/003-background-motion.md` for the current milestone. The broader experience and architecture documents remain revisable proposals. Alert feasibility precedes background sensor trials; leave unanswered questions open rather than inventing certainty.
-
-References: [Designing for watchOS](https://developer.apple.com/design/human-interface-guidelines/designing-for-watchos), [watchOS Pathway](https://developer.apple.com/watchos/get-started/).
+Review each proposed chunk before editing, then inspect its diff and relevant checks. Follow [AGENTS.md](AGENTS.md) for collaboration rules. Keep personal HealthKit data, screenshots, and raw device logs outside the repository.

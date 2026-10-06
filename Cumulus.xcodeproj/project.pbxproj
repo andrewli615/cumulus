@@ -67,23 +67,12 @@
 		D00000000000000000000002 /* Cumulus Watch App */ = {
 			isa = PBXGroup;
 			children = (
-				B0000000000000000000000D /* BackgroundMotionCoordinator.swift */,
-				B0000000000000000000000E /* BackgroundMotionTrial.swift */,
-				B0000000000000000000000F /* BackgroundMotionView.swift */,
-				B00000000000000000000010 /* ExperimentSessionOwner.swift */,
-				B00000000000000000000011 /* SleepStageReader.swift */,
-				B00000000000000000000012 /* SleepHistoryView.swift */,
-				B00000000000000000000001 /* CumulusApp.swift */,
-				B0000000000000000000000C /* ScheduledAlertView.swift */,
-				B0000000000000000000000B /* ScheduledAlertCoordinator.swift */,
-				B0000000000000000000000A /* ExperimentChooserView.swift */,
-				B00000000000000000000009 /* WatchAppDelegate.swift */,
-				B00000000000000000000002 /* ContentView.swift */,
-				B00000000000000000000003 /* MotionMonitor.swift */,
-				B00000000000000000000004 /* HeartRateReader.swift */,
-				B00000000000000000000005 /* Assets.xcassets */,
-				B00000000000000000000006 /* Info.plist */,
-				B00000000000000000000007 /* Cumulus.entitlements */,
+				D00000000000000000000004 /* App */,
+				D00000000000000000000005 /* Foreground probe */,
+				D00000000000000000000006 /* Scheduled alert */,
+				D00000000000000000000007 /* Background motion */,
+				D00000000000000000000008 /* Sleep history */,
+				D00000000000000000000009 /* Resources */,
 			);
 			path = "Cumulus Watch App";
 			sourceTree = "<group>";
@@ -94,6 +83,65 @@
 				B00000000000000000000008 /* Cumulus.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* CumulusApp.swift */,
+				B0000000000000000000000A /* ExperimentChooserView.swift */,
+				B00000000000000000000009 /* WatchAppDelegate.swift */,
+				B00000000000000000000010 /* ExperimentSessionOwner.swift */,
+			);
+			name = "App";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* Foreground probe */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000002 /* ContentView.swift */,
+				B00000000000000000000003 /* MotionMonitor.swift */,
+				B00000000000000000000004 /* HeartRateReader.swift */,
+			);
+			name = "Foreground probe";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000006 /* Scheduled alert */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000C /* ScheduledAlertView.swift */,
+				B0000000000000000000000B /* ScheduledAlertCoordinator.swift */,
+			);
+			name = "Scheduled alert";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000007 /* Background motion */ = {
+			isa = PBXGroup;
+			children = (
+				B0000000000000000000000F /* BackgroundMotionView.swift */,
+				B0000000000000000000000D /* BackgroundMotionCoordinator.swift */,
+				B0000000000000000000000E /* BackgroundMotionTrial.swift */,
+			);
+			name = "Background motion";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000008 /* Sleep history */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000012 /* SleepHistoryView.swift */,
+				B00000000000000000000011 /* SleepStageReader.swift */,
+			);
+			name = "Sleep history";
+			sourceTree = "<group>";
+		};
+		D00000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000005 /* Assets.xcassets */,
+				B00000000000000000000006 /* Info.plist */,
+				B00000000000000000000007 /* Cumulus.entitlements */,
+			);
+			name = "Resources";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

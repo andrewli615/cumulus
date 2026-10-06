@@ -102,4 +102,4 @@ Physical outcomes above distinguish the original October 5 inconclusive trials f
 
 ## Next step
 
-Preserve both the original mixed results and the subsequent owner-reported pass with its setting-dependent conditions and evidence limits. Background measurement is recorded separately in [Experiment 003](003-background-motion.md). The next proposed milestone is one explainable motion feature with synthetic checks, subject to owner review before implementation. Neither short experiment establishes overnight alert reliability or a wake-deadline guarantee.
+Preserve both the original mixed results and the subsequent owner-reported pass with its setting-dependent conditions and evidence limits. Background measurement is recorded separately in [Experiment 003](003-background-motion.md). The next action is physical inspection of the implemented sleep-history reader in [Experiment 004](004-sleep-stage-feasibility.md); subsequent signal-coverage and model work follows [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Neither short experiment establishes overnight alert reliability or a wake-deadline guarantee.

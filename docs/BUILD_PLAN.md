@@ -17,12 +17,12 @@ Each chunk requires owner review before editing its files. Explain the behavior,
 | 9. Alarm-outcome evaluation | Separate trials of alert reliability and the waking benefit of the decision rule | Does the estimator improve the experience without hiding alert failures? |
 | 10. Refinement | Repeated nights, accessibility, battery, privacy, and architecture decision | What evidence supports release and Watch-only or companion design? |
 
-## First code chunk: foreground probe
+## Implemented chunk: foreground probe
 
-Start from Xcode's standard watchOS App template, keeping its usual app entry, view, and asset structure. Add small motion and HealthKit adapters rather than new modules or a companion app.
+The foreground probe uses the native watchOS target with small motion and HealthKit adapters. It adds no modules or companion app.
 
 - Tap Start to collect motion and read available heart-rate samples after requesting access. Show measurement units, sample age, and errors. An empty query means "No readable samples," not a proven permission denial.
-- Tap Stop to release collection resources. Stop collection when the app enters the background; describe this boundary in the UI. Background monitoring is a later, separately reviewed chunk.
+- Tap Stop to release collection resources. Stop collection when the app enters the background; describe this boundary in the UI. The separate background experiment owns its own collection lifetime.
 - Keep this first chunk's data in memory. No raw logs, HealthKit records, or exports belong in the repository. Persistent private recording requires a later storage decision.
 - Data flow: Core Motion / HealthKit callbacks → timestamped in-memory state → SwiftUI screen. HealthKit query updates do not request continuous optical sensing.
 - Main risk: old heart-rate samples can appear live. Display their age and keep them distinct from newly received motion.
@@ -59,6 +59,8 @@ The reviewed implementation now adds the background screen, session coordinator,
 [Experiment 004](experiments/004-sleep-stage-feasibility.md) now has a read-only HealthKit reader and Sleep history screen showing category, original start/end dates, and source. Read / Refresh takes an in-memory snapshot of intervals overlapping the preceding seven days. It shows up to 500 intervals with explicit truncation, preserves overlaps, and clears records on screen exit or background entry. Empty results do not imply permission denial. This is historical reference-data inspection, not Cumulus sleep detection.
 
 Signing-free device/simulator builds and focused synthetic reader checks passed. Interactive UI checks and physical record availability remain pending. Follow Experiment 004's comparison and clear/refresh procedure before using these records as a reference.
+
+The reader checks are now repeatable through `./scripts/check-sleep-history.sh`; see [test coverage](../Tests/README.md). Software implementation is complete for this chunk, while its physical inspection remains pending.
 
 ## Subsequent proposals
 

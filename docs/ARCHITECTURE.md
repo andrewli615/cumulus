@@ -1,35 +1,48 @@
-# Architecture options
+# Current architecture and open decisions
 
-Architecture follows the desired experience and observed OS behavior. For the first feasibility slice, keep the implementation in the standard watch-only Xcode app target; do not create modules or a companion app.
+Cumulus uses one native watch-only SwiftUI target. Four experiments share a chooser; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
 
-## System boundary
+## Ownership and data flow
 
-- Which actions must work with the iPhone disconnected?
-- Where is the next wake time stored?
-- Which component owns the truth about a scheduled session?
-- Which data, if any, must be retained after waking?
+| Boundary | Current implementation |
+| --- | --- |
+| App lifetime | `CumulusApp` installs `WatchAppDelegate`, which owns both scheduled coordinators and `ExperimentSessionOwner`. |
+| Navigation | `ExperimentChooserView` exposes all four screens. Pending or unresolved session ownership disables the foreground probe and sleep-history entry. |
+| Foreground measurement | `ContentView` owns `MotionMonitor` and `HeartRateReader`. Core Motion callbacks copy numeric values before MainActor display updates. HealthKit queries read stored heart records with their age. Leaving the screen or backgrounding stops the probe. |
+| Scheduled alert | Screen action → `ScheduledAlertCoordinator` → WatchKit session → lifecycle callbacks → diagnostic history and UI state. The coordinator outlives the screen. |
+| Background motion | Screen setup → `BackgroundMotionCoordinator` → running session → dedicated motion queue → locked accumulator → bounded summaries and UI. `BackgroundMotionTrial` holds sample timing/count calculations. The 60-second collection stops before requesting a haptic. |
+| Sleep history | Read / Refresh → `SleepStageReader` → read authorization → snapshot query → Sendable interval values → MainActor UI. Request identity rejects late results after clearing; no query survives screen exit or background entry as an active reader request. |
 
-## Compare two starting options
+Session callbacks hand off identity and event details to MainActor. Old-session callbacks are ignored. Collection stopping and session invalidation are separate events; stopping samples does not itself prove that a session has ended.
 
-| Option | Strength | Risk to investigate |
-| --- | --- | --- |
-| Watch-only | Short path to a wrist-first experience | Scheduling, cancellation, and backup behavior |
-| Watch plus iPhone companion | More room for configuration and possible separate alarm | Synchronization and duplicate alerts |
+## Session ownership and relaunch
 
-## Separate concerns when code begins
+`ExperimentSessionOwner` records which scheduled experiment owns the single session. Coordinators claim ownership before scheduling and release it after confirmed invalidation. `WatchAppDelegate` routes a delivered session to the matching coordinator and attaches its delegate. Conflicting, missing, or unreadable ownership evidence is treated conservatively as unresolved; the background coordinator can attach an unverified session without starting collection.
 
-- **Time and decision rules:** deterministic, independently testable.
-- **Platform integration:** watchOS session, sensors, haptics, and lifecycle.
-- **Experience:** a small number of clear UI states.
-- **Diagnostics:** events sufficient to explain a missed or late alert, with minimal personal data.
+A saved pending request alone is not proof of a live scheduled session. It blocks another schedule until lifecycle evidence resolves it. An interrupted background measurement window is not silently restarted after relaunch.
 
-## Feasibility slice boundary
+## Storage boundaries
 
-- **Screen:** one screen schedules a test alert a few minutes ahead, shows the latest known session state and timestamp, and offers cancellation while the app is active.
-- **Session coordinator:** owns the `WKExtendedRuntimeSession`, sets its delegate before scheduling, receives the scheduled session through the WatchKit extension delegate on relaunch, and sends `notifyUser` only after the session is running.
-- **State and diagnostics:** persist only the scheduled fire date and a short, bounded event history (requested, session started, haptic requested, expired, invalidated, error, canceled). Put timestamps in records so a process restart does not erase the experiment evidence. Never infer “alert delivered” from calling the haptic API.
-- **View:** renders a plain-language state from the coordinator and invokes schedule/cancel actions; it does not own WatchKit session details. Keep the single screen glanceable, use system text styles so text can scale, and expose the state and actions clearly to VoiceOver, following [Apple's public watchOS design guidance](https://developer.apple.com/design/human-interface-guidelines/designing-for-watchos).
+| Data | Retention |
+| --- | --- |
+| Foreground motion and heart readings | In-memory display state only. |
+| Sleep intervals | In-memory snapshot, at most 500 displayed intervals; cleared on exit/background. |
+| Alert diagnostics | Requested date, lifecycle bookkeeping, and latest 40 timestamped events in local UserDefaults. |
+| Background diagnostics | Latest five trial summaries, twelve five-second buckets and at most 40 events per trial, plus lifecycle bookkeeping in local UserDefaults. No raw vectors. |
+| Shared session owner | Local UserDefaults routing state; reconciled with coordinator evidence on launch. |
 
-This boundary is an implementation proposal for the experiment. The session callbacks and haptic API are documented; relaunch timing, cancellation timing and actual haptic delivery must be observed on a physical Watch.
+HealthKit records and raw device logs do not belong in Git. A future private recording feature requires its own retention and deletion design.
 
-Do not create these as folders yet. First draw the state transitions in `BEHAVIOR.md`, then record a concrete boundary decision in `decisions/`.
+## Verification boundary
+
+[The synthetic suites](../Tests/README.md) compile actual implementation files against platform doubles. They check calculations, bounded storage, ownership, and cancellation/error paths. Device and simulator builds check integration with the real SDK. Neither establishes sensor delivery, haptic perception, battery behavior, or overnight reliability. See [experiment records](experiments/README.md) for physical evidence and its limits.
+
+## Open product decisions
+
+- Which signals have sufficient overnight coverage and timely availability for a wake decision?
+- What should happen when those signals are missing or stale?
+- What evidence would justify an independent recording path or an iPhone companion?
+- Which private data, if any, should be retained after waking?
+- What waking benefit and alert reliability must be measured before release?
+
+Keep these questions separate from the implemented experiments. Follow [the build plan](BUILD_PLAN.md) and record future choices in [decisions](decisions/README.md) when evidence supports them.
