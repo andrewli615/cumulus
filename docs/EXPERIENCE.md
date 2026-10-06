@@ -18,6 +18,10 @@ Write this as a short story in the person's words:
 
 The product scenario remains undecided. The experiment uses a short relative delay (a few minutes) to make the session behavior observable without deciding the eventual wake-window interaction.
 
+## Product goal
+
+The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs and wake decision have evidence behind them. The eventual alarm should show whether it is set, whether data is usable, and what fixed latest-wake fallback is armed. The exact wake-window interaction is still open; a saved preference must never be presented as an armed system alarm.
+
 ## Experience principles
 
 - **Glanceable:** show the next wake time and an honest set/unset/error state first.
@@ -28,6 +32,14 @@ The product scenario remains undecided. The experiment uses a short relative del
 - **Accessible:** readable on small Watch displays and usable with VoiceOver.
 
 These principles apply Apple's public advice for short, specialized Watch interactions to this product; they are not a claim about Apple's internal design process. See [Designing for watchOS](https://developer.apple.com/design/human-interface-guidelines/designing-for-watchos) and the [watchOS Pathway](https://developer.apple.com/watchos/get-started/).
+
+## Visual direction
+
+Use a quiet night-sky palette: the existing black background and charcoal cards, with restrained sky-blue actions and a small cloud accent. Lavender can be a secondary decorative accent, never the only way to communicate status. Keep the system typography, readable labels, and clear full-width actions.
+
+Start with one compact cloud motif on the experiment chooser or a shared heading. Use a built-in SF Symbol for an in-app accent, verify it on the minimum supported watchOS version, and hide it from VoiceOver when decorative. Keep detailed records and trial diagnostics free of repeated decoration. If an app icon is designed later, create original artwork rather than using an SF Symbol as the icon or logo.
+
+This visual pass is presentation-only: it must not change sensor collection, permissions, alert sessions, or experiment results. Check the physical Watch at normal and larger text sizes, scrolling, and VoiceOver before adopting the treatment across the app.
 
 ## First design exercise
 

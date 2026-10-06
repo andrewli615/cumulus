@@ -19,6 +19,10 @@ For each requested chunk, explain the behavior, data flow, technical risk, and o
 | 9. Alarm-outcome evaluation | Separate trials of alert reliability and the waking benefit of the decision rule | Does the estimator improve the experience without hiding alert failures? |
 | 10. Personal Watch MVP refinement | Repeated nights, accessibility, battery, privacy, interruptions, and waking benefit | What evidence supports the personal Watch-only release? |
 
+## Parallel visual design goal
+
+While physical sensor trials run, plan a presentation-only Cumulus identity in [the experience guide](EXPERIENCE.md): one small cloud accent, the existing dark cards and blue actions, and no decorative clutter in data screens. Use system symbols for in-app accents, preserve text and VoiceOver meaning, and create original app-icon artwork only as a later step. This visual work must not alter sensing, HealthKit access, sessions, or experiment outcomes. Verify layout and larger text on the physical Watch; simulator previews are for layout only.
+
 ## Implemented chunk: foreground probe
 
 The foreground probe uses the native watchOS target with small motion and HealthKit adapters. It adds no modules or companion app.
