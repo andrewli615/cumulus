@@ -58,13 +58,19 @@ The reviewed implementation now adds the background screen, session coordinator,
 
 [Experiment 004](experiments/004-sleep-stage-feasibility.md) now has a read-only HealthKit reader and Sleep history screen showing category, original start/end dates, and source. Read / Refresh takes an in-memory snapshot of intervals overlapping the preceding seven days. It shows up to 500 intervals with explicit truncation, preserves overlaps, and clears records on screen exit or background entry. Empty results do not imply permission denial. This is historical reference-data inspection, not Cumulus sleep detection.
 
-Signing-free device/simulator builds and focused synthetic reader checks passed. Interactive UI checks and physical record availability remain pending. Follow Experiment 004's comparison and clear/refresh procedure before using these records as a reference.
+Signing-free device/simulator builds and focused synthetic reader checks passed. Interactive UI checks and physical record availability remain pending. The owner subsequently reported completing the UI, sleep-history, and reporting steps on October 6. Detailed outcomes and configuration were not supplied; retain that evidence limit before using the records as a reference.
 
-The reader checks are now repeatable through `./scripts/check-sleep-history.sh`; see [test coverage](../Tests/README.md). Software implementation is complete for this chunk, while its physical inspection remains pending.
+The reader checks are now repeatable through `./scripts/check-sleep-history.sh`; see [test coverage](../Tests/README.md). Software implementation is complete for this chunk; the owner reports completing physical inspection, with detailed outcomes unspecified.
+
+## Implemented chunk: cardiac-data coverage
+
+[Experiment 005](experiments/005-cardiac-data-coverage.md) adds read-only heart-rate, SDNN, and heartbeat-series metadata snapshots for the preceding 24 elapsed hours. It retains at most 2,000, 500, and 50 records respectively, marks truncation, and keeps per-type errors separate. Source-specific summaries merge record spans and include window-edge gaps; they do not establish continuous sensing. Grouped quantity counts are visible. Internal quantity timestamps and individual beat timings/gap flags remain a separate proposal.
+
+Records and summaries stay in memory and clear on exit/background. Verify physical availability and UI behavior with Experiment 005 before selecting model inputs. The repeatable reader checks run through `./scripts/check-cardiac-history.sh`.
 
 ## Subsequent proposals
 
-After reviewing the sleep-history inspection, propose cardiac and other stored-record coverage checks separately. Overnight motion recording, offline model comparison, and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
+After reviewing cardiac coverage, propose internal series timing and other stored-record coverage checks separately. Overnight motion recording, offline model comparison, and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
 
 The research changes the order of work: an explainable feature remains valuable as a baseline, but signal availability and timing must inform its design. A 30-minute alarm session does not exclude a different system-managed recording path. Conversely, retrospective data access does not establish timely availability for an alarm.
 

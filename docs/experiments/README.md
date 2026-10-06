@@ -7,9 +7,10 @@ Each note is the authoritative record of its procedure, observations, and limita
 | [001: Scheduled alert](001-scheduled-alert.md) | Implemented | Original mixed results preserved; later owner-reported pass after changing haptics. Supported for tested conditions by report; overnight reliability unestablished. |
 | [002: Live data](002-live-data.md) | Foreground probe implemented | One owner-reported motion run; heart freshness remains unresolved. Background evidence belongs to 003. |
 | [003: Background motion](003-background-motion.md) | Implemented | Owner reports two short background trials and manual-stop check passed. Exact summaries were not independently inspected. |
-| [004: Stored sleep records](004-sleep-stage-feasibility.md) | Reader and screen implemented | Software checks passed; physical record inspection and interactive UI checks pending. |
+| [004: Stored sleep records](004-sleep-stage-feasibility.md) | Reader and screen implemented | Software checks passed; owner reports completing UI/sleep-history steps on October 6, with detailed outcomes unspecified. |
+| [005: Cardiac-data coverage](005-cardiac-data-coverage.md) | Reader and screen implemented | Physical cardiac inspection pending; source-specific historical availability is the question. |
 
-Next: follow Experiment 004, then review subsequent coverage work in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Keep an independent alarm during development. Record only nonpersonal outcome summaries here; keep HealthKit records, screenshots, and raw device logs outside Git.
+Next: follow Experiment 005, then review subsequent coverage work in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Keep an independent alarm during development. Record only nonpersonal outcome summaries here; keep HealthKit records, screenshots, and raw device logs outside Git.
 
 Template:
 
