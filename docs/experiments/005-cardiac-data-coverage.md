@@ -54,7 +54,7 @@ Sources, checked with Context7 and the installed Watch SDK on 2026-10-06:
 - **Availability inconclusive:** empty records, errors, unexplained discrepancies, or missing observations prevent a conclusion. Identify the next specific check. Do not infer permission status from emptiness.
 - **Software defect:** incorrect units/counts/dates/source attribution, gaps calculated across sources, unmarked truncation, duplicate refresh rows, or stale results after clearing. Fix and repeat the affected checks.
 
-None of these outcomes establishes signal suitability for sleep staging or a live alarm. If grouped quantities or beat series are available, propose their internal timing/gap inspection separately. Use the observations to define the overnight motion experiment before starting it; no overnight implementation is included here.
+None of these outcomes establishes signal suitability for sleep staging or a live alarm. If grouped quantities or beat series are available, propose their internal timing/gap inspection separately. Overnight recording is outside this cardiac reader's scope; the separate [Experiment 006](006-overnight-motion.md) implements that investigation.
 
 ## Software verification
 
@@ -93,7 +93,7 @@ Preserve the reported pass without inventing counts, settings, or per-type avail
 - If neither appears in the observed window, do not add either reader solely because the API exists. Record the window and sources. Broader inspection needs a specific reason, such as a known source or night expected to contain series.
 - While both outcomes remain unknown, defer that implementation and obtain the observation first. No internal-timing reader is added by this documentation change.
 
-[Experiment 006](006-overnight-motion.md) independently plans overnight motion feasibility. It is plan only and cannot be run in the current app.
+[Experiment 006](006-overnight-motion.md) has a recording screen and bounded timing/battery diagnostics. Its owner-reported pilot missed the leading-gap criterion and did not establish timely visibility; the eight-hour outcome remains pending. Overnight feasibility is unresolved, independently of the reported cardiac procedure pass.
 
 ## Learning exercise
 

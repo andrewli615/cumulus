@@ -1,6 +1,6 @@
 # Experiment 006: Overnight motion feasibility
 
-Status: implemented on 2026-10-06. The Watch app has an **Overnight motion** screen, fixed-duration system recording requests, bounded streaming retrieval, and local timing/battery diagnostics. Synthetic checks and signing-free device/simulator builds pass. Interactive layout and physical recorder behavior remain unverified; no physical result is recorded.
+Status: implemented and software-verified on 2026-10-06. An owner-reported physical pilot produced 59,586 samples, but its recorded 5.42-second leading gap exceeds the 5-second criterion, and timely visibility was not established. The earlier request timing cannot separate app preparation from recorder startup. The reported eight-hour run has no final result recorded here. Overnight feasibility remains unresolved.
 
 ## Question and prediction
 
@@ -114,7 +114,7 @@ The requested start was reported as **2:52** and the first useful pilot probe as
 
 ### Eight-hour test in progress
 
-The owner subsequently reported an eight-hour test running with approximately **10% battery remaining**. Exact trial mode, initial battery, elapsed duration, observation time, charging, and final retrieval outcome are **Unknown**. Charging was recommended, but the owner has not confirmed charging. Do not infer recorder battery cost from this observation. A final uncharged return below 20% would fail the battery threshold; charging would make the battery comparison inconclusive. No eight-hour pass or feasibility conclusion is recorded.
+The owner subsequently reported an eight-hour test running with approximately **10% battery remaining** and later confirmed that the outstanding run had not ended. Exact trial mode, initial battery, elapsed duration, observation time, charging, and final retrieval outcome are **Unknown**. Charging was recommended, but the owner has not confirmed charging. Do not infer recorder battery cost from this observation. A final uncharged return below 20% would fail the battery threshold; charging would make the battery comparison inconclusive. No eight-hour pass or feasibility conclusion is recorded.
 
 Keep the current build installed until that fixed window finishes and preserve its summary. The next qualifying work remains the corrected pilot, a comparable nonrecording night, and two recording nights under the prewritten criteria. Use Experiment 005 observations to decide whether internal cardiac timing inspection has a reason; grouped heart-rate records and heartbeat-series availability remain **Unknown**.
 
