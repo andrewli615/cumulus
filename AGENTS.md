@@ -1,6 +1,6 @@
 # Codex guidance
 
-- Before editing files, show the proposed changes and wait for the owner's review. Explain each file's purpose and use case. The owner reviews and commits; never commit.
+- Before editing files, show the proposed changes and wait for the owner's review. Explain each file's purpose and use case. Commit only when the owner explicitly asks Codex to commit; otherwise leave changes uncommitted. Codex may write a concise commit message describing the approved changes.
 - Read only documents relevant to the task. Treat plans and architecture as revisable when evidence changes.
 - Implement only the approved milestone. Before coding, explain the user behavior, technical risk, data flow, and one alternative.
 - For unfamiliar or changing watchOS APIs, use Context7 and verify against official Apple documentation. Separate documented behavior, inference, and physical Watch observations.
