@@ -10,10 +10,12 @@ Each chunk requires owner review before editing its files. Explain the behavior,
 | 2. Foreground probe | Standard Xcode watchOS app; Start/Stop, motion measurements, latest readable heart rate with sample age | Can the physical Watch supply samples, and does the screen distinguish current from stale data? |
 | 3. Scheduled-alert feasibility | Separate alert screen, scheduled smart-alarm session, relaunch handling, and physical Watch trials | Do three alerts and a cancellation trial satisfy Experiment 001 under the recorded conditions? |
 | 4. Background motion feasibility | Separate Experiment 003: short background collection, bounded timestamp/count metadata, and prewritten device criteria | Is motion collection supported under the tested conditions, independently of unresolved alert reliability? |
-| 5. Explainable calculation | One motion feature, synthetic tests, and private recording replay | Can we explain and reproduce the calculation, including missing-data handling? |
-| 6. Biological comparison | Compare features with available heart and sleep records | What evidence supports the interpretation, and where does it fail? |
-| 7. Alarm product slice | Next-occurrence wake time, tested decision rule, honest status and fallback behavior | Can the rule operate using only information actually available at decision time? |
-| 8. Refinement | Repeated nights, accessibility, battery, privacy, and architecture decision | What device evidence supports release and the choice of Watch-only or companion design? |
+| 5. Stored-record inspection | Read-only sleep history first; separately reviewed cardiac and other record coverage checks | What can Cumulus read, with what sources, gaps, and availability times? |
+| 6. Overnight motion feasibility | Prewritten `CMSensorRecorder` trial with availability, continuity, retrieval-delay, battery, and storage checks | Can this Watch supply useful overnight recordings without assuming continuous app execution? |
+| 7. Offline model comparison | Reproduce a BIDSleep/SLAMSS-IFS benchmark and an explainable baseline | Can we reproduce results on held-out participants with compatible inputs and labels? |
+| 8. Causal alarm-window estimation | Predictions using only measurements available at decision time, including uncertainty | Does the model work under the real input and latency constraints? |
+| 9. Alarm-outcome evaluation | Separate trials of alert reliability and the waking benefit of the decision rule | Does the estimator improve the experience without hiding alert failures? |
+| 10. Refinement | Repeated nights, accessibility, battery, privacy, and architecture decision | What evidence supports release and Watch-only or companion design? |
 
 ## First code chunk: foreground probe
 
@@ -32,7 +34,7 @@ Read [Experiment 002](experiments/002-live-data.md) for the staged procedure. Pr
 
 The owner reported one successful physical foreground motion run: movement changed the samples, and Stop stopped collection. Device model, OS, exact sample counts, and timing were not recorded for that run. This is useful preliminary evidence, not completed data-quality validation.
 
-The chooser keeps both experiments accessible. Leaving the probe stops its sensors, and an unresolved alert test disables entry to the probe. The alert coordinator owns the session for the app lifetime; navigating away from the alert screen does not cancel it. No motion or heart readings are collected by the alert session.
+The chooser keeps the motion probe and alert experiment accessible. Leaving the probe stops its sensors, and an unresolved alert test disables entry to the probe. The alert coordinator owns the session for the app lifetime; navigating away from the alert screen does not cancel it. No motion or heart readings are collected by the alert session.
 
 Tap Schedule test alert while active to request a session three minutes ahead. Show Session scheduled only after reading `.scheduled`. A running session requests the notification haptic with `repeatHandler: nil`, using Apple's documented three-second interval. Cancel and Stop alert request invalidation while the app is active. Final status follows the invalidation callback.
 
@@ -42,15 +44,27 @@ Data flow: screen action → coordinator → WatchKit → lifecycle callbacks �
 
 Risks: relaunch ordering, cancellation racing with session start, callback delay, and process termination around the haptic request or persistence. The local record cannot prove haptic delivery or provide a transactional exactly-once guarantee across crashes. Alternative: a foreground alert prototype is simpler but does not answer the scheduled/relaunch question.
 
-The October 5 physical results in Experiment 001 are **inconclusive**. Preserve that result and do not repeat the alert trials as part of the next milestone. Simulator builds and synthetic lifecycle checks do not change the physical conclusion.
+Experiment 001 is **supported for the tested conditions, based on owner report**, following a change to the Watch’s haptics setting and a successful retest of all three scheduled alerts and cancellation. Preserve the original October 5 inconclusive results alongside that retest. The exact setting and retest timings are unspecified; trial summaries were not independently inspected. This does not establish overnight reliability or a guaranteed wake deadline. Simulator builds and synthetic lifecycle checks do not strengthen the physical evidence.
 
-## Next chunk: background motion feasibility plan
+## Implemented chunk: background motion feasibility
 
 [Experiment 003](experiments/003-background-motion.md) defines two 60-second background measurement trials at a requested 10 Hz and a separate manual-stop check. The plan fixes sample coverage, freshness, lifecycle criteria, and diagnostic bounds before implementation. Only metadata is retained; raw acceleration and HealthKit data are excluded.
 
 The sensor window ends before the platform-required haptic request. That request is not a new alert-delivery assessment. Keep the foreground probe available between trials and distinguish collection stopping from session invalidation. Do not silently restart an interrupted measurement window on relaunch.
 
-Implementation requires a separate file-level proposal and review. Build and simulator navigation checks precede debugger-detached physical trials. A successful measurement trial supports only the recorded conditions; alert reliability and any wake-deadline claim remain unresolved.
+The reviewed implementation now adds the background screen, session coordinator, bounded sample summaries, and shared session ownership. Signing-free device and simulator builds and synthetic checks passed on October 5. Interactive simulator navigation/layout is still unverified because Computer Use permission was not granted. The owner subsequently reported that both background trials met the sample/freshness thresholds, that the manual-stop count stayed fixed for at least five seconds, and that alerts/cancellation worked with no observed errors. Experiment 003 is **supported under tested conditions, based on owner confirmation**. Exact measurements and trial-specific device details are unrecorded here, and the summaries were not independently inspected. Alert reliability and any wake-deadline claim remain unresolved.
+
+## Implemented chunk: inspect stored sleep records
+
+[Experiment 004](experiments/004-sleep-stage-feasibility.md) now has a read-only HealthKit reader and Sleep history screen showing category, original start/end dates, and source. Read / Refresh takes an in-memory snapshot of intervals overlapping the preceding seven days. It shows up to 500 intervals with explicit truncation, preserves overlaps, and clears records on screen exit or background entry. Empty results do not imply permission denial. This is historical reference-data inspection, not Cumulus sleep detection.
+
+Signing-free device/simulator builds and focused synthetic reader checks passed. Interactive UI checks and physical record availability remain pending. Follow Experiment 004's comparison and clear/refresh procedure before using these records as a reference.
+
+## Subsequent proposals
+
+After reviewing the sleep-history inspection, propose cardiac and other stored-record coverage checks separately. Overnight motion recording, offline model comparison, and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
+
+The research changes the order of work: an explainable feature remains valuable as a baseline, but signal availability and timing must inform its design. A 30-minute alarm session does not exclude a different system-managed recording path. Conversely, retrospective data access does not establish timely availability for an alarm.
 
 ## Verification and learning
 
@@ -58,4 +72,4 @@ Build with the installed Xcode SDK and inspect layout in a simulator. Use physic
 
 For each chunk, explain one concept the owner can inspect in Xcode. Start with sample time versus receipt time; later cover callback ownership, state transitions, windowed calculations, and evaluation without using future data.
 
-Do not infer sleep stages from an unvalidated feature or treat Apple's classifications as independent ground truth. Defer ML, dashboards, and additional health types until the measured inputs and evaluation question justify them. Keep an independent alarm for real wake requirements during development.
+Do not infer sleep stages from an unvalidated feature or treat Apple's classifications as independent ground truth. Keep offline model research separate from product claims; add health types only through reviewed coverage experiments. Keep an independent alarm for real wake requirements during development.

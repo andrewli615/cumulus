@@ -2,13 +2,13 @@
 
 Date planned: 2026-10-05
 
-Status: plan only; implementation and physical trials pending
+Status: supported under tested conditions — owner-reported result; trial summaries not independently inspected. Software checks passed; interactive simulator UI checks remain unverified.
 
 ## Question and evidence boundary
 
 Can Cumulus receive sufficiently fresh motion samples throughout a short measurement window in a scheduled extended runtime session after the owner leaves the app?
 
-Experiment 001's October 5 alert result remains **inconclusive**. Do not repeat or rescore those trials as part of this experiment. Success here supports background measurement only under the tested conditions, not reliable alert delivery, sleep interpretation, or a wake deadline. Keep an independent alarm available.
+Experiment 001 preserves its original October 5 **inconclusive** trials and separately records an owner-reported successful retest after changing Watch haptics. Its current result is **supported for the tested conditions, based on owner report**. Do not repeat or rescore those alert trials as part of this motion experiment. Success here supports background measurement only under the tested conditions, not reliable alert delivery, sleep interpretation, or a wake deadline. Keep an independent alarm available.
 
 ## Documented behavior
 
@@ -21,9 +21,9 @@ Reviewed using Context7 and official Apple documentation on 2026-10-05:
 
 Sources: [Extended runtime sessions](https://developer.apple.com/documentation/watchkit/using-extended-runtime-sessions), [invalidate()](https://developer.apple.com/documentation/watchkit/wkextendedruntimesession/invalidate()), [notifyUser](https://developer.apple.com/documentation/watchkit/wkextendedruntimesession/notifyuser(haptictype:repeathandler:)), [accelerometerUpdateInterval](https://developer.apple.com/documentation/coremotion/cmmotionmanager/accelerometerupdateinterval).
 
-## Proposed implementation boundary
+## Implemented boundary
 
-Keep the foreground Motion probe available between trials. A separate Background motion test will schedule a session three minutes ahead. Only one experiment may own motion collection or a scheduled session at a time. Preserve the existing alert experiment and its outcome.
+Keep the foreground Motion probe available between trials. A separate Background motion test schedules a session three minutes ahead. Only one experiment may own motion collection or a scheduled session at a time. Preserve the existing alert experiment and its outcome.
 
 Start collection only after observing the session running. Request 10 Hz acceleration for a 60-second window measured from collection start using a monotonic clock. The collector must be owned by the experiment/session rather than the screen, so navigation or background entry does not stop this trial. Continue stopping the existing foreground probe when its screen disappears.
 
@@ -35,7 +35,7 @@ Manual stop, sensor errors, will-expire, and invalidation must stop collection a
 
 Main risk: delayed callbacks or UI updates can resemble live collection. Measure sample time and callback receipt time separately. Alternative: a foreground-only baseline is simpler and useful for debugging, but cannot establish background continuity.
 
-Code changes require a separate file-level proposal and owner review before implementation.
+The owner approved the file-level implementation proposal. No physical outcomes are inferred from the implementation.
 
 ## Bounded diagnostic metadata
 
@@ -88,9 +88,32 @@ Build the Watch target and check navigation and layout in an available simulator
 
 Short trials do not test the natural 30-minute expiry. Record expiry callbacks if encountered, but keep physical expiry behavior unverified unless actually observed. Do not extend these trials just to wait for expiry.
 
+## Implementation and software checks (2026-10-05)
+
+- `BackgroundMotionCoordinator.swift` owns the session, serial Core Motion queue, sampling lifetime, and persistence. `BackgroundMotionTrial.swift` assigns timestamps to twelve five-second buckets and freezes summaries on stop. The callback keeps no acceleration vectors. A lock protects the accumulator; UI updates stay on MainActor.
+- `BackgroundMotionView.swift` shows separate session/sensor state, live sample age, setup fields, counts, timing summaries, and recent events. watchOS/build and available battery levels are read from the device; the owner supplies model, power mode, wrist state, exit condition, and debugger-detached confirmation. Unknown metadata prevents a complete assessment.
+- `ExperimentSessionOwner.swift` coordinates exclusive session ownership across both experiments. The app delegate routes delivered sessions using persisted ownership and experiment evidence. Conflicting or unreadable evidence blocks collection and new schedules; a delivered unknown session can be stopped while active, but its saved ownership remains unverified. Do not clear app data to bypass a pending trial.
+- A relaunch before collection may begin the original scheduled trial when WatchKit supplies a running session. A relaunch after collection began marks it interrupted and never starts another window. Checkpoints are saved about every five seconds; a crash can lose the latest checkpoint. UserDefaults is diagnostic storage, not a crash-atomic evidence ledger.
+- The 60-second limit rejects samples or receipts at/after the window boundary. A half-second task checks for cleanup, errors, and stale samples. Actual sensor-stop time can overshoot if execution is delayed; it is recorded for review. Sample-threshold text does not automatically declare the experiment supported.
+- `scripts/check-background-motion.sh` passed using the actual models and coordinators with macOS platform doubles. Cases cover bucket endpoints, cross-bucket gaps, delayed/stale samples, invalid clocks, bounded history, concurrent late callbacks, exclusive ownership, active-only scheduling, cancellation, manual stop, sensor error, will-expire and direct invalidation cleanup, old-session callbacks, scheduled/interrupted relaunch, and corrupt-history blocking. These doubles do not test WatchKit or Core Motion delivery.
+- Xcode 27 signing-free Debug builds passed for generic watchOS and watchOS Simulator destinations, preserving the watchOS 26.6 deployment target. The only build warning was skipped AppIntents metadata extraction (no AppIntents dependency).
+- Interactive simulator navigation/layout remains **unverified**: Computer Use permission was not granted. In Xcode, check all three chooser destinations, scrolling through setup and bucket/event details on the 40 mm simulator, and that an unresolved scheduled experiment disables the foreground probe. Simulator observations cannot establish sensor behavior.
+
+Run the software checks from the repository root with `./scripts/check-background-motion.sh`. The owner has reported completing the physical trials below. The procedure and criteria above remain unchanged for any separately justified future trials. Keep the debugger detached and an independent alarm available.
+
 ## Result
 
-Pending implementation and physical sensor trials. No background motion result is recorded. Experiment 001 remains inconclusive.
+**Supported under tested conditions — owner-reported, not independently verified.** The owner reported that all three trials passed, that alerts occurred and cancellation worked as expected, and that no errors were observed. In follow-up, the owner confirmed that both background runs met the sample/freshness thresholds and that the displayed sample count remained fixed for at least five seconds after manual stop.
+
+| Trial | Owner-reported outcome |
+| --- | --- |
+| Digital Crown | Passed; at least 40 samples in each five-second bucket, with maximum gaps and delivery delays no greater than two seconds. |
+| Another app | Passed; the same sample and freshness thresholds were confirmed. |
+| Manual stop | Passed; the displayed sample count stayed fixed for at least five seconds after stopping. |
+
+This records the owner's confirmation, not a separate audit of the complete protocol. Exact counts, timing offsets, stop overshoot, lifecycle timestamps, and trial-specific device/setup details were not supplied and are unrecorded here. Do not infer them from earlier device discussions. No screenshots or trial summaries were independently inspected, and no raw logs are included. The missing detail limits reproducibility and independent verification; it does not change the predefined criteria above.
+
+The reported result supports proceeding to a proposal for one explainable motion feature with synthetic checks. That is a separate milestone requiring review before implementation. It does not establish overnight collection, sleep-stage interpretation, reliable alert delivery, or a wake deadline. Experiment 001 separately records an owner-reported successful alert/cancellation retest after changing Watch haptics. That update rests on the separate retest confirmation, not these motion-trial alert observations.
 
 ## Learning exercise
 

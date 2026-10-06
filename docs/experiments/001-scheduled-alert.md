@@ -3,7 +3,7 @@
 Date drafted: 2026-09-26  
 Device / OS / Xcode: record exact values before each run
 
-Implementation: scheduled-alert screen and coordinator implemented; October 5 physical results inconclusive
+Implementation: scheduled-alert screen and coordinator implemented; subsequent haptics-setting retest supported for the tested conditions, based on owner report. Original October 5 mixed results preserved below.
 
 ## Hypothesis
 
@@ -83,6 +83,14 @@ Three scheduled trials and one cancellation trial were completed.
 
 Results were mixed and do not meet the three-run pass criteria. Watch model, watchOS version, battery level, and exact timing offsets were not recorded. Missing details are not inferred; no raw logs are included. These results do not establish reliable wake delivery.
 
+### Subsequent retest after changing Watch haptics
+
+**Supported for the tested conditions — owner-reported, not independently verified.** The owner reported changing the Watch's haptics setting and confirmed repeating all three scheduled alerts plus the cancellation trial, with all four passing. The three scheduled alerts worked, and no alert occurred after cancellation.
+
+The exact haptics setting and its before/after values, retest date, device/setup details, lifecycle timestamps, and timing offsets were not supplied. Trial summaries were not independently inspected. Do not infer these details or claim that the setting change proves the cause of the earlier failure. No raw logs are included.
+
+This records successful alert/cancellation behavior after the reported setting change. It does not independently verify every lifecycle/timing criterion or establish overnight reliability, perception under other settings, or a reliable wake deadline. The original mixed results above remain part of the evidence.
+
 ### Software verification, 2026-10-02
 
 - The signing-free Debug build passed with Xcode 27.0 and the watchOS 27 simulator SDK, retaining a watchOS 26.6 minimum. The built app's `WKBackgroundModes` contains only `alarm`.
@@ -90,8 +98,8 @@ Results were mixed and do not meet the three-run pass criteria. Watch model, wat
 - A temporary Swift harness exercised the actual coordinator source against fake WatchKit types. It passed active-only scheduling, delayed scheduled-state observation, the three-minute request, duplicate start handling, persisted haptic-request recovery, stop/invalidation, cancellation racing with start, stale-session callback rejection, expiry, errors, the 40-event bound, and unreadable-storage handling. This checks coordinator logic, not WatchKit behavior. Harness files are outside the repository in `/tmp` and are not a permanent test target.
 - Project/permission property lists and whitespace checks passed. The build's App Intents metadata warning reflects the absence of an App Intents dependency.
 
-Physical outcomes are recorded above for October 5. Delivery feasibility remains inconclusive.
+Physical outcomes above distinguish the original October 5 inconclusive trials from the subsequent owner-reported successful retest after changing Watch haptics.
 
 ## Next step
 
-Preserve the October 5 result as **inconclusive**; do not repeat these alert trials in the next milestone. Plan background measurement separately in [Experiment 003](003-background-motion.md). Any successful sensor result will not resolve alert reliability or justify a wake-deadline claim.
+Preserve both the original mixed results and the subsequent owner-reported pass with its setting-dependent conditions and evidence limits. Background measurement is recorded separately in [Experiment 003](003-background-motion.md). The next proposed milestone is one explainable motion feature with synthetic checks, subject to owner review before implementation. Neither short experiment establishes overnight alert reliability or a wake-deadline guarantee.

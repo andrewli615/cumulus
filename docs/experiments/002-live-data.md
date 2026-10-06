@@ -1,7 +1,7 @@
 # Experiment 002: Live Watch data availability
 
 Date drafted: 2026-09-26  
-Status: one successful physical foreground motion run reported; heart-data quality and background trials pending
+Status: one successful foreground run reported; short background trials supported by owner report in Experiment 003; heart-data coverage and freshness unresolved
 
 Device / watchOS / Xcode: record exact values before each run
 
@@ -16,8 +16,9 @@ A foreground Watch app can obtain motion samples on supported hardware. Readable
 ## Staged implementation
 
 1. Foreground screen: Start/Stop, current motion, latest readable heart rate, and sample age. Hold data in memory; stop collection on background entry.
-2. Experiment 001's October 5 alert results remain inconclusive. Preserve that conclusion; do not repeat the alert series as a prerequisite for the separate measurement plan.
-3. Follow [Experiment 003](003-background-motion.md) for the proposed background sensor window, bounded diagnostic metadata, and predefined physical criteria. Its implementation needs separate review. No raw acceleration vectors or HealthKit records are persisted by that trial.
+2. Experiment 001 preserves the original October 5 inconclusive trials and a subsequent owner-reported pass of all three alerts and cancellation after changing Watch haptics. Exact retest settings and timings were not supplied; summaries were not independently inspected.
+3. [Experiment 003](003-background-motion.md) implements the short background sensor window and bounded diagnostics. Its two background runs and manual-stop check passed according to the owner, with exact measurements and device/setup details unrecorded here. No raw acceleration vectors or HealthKit records are persisted by that trial.
+4. Next, propose read-only sleep-history inspection and then broader stored-record coverage checks. Overnight motion recording through `CMSensorRecorder` is a separate, untested candidate requiring its own reviewed procedure. See [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md).
 
 The first stage cannot establish background or overnight collection. Do not substitute a workout session for a smart alarm.
 
@@ -50,7 +51,7 @@ Use a monotonic clock for motion intervals. Map motion uptime to wall-clock time
 3. Tap Stop. Verify collection stops and the screen does not describe retained values as actively monitored. Start again and check for duplicate callbacks or counters from the prior run.
 4. In the foreground-only version, leave the app and reopen it. Verify the UI reports stopped collection rather than implying monitoring continued. This checks the boundary, not background feasibility.
 5. After instrumentation exists, repeat the foreground trial three times. Inspect sample intervals, delay distribution, and longest gaps. An empty HealthKit query is "No readable samples," not proof of a denied permission or absent sensor.
-6. For background measurement, use the prewritten procedure and criteria in Experiment 003 after implementation. Run with the debugger detached. Its required haptic request occurs after motion collection and does not repeat or rescore Experiment 001.
+6. For background measurement, use the prewritten procedure and criteria in the implemented Experiment 003 for any separately justified further trials. Run with the debugger detached. Its required haptic request occurs after motion collection and does not repeat or rescore Experiment 001.
 7. Repeat only after recording the result and changing one condition at a time. Overnight trials come later, after short-window behavior is understood.
 
 ## Outcome criteria
@@ -72,7 +73,7 @@ During the initial 2026-09-26 build check, no Watch simulator device was availab
 
 One foreground motion run succeeded: samples responded to wrist movement and stopped when the owner stopped monitoring. The run's exact date/time, device model, watchOS version, sample counts, rates, and debugger attachment were unrecorded. Do not fill these gaps from the intended device or project settings. No raw measurements are stored here.
 
-This supports foreground motion response and manual stop for one reported run. It does not establish heart-rate freshness, permission behavior, background-stop handling, sampling quality, biological interpretation, or alarm reliability. Experiment 001 now records the inconclusive October 5 alert outcomes. Background measurement results remain pending under Experiment 003.
+This supports foreground motion response and manual stop for one reported run. It does not establish heart-rate freshness, permission behavior, background-stop handling, sampling quality, biological interpretation, or alarm reliability. Experiment 001 separately preserves the original inconclusive alert outcomes and the owner-reported successful retest after changing haptics. Experiment 003 records owner-reported successful background sample/freshness checks and a manual-stop count that stayed fixed for at least five seconds. Those summaries were not independently inspected and exact measurements and trial-specific settings were not supplied. They support the respective tested conditions, not overnight sensing, sleep-stage accuracy, or reliable wake timing.
 
 ## Learning exercise
 

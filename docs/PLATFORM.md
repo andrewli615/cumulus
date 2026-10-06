@@ -16,13 +16,13 @@ For each API, record **Apple's documented behavior**, **our inference**, and **w
 
 ## Evidence boundary
 
-The table describes documented API behavior, not Cumulus guarantees. Limited physical observations are summarized below; alert delivery remains inconclusive and background motion collection untested. Simulator results cannot establish alarm reliability.
+The table describes documented API behavior, not Cumulus guarantees. Limited physical observations are summarized below; the alert retest and short background-motion trials are supported under their tested conditions based on owner reports, not independently inspected trial summaries. Overnight collection and reliable wake delivery remain unestablished. Simulator results cannot establish alarm reliability.
 
 ## Data access investigation
 
 Documentation reviewed for this scope on 2026-09-26 using Context7 and official Apple documentation. Record exact Xcode, watchOS, and hardware versions when running; "latest" is not a reproducible device configuration.
 
-The first measurement experiment is [Experiment 002: Live data](experiments/002-live-data.md). Its initial implementation is a foreground probe. [Experiment 003: Background motion](experiments/003-background-motion.md) is the next planned measurement investigation. It preserves the separate [scheduled-alert experiment](experiments/001-scheduled-alert.md) as inconclusive without repeating those trials.
+The first measurement experiment is [Experiment 002: Live data](experiments/002-live-data.md). Its initial implementation is a foreground probe. [Experiment 003: Background motion](experiments/003-background-motion.md) is implemented and records owner-reported successful short trials. The separate [scheduled-alert experiment](experiments/001-scheduled-alert.md) preserves the original mixed results and a subsequent successful retest after a Watch haptics setting change. The next proposed work is stored-record inspection, followed by a separately reviewed overnight-motion feasibility experiment; see [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md).
 
 Background-motion constraints were rechecked with Context7 and Apple documentation on 2026-10-05: [extended runtime sessions](https://developer.apple.com/documentation/watchkit/using-extended-runtime-sessions), [invalidation](https://developer.apple.com/documentation/watchkit/wkextendedruntimesession/invalidate()), and [accelerometer interval](https://developer.apple.com/documentation/coremotion/cmmotionmanager/accelerometerupdateinterval).
 
@@ -32,7 +32,7 @@ Background-motion constraints were rechecked with Context7 and Apple documentati
 - HealthKit stores measurements and derived records. Observing a store change does not instruct the Watch to take a new heart-rate measurement.
 - Smart-alarm extended runtime sessions are background-capable and limited to 30 minutes. They are not an unrestricted overnight execution mode.
 - Calling a haptic API does not establish that the wearer perceived it.
-- A running smart-alarm session must request a haptic. The proposed sensor trial requests it after measurement stops; haptic perception is not a measurement pass criterion.
+- A running smart-alarm session must request a haptic. The implemented sensor trial requests it after measurement stops; haptic perception is not a measurement pass criterion.
 - App-initiated invalidation of a session scheduled with `start(at:)` requires the app to be active. Stopping the motion subscription does not terminate the runtime session.
 - Actual accelerometer frequency must be calculated from sample timestamps rather than assumed from the requested interval.
 
@@ -46,9 +46,22 @@ Do not assume access to a continuous raw optical (PPG) waveform from a heart-rat
 
 The owner reported one successful foreground motion run: readings responded to wrist movement and stopped on request. Its device model, OS, exact sample counts, and timing were unrecorded. See Experiment 002.
 
-The October 5 alert trials are **inconclusive**: two of three produced an observed alert and haptic, one did not despite start and haptic-request events, and no alert appeared after cancellation. See Experiment 001 for the evidence and missing configuration details. These observations do not establish reliable alert delivery.
+The October 5 alert trials are **inconclusive**: two of three produced an observed alert and haptic, one did not despite start and haptic-request events, and no alert appeared after cancellation. The owner subsequently reported changing the Watch’s haptics setting and repeating all three scheduled alerts plus cancellation, with all four passing. Experiment 001 therefore records a subsequent result supported for the tested conditions based on owner report, while preserving the original failures. The exact setting, retest timings, and configuration details were not supplied; summaries were not independently inspected. These observations do not establish overnight reliability or a guaranteed wake deadline.
 
-Background motion rates, freshness, continuity, and battery costs remain untested. Experiment 003's 60-second window and acceptance thresholds are engineering choices to test, not documented platform guarantees.
+The owner reported that both background runs in Experiment 003 met the sample/freshness thresholds, that the manual-stop count stayed fixed for at least five seconds, and that alerts/cancellation worked with no observed errors. This supports short background collection under the tested conditions based on owner confirmation. Exact counts, timings, device/setup details, and battery measurements were not supplied; summaries were not independently inspected. Overnight continuity and battery costs remain unestablished. The experiment's 60-second window and acceptance thresholds are engineering choices, not platform guarantees.
+
+## Collection paths to investigate
+
+The research review distinguishes four paths; availability is not evidence that Cumulus has tested them:
+
+| Path | Documented access | Cumulus implication / unknown |
+| --- | --- | --- |
+| Live Core Motion callbacks | Samples delivered while the app has execution time; the requested interval does not establish actual timing. | Short background collection has owner-reported support. Longer continuity and higher rates require new trials. |
+| `CMSensorRecorder` | [Recording](https://developer.apple.com/documentation/coremotion/cmsensorrecorder/recordaccelerometer%28forduration%3A%29) at 50 Hz for up to 12 hours can continue while the app is suspended or terminated. [Retrieval](https://developer.apple.com/documentation/coremotion/cmsensorrecorder/accelerometerdata%28from%3Ato%3A%29) can lag by up to three minutes; data remains available for up to three days. | Candidate for overnight research, not yet tested in Cumulus. Check runtime availability, gaps, retrieval delay, battery, and storage. The alarm-session limit does not apply to every recording API. |
+| Stored HealthKit records | Heart rate, heartbeat series, sleep categories, and other authorized records can be queried. [Background heart-rate intervals vary](https://support.apple.com/en-mide/120277); query completion does not guarantee fresh sensing. | Inspect per-type coverage and first observed availability before selecting model inputs. |
+| SensorKit research access | [PPG](https://developer.apple.com/documentation/sensorkit/srsensor/photoplethysmogram) requires an [approved research entitlement](https://developer.apple.com/documentation/sensorkit/configuring-your-project-for-sensor-reading). [Fetches](https://developer.apple.com/documentation/sensorkit/srfetchrequest) have a 24-hour holding period. | Potential offline research branch; not an immediate alarm input or ordinary HealthKit capability. |
+
+These paths were investigated using Context7, official Apple documentation, and the installed Watch SDK during the research review. Hardware behavior remains a separate question. Apple also documents that [sleeping wrist temperature](https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/applesleepingwristtemperature) is aggregated into one nightly HealthKit value; it must not be treated as a continuous temperature stream for epoch-level staging.
 
 ## Measurement contract
 
