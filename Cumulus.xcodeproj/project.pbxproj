@@ -25,6 +25,10 @@
 		A00000000000000000000013 /* ExperimentStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ExperimentStyle.swift */; };
 		A00000000000000000000014 /* CardiacHistoryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000014 /* CardiacHistoryReader.swift */; };
 		A00000000000000000000015 /* CardiacHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000015 /* CardiacHistoryView.swift */; };
+		A00000000000000000000016 /* OvernightMotionTrial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000016 /* OvernightMotionTrial.swift */; };
+		A00000000000000000000017 /* OvernightMotionRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* OvernightMotionRecorder.swift */; };
+		A00000000000000000000018 /* OvernightMotionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* OvernightMotionCoordinator.swift */; };
+		A00000000000000000000019 /* OvernightMotionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* OvernightMotionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +53,10 @@
 		B00000000000000000000013 /* ExperimentStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentStyle.swift; sourceTree = "<group>"; };
 		B00000000000000000000014 /* CardiacHistoryReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardiacHistoryReader.swift; sourceTree = "<group>"; };
 		B00000000000000000000015 /* CardiacHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardiacHistoryView.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* OvernightMotionTrial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionTrial.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* OvernightMotionRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionRecorder.swift; sourceTree = "<group>"; };
+		B00000000000000000000018 /* OvernightMotionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionCoordinator.swift; sourceTree = "<group>"; };
+		B00000000000000000000019 /* OvernightMotionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +87,7 @@
 				D00000000000000000000007 /* Background motion */,
 				D00000000000000000000008 /* Sleep history */,
 				D0000000000000000000000A /* Cardiac history */,
+				D0000000000000000000000B /* Overnight motion */,
 				D00000000000000000000009 /* Resources */,
 			);
 			path = "Cumulus Watch App";
@@ -161,6 +170,17 @@
 			name = "Cardiac history";
 			sourceTree = "<group>";
 		};
+		D0000000000000000000000B /* Overnight motion */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000016 /* OvernightMotionTrial.swift */,
+				B00000000000000000000017 /* OvernightMotionRecorder.swift */,
+				B00000000000000000000018 /* OvernightMotionCoordinator.swift */,
+				B00000000000000000000019 /* OvernightMotionView.swift */,
+			);
+			name = "Overnight motion";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -238,6 +258,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A00000000000000000000016 /* OvernightMotionTrial.swift in Sources */,
+				A00000000000000000000017 /* OvernightMotionRecorder.swift in Sources */,
+				A00000000000000000000018 /* OvernightMotionCoordinator.swift in Sources */,
+				A00000000000000000000019 /* OvernightMotionView.swift in Sources */,
 				A0000000000000000000000D /* BackgroundMotionCoordinator.swift in Sources */,
 				A0000000000000000000000E /* BackgroundMotionTrial.swift in Sources */,
 				A0000000000000000000000F /* BackgroundMotionView.swift in Sources */,

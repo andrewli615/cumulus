@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 final class ExperimentSessionOwner: ObservableObject {
-    enum Owner: String { case none, alert, backgroundMotion, unresolved }
+    enum Owner: String { case none, alert, backgroundMotion, overnightMotion, unresolved }
     @Published private(set) var current: Owner
     private let defaults: UserDefaults
     private let key = "experimentSessionOwner.v1"
@@ -17,15 +17,16 @@ final class ExperimentSessionOwner: ObservableObject {
         }
     }
 
-    func reconcile(alertPending: Bool, motionPending: Bool) {
-        let expected: Owner = alertPending && motionPending ? .unresolved
-            : alertPending ? .alert : motionPending ? .backgroundMotion : .none
+    func reconcile(alertPending: Bool, motionPending: Bool, overnightPending: Bool = false) {
+        let count = [alertPending, motionPending, overnightPending].filter { $0 }.count
+        let expected: Owner = count > 1 ? .unresolved
+            : alertPending ? .alert : motionPending ? .backgroundMotion : overnightPending ? .overnightMotion : .none
         if current == .none { set(expected) }
         else if current != expected { set(.unresolved) }
     }
 
     func claim(_ owner: Owner) -> Bool {
-        guard current == .none, owner == .alert || owner == .backgroundMotion else { return false }
+        guard current == .none, owner == .alert || owner == .backgroundMotion || owner == .overnightMotion else { return false }
         set(owner)
         return true
     }

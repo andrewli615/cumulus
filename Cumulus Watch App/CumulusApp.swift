@@ -7,7 +7,7 @@ struct CumulusApp: App {
     var body: some Scene {
         WindowGroup {
             ExperimentChooserView(coordinator: appDelegate.alertCoordinator,
-                                  background: appDelegate.backgroundCoordinator, owner: appDelegate.sessionOwner)
+                                  background: appDelegate.backgroundCoordinator, overnight: appDelegate.overnightCoordinator, owner: appDelegate.sessionOwner)
         }
     }
 }

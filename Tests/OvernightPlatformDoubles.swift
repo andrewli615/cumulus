@@ -1,0 +1,71 @@
+import Foundation
+
+#if OVERNIGHT_CHECKS
+@MainActor final class WKApplication {
+    enum State { case active, inactive, background }
+    static let instance = WKApplication()
+    static func shared() -> WKApplication { instance }
+    var applicationState = State.active
+}
+@MainActor final class WKInterfaceDevice {
+    static let instance = WKInterfaceDevice()
+    static func current() -> WKInterfaceDevice { instance }
+    var systemVersion = "Synthetic"
+    var isBatteryMonitoringEnabled = false
+    var batteryLevel: Float = 0.8
+}
+#endif
+
+enum CMAuthorizationStatus: Sendable { case authorized, denied, restricted, notDetermined }
+struct CMAcceleration: Sendable { let x: Double; let y: Double; let z: Double }
+struct CMRecordedAccelerometerData: Sendable {
+    let startDate: Date
+    let timestamp: TimeInterval
+    let acceleration: CMAcceleration
+}
+
+// These doubles exercise the real streaming worker, not hardware or Core Motion delivery.
+final class SyntheticRecorder: @unchecked Sendable {
+    enum Output: Sendable { case uniform, empty, missing, unexpected, excessive, slow }
+    static let shared = SyntheticRecorder()
+    private let lock = NSLock()
+    private var available = true
+    private var authorization = CMAuthorizationStatus.authorized
+    private var output = Output.uniform
+    private var records: [TimeInterval] = []
+    private var queries: [(Date, Date)] = []
+    func configure(available: Bool = true, authorization: CMAuthorizationStatus = .authorized, output: Output = .uniform) {
+        lock.withLock { self.available = available; self.authorization = authorization; self.output = output; records = []; queries = [] }
+    }
+    func access() -> (Bool, CMAuthorizationStatus) { lock.withLock { (available, authorization) } }
+    func record(_ duration: Double) { lock.withLock { records.append(duration) } }
+    var recordCount: Int { lock.withLock { records.count } }
+    var queryCount: Int { lock.withLock { queries.count } }
+    var maximumQuery: Double { lock.withLock { queries.map { $0.1.timeIntervalSince($0.0) }.max() ?? 0 } }
+    func data(from start: Date, to end: Date) -> [Any]? {
+        let kind = lock.withLock { queries.append((start, end)); return output }
+        if kind == .missing { return nil }
+        if kind == .empty { return [] }
+        if kind == .unexpected { return ["Unexpected object"] }
+        if kind == .slow { Thread.sleep(forTimeInterval: 0.04) }
+        let rate = kind == .excessive ? 200.0 : 50.0
+        return (0...Int(end.timeIntervalSince(start) * rate)).map { index in
+            let date = start.addingTimeInterval(Double(index) / rate)
+            return CMRecordedAccelerometerData(startDate: date, timestamp: date.timeIntervalSince1970,
+                acceleration: CMAcceleration(x: 0, y: 0, z: 1))
+        }
+    }
+}
+final class CMSensorRecorder {
+    static func authorizationStatus() -> CMAuthorizationStatus { SyntheticRecorder.shared.access().1 }
+    static func isAccelerometerRecordingAvailable() -> Bool { SyntheticRecorder.shared.access().0 }
+    func recordAccelerometer(forDuration duration: Double) { SyntheticRecorder.shared.record(duration) }
+    func accelerometerData(from start: Date, to end: Date) -> NSArray? {
+        SyntheticRecorder.shared.data(from: start, to: end).map { $0 as NSArray }
+    }
+}
+final class CMMotionActivityManager {
+    static func isActivityAvailable() -> Bool { true }
+    func queryActivityStarting(from start: Date, to end: Date, to queue: OperationQueue,
+                              withHandler handler: @escaping @Sendable ([Int]?, Error?) -> Void) { handler([], nil) }
+}

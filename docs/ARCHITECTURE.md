@@ -1,25 +1,29 @@
 # Current architecture and open decisions
 
-Cumulus uses one native watch-only SwiftUI target. Four experiments share a chooser; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
+Cumulus uses one native watch-only SwiftUI target. Six experiments share a chooser; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
 
 ## Ownership and data flow
 
 | Boundary | Current implementation |
 | --- | --- |
-| App lifetime | `CumulusApp` installs `WatchAppDelegate`, which owns both scheduled coordinators and `ExperimentSessionOwner`. |
-| Navigation | `ExperimentChooserView` exposes all four screens. Pending or unresolved session ownership disables the foreground probe and sleep-history entry. |
+| App lifetime | `CumulusApp` installs `WatchAppDelegate`, which owns the scheduled coordinators, overnight coordinator and `ExperimentSessionOwner`. |
+| Navigation | `ExperimentChooserView` exposes all six screens. Pending or unresolved session ownership disables the foreground probe, sleep-history and cardiac-history entries. |
 | Foreground measurement | `ContentView` owns `MotionMonitor` and `HeartRateReader`. Core Motion callbacks copy numeric values before MainActor display updates. HealthKit queries read stored heart records with their age. Leaving the screen or backgrounding stops the probe. |
 | Scheduled alert | Screen action → `ScheduledAlertCoordinator` → WatchKit session → lifecycle callbacks → diagnostic history and UI state. The coordinator outlives the screen. |
 | Background motion | Screen setup → `BackgroundMotionCoordinator` → running session → dedicated motion queue → locked accumulator → bounded summaries and UI. `BackgroundMotionTrial` holds sample timing/count calculations. The 60-second collection stops before requesting a haptic. |
 | Sleep history | Read / Refresh → `SleepStageReader` → read authorization → snapshot query → Sendable interval values → MainActor UI. Request identity rejects late results after clearing; no query survives screen exit or background entry as an active reader request. |
+| Cardiac history | Read-only per-type snapshots → source-specific coverage calculations → in-memory UI; clearing and request identity reject late results. |
+| Overnight motion | Explicit fixed-duration request → Apple system recorder → foreground ten-minute retrieval chunks on a serial worker → timing/quality summaries → MainActor UI and local metadata. No extended-runtime or workout session, haptic, or raw-vector storage. |
 
 Session callbacks hand off identity and event details to MainActor. Old-session callbacks are ignored. Collection stopping and session invalidation are separate events; stopping samples does not itself prove that a session has ended.
 
 ## Session ownership and relaunch
 
-`ExperimentSessionOwner` records which scheduled experiment owns the single session. Coordinators claim ownership before scheduling and release it after confirmed invalidation. `WatchAppDelegate` routes a delivered session to the matching coordinator and attaches its delegate. Conflicting, missing, or unreadable ownership evidence is treated conservatively as unresolved; the background coordinator can attach an unverified session without starting collection.
+`ExperimentSessionOwner` records which experiment reserves sensor/session work. Scheduled trials share one WatchKit session; overnight/comparison trials reserve their fixed windows without creating a session. Scheduled coordinators claim ownership before scheduling and release it after confirmed invalidation. `WatchAppDelegate` routes a delivered session to the matching coordinator and attaches its delegate. Conflicting, missing, or unreadable ownership evidence is treated conservatively as unresolved; the background coordinator can attach an unverified session without starting collection.
 
 A saved pending request alone is not proof of a live scheduled session. It blocks another schedule until lifecycle evidence resolves it. An interrupted background measurement window is not silently restarted after relaunch.
+
+Overnight requests save original dates before calling the recorder. Recovery never re-arms. Clock/reboot changes and interrupted preparation preserve uncertainty; only a verified elapsed fixed window or explicit owner acknowledgement releases the overnight reservation. Acknowledgement does not resolve sample evidence. Corrupt saved metadata blocks requests. Retrieval cancellation is independent of the system request, which has no explicit stop API.
 
 ## Storage boundaries
 
@@ -29,6 +33,8 @@ A saved pending request alone is not proof of a live scheduled session. It block
 | Sleep intervals | In-memory snapshot, at most 500 displayed intervals; cleared on exit/background. |
 | Alert diagnostics | Requested date, lifecycle bookkeeping, and latest 40 timestamped events in local UserDefaults. |
 | Background diagnostics | Latest five trial summaries, twelve five-second buckets and at most 40 events per trial, plus lifecycle bookkeeping in local UserDefaults. No raw vectors. |
+| Cardiac records | In-memory snapshots only, with per-type limits and clearing on exit/background. |
+| Overnight diagnostics | Three trials, up to 960 thirty-second buckets, 40 events and 40 compact read observations per trial; pilot evidence contains only trial ID/OS/build. Raw vectors are discarded; system-managed retention is separate. |
 | Shared session owner | Local UserDefaults routing state; reconciled with coordinator evidence on launch. |
 
 HealthKit records and raw device logs do not belong in Git. A future private recording feature requires its own retention and deletion design.

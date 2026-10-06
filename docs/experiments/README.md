@@ -9,9 +9,9 @@ Each note is the authoritative record of its procedure, observations, and limita
 | [003: Background motion](003-background-motion.md) | Implemented | Owner reports two short background trials and manual-stop check passed. Exact summaries were not independently inspected. |
 | [004: Stored sleep records](004-sleep-stage-feasibility.md) | Reader and screen implemented | Owner reports procedure completion; readable records, comparisons, clearing, errors, and device details unknown. |
 | [005: Cardiac-data coverage](005-cardiac-data-coverage.md) | Reader and screen implemented | Owner reports success and all tests passed; individual observations unknown. Internal timing remains conditional on grouped quantities/series. |
-| [006: Overnight motion](006-overnight-motion.md) | Plan only; no recorder in the app | Availability pilot, two eight-hour trials, and battery comparison specified; no device result. |
+| [006: Overnight motion](006-overnight-motion.md) | Recorder, retrieval and screen implemented | Availability pilot, two eight-hour trials, and battery comparison pending; software checks pass; no device result. |
 
-Next: supply nonpersonal 004/005 observations and review the 006 plan before proposing its implementation; follow subsequent work in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Keep an independent alarm during development. Record only nonpersonal outcome summaries here; keep HealthKit records, screenshots, and raw device logs outside Git.
+Next: run the 006 availability check and twenty-minute pilot; keep missing nonpersonal 004/005 observations unknown; follow subsequent work in [the research roadmap](../SLEEP_RESEARCH_ROADMAP.md). Keep an independent alarm during development. Record only nonpersonal outcome summaries here; keep HealthKit records, screenshots, and raw device logs outside Git.
 
 Template:
 

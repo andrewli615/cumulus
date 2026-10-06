@@ -1,0 +1,237 @@
+import Foundation
+
+@main struct OvernightChecks {
+    static let origin = Date(timeIntervalSince1970: 1_000_000)
+    static func expect(_ condition: @autoclosure () -> Bool, _ message: String) { precondition(condition(), message) }
+    static func uniform(duration: Double = 1200) -> OvernightMotionSummary {
+        var summary = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(duration))
+        for index in 0..<Int(duration * 50) {
+            summary.receive(date: origin.addingTimeInterval(Double(index) / 50), uptime: 1000 + Double(index) / 50,
+                            axesFinite: true, chunkStart: origin)
+        }
+        return summary
+    }
+    static func read(_ recorder: OvernightMotionRecorder, duration: Double = 1200,
+                     cancellation: OvernightRetrievalCancellation = .init()) async -> OvernightRetrievalResult {
+        await withCheckedContinuation { continuation in
+            recorder.retrieve(start: origin, end: origin.addingTimeInterval(duration), cancellation: cancellation,
+                              progress: { _, _ in }, completion: { continuation.resume(returning: $0) })
+        }
+    }
+    @MainActor static func settle(_ coordinator: OvernightMotionCoordinator) async {
+        for _ in 0..<200 {
+            if !coordinator.isRetrieving { return }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        fatalError("Retrieval did not finish")
+    }
+    static func invalid(_ archive: OvernightMotionArchive, _ message: String) {
+        do { try archive.validate(); fatalError(message) } catch {}
+    }
+
+    @MainActor static func main() async throws {
+        let good = uniform()
+        try good.validate()
+        expect(good.count == 60_000 && good.buckets.count == 40 && good.buckets.allSatisfy { $0.count == 1500 }, "Exact bucket boundaries at 50 Hz")
+        expect(good.meetsTimingCriteria, "Uniform pilot passes timing criteria")
+        var anomalies = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(60))
+        anomalies.receive(date: origin.addingTimeInterval(29), uptime: 29, axesFinite: true, chunkStart: origin)
+        anomalies.receive(date: origin.addingTimeInterval(32), uptime: 32, axesFinite: true, chunkStart: origin)
+        expect(anomalies.maximumGap == 3 && anomalies.buckets[1].maximumGap == 3, "Cross-bucket gaps remain visible")
+        anomalies.receive(date: origin.addingTimeInterval(32), uptime: 32, axesFinite: true, chunkStart: origin.addingTimeInterval(32))
+        expect(anomalies.boundaryDuplicates == 1 && anomalies.count == 2, "Only identified boundary overlap is deduplicated")
+        anomalies.receive(date: origin.addingTimeInterval(32), uptime: 32, axesFinite: true, chunkStart: origin)
+        expect(anomalies.outOfOrder == 1 && anomalies.buckets[1].outOfOrder == 1, "Unexpected duplicate is an anomaly")
+        anomalies.receive(date: origin.addingTimeInterval(60), uptime: 60, axesFinite: true, chunkStart: origin)
+        anomalies.receive(date: origin.addingTimeInterval(33), uptime: .nan, axesFinite: true, chunkStart: origin)
+        anomalies.receive(date: origin.addingTimeInterval(34), uptime: 34, axesFinite: false, chunkStart: origin)
+        expect(anomalies.outsideWindow == 1 && anomalies.invalid == 2, "Half-open window and invalid inputs")
+        anomalies.receive(date: origin.addingTimeInterval(35), uptime: 40, axesFinite: true, chunkStart: origin)
+        expect(anomalies.clockDiscontinuity && !anomalies.meetsTimingCriteria, "Uptime/wall-clock mismatch fails timing")
+        expect(OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(-10)).buckets.isEmpty, "Invalid window cannot allocate a negative range")
+        expect(OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(28800)).buckets.count == 960, "Eight-hour bucket bound")
+
+        let recorder = OvernightMotionRecorder()
+        SyntheticRecorder.shared.configure()
+        let result = await read(recorder)
+        expect(result.summary.count == 60_000 && result.summary.boundaryDuplicates == 1 && result.summary.meetsTimingCriteria, "Actual worker deduplicates inclusive chunk boundaries")
+        expect(SyntheticRecorder.shared.queryCount == 2 && SyntheticRecorder.shared.maximumQuery <= 600, "Ten-minute queries")
+        SyntheticRecorder.shared.configure()
+        let fullNight = await read(recorder, duration: 28800)
+        try fullNight.summary.validate()
+        expect(fullNight.summary.count == 1_440_000 && fullNight.summary.buckets.count == 960
+            && fullNight.summary.boundaryDuplicates == 47 && fullNight.summary.meetsTimingCriteria,
+            "Eight-hour stream stays bounded and keeps cross-chunk timing")
+        SyntheticRecorder.shared.configure(output: .missing)
+        let missing = await read(recorder)
+        expect(missing.summary.nilChunks == 2 && missing.error == nil, "Nil results do not invent API errors")
+        SyntheticRecorder.shared.configure(output: .empty)
+        let empty = await read(recorder)
+        expect(empty.summary.emptyChunks == 2 && empty.summary.nilChunks == 0, "Empty differs from nil")
+        SyntheticRecorder.shared.configure(output: .unexpected)
+        let unexpected = await read(recorder)
+        expect(unexpected.summary.unexpectedObjects == 2, "Unexpected objects retained as diagnostics")
+        SyntheticRecorder.shared.configure(output: .excessive)
+        let excessive = await read(recorder, duration: 60)
+        expect(excessive.summary.aborted && excessive.error != nil && excessive.summary.count <= 7000, "Bound enumeration work")
+        let flag = OvernightRetrievalCancellation()
+        flag.cancel()
+        let cancelled = await read(recorder, cancellation: flag)
+        expect(cancelled.cancelled, "Cancellation before retrieval")
+        let invalidWindow = await read(recorder, duration: .nan)
+        expect(invalidWindow.error != nil, "Invalid retrieval window reported explicitly")
+
+        var trial = OvernightMotionTrial(mode: .pilot, start: origin, uptime: 1000, configuration: .init(), battery: 0.8)
+        trial.phase = .elapsed
+        trial.requestCount = 1
+        trial.fullSummary = good
+        trial.firstUsefulProbeAt = origin.addingTimeInterval(840)
+        expect(trial.pilotQualified, "Pilot visibility threshold is inclusive")
+        trial.firstUsefulProbeAt = origin.addingTimeInterval(840.01)
+        expect(!trial.pilotQualified, "Late pilot cannot unlock overnight")
+        trial.firstUsefulProbeAt = origin.addingTimeInterval(700)
+        var archive = OvernightMotionArchive()
+        archive.append(trial)
+        archive.updatePilotEvidence()
+        var invalidatedPilot = archive
+        invalidatedPilot.trials[0].clockDiscontinuity = true
+        invalidatedPilot.updatePilotEvidence()
+        expect(invalidatedPilot.pilotEvidence == nil && invalidatedPilot.trials[0].morningVisibility.contains("inconclusive"), "Later clock uncertainty cannot preserve a pilot pass or claim timely visibility")
+        for _ in 0..<4 {
+            var finished = OvernightMotionTrial(mode: .comparison, start: origin, uptime: 1000, configuration: .init(), battery: nil)
+            finished.phase = .elapsed
+            for n in 0..<45 { finished.record("Event \(n)") }
+            expect(finished.events.count == 40 && finished.eventsTruncated, "Forty-event bound")
+            archive.append(finished)
+        }
+        try archive.validate()
+        expect(archive.trials.count == 3 && archive.pilotEvidence != nil, "Three-trial bound preserves compact pilot evidence")
+        var malformed = archive
+        malformed.trials[0].requestCount = 2
+        invalid(malformed, "Overlapping request count accepted")
+        malformed = archive
+        malformed.trials[0].fullSummary = good
+        malformed.trials[0].fullSummary!.buckets[0].count = Int.max
+        invalid(malformed, "Unbounded count accepted")
+        malformed = archive
+        malformed.trials[0].configuration.watchModel = String(repeating: "x", count: 129)
+        invalid(malformed, "Unbounded settings accepted")
+        try JSONDecoder().decode(OvernightMotionArchive.self, from: JSONEncoder().encode(archive)).validate()
+
+        let suite = "Cumulus.overnight.synthetic.\(UUID())"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let owner = ExperimentSessionOwner(defaults: defaults)
+        SyntheticRecorder.shared.configure(authorization: .notDetermined)
+        let coordinator = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        coordinator.requestAccess()
+        try? await Task.sleep(for: .milliseconds(20))
+        expect(!coordinator.access.canRecord, "Activity callback is not recorder authorization")
+        coordinator.start(.pilot, configuration: .init())
+        expect(SyntheticRecorder.shared.recordCount == 0, "No unauthorized request")
+        for permission in [CMAuthorizationStatus.denied, .restricted] {
+            SyntheticRecorder.shared.configure(authorization: permission)
+            coordinator.start(.pilot, configuration: .init())
+            expect(SyntheticRecorder.shared.recordCount == 0 && coordinator.latest == nil, "Denied or restricted cannot start")
+        }
+        SyntheticRecorder.shared.configure(available: false)
+        coordinator.start(.pilot, configuration: .init())
+        expect(SyntheticRecorder.shared.recordCount == 0 && coordinator.latest == nil, "Unavailable recorder cannot start")
+        SyntheticRecorder.shared.configure()
+        WKApplication.shared().applicationState = .background
+        coordinator.start(.pilot, configuration: .init())
+        expect(coordinator.latest == nil, "Active app required")
+        WKApplication.shared().applicationState = .active
+        coordinator.start(.overnight, configuration: .init())
+        expect(coordinator.latest == nil, "Overnight requires qualified pilot")
+        coordinator.start(.pilot, configuration: .init())
+        expect(coordinator.latest?.requestCount == 1 && owner.current == .overnightMotion, "One fixed request reserves shared ownership")
+        coordinator.start(.pilot, configuration: .init())
+        expect(SyntheticRecorder.shared.recordCount == 1 && !owner.claim(.alert), "No overlap with other experiments")
+        let savedStart = coordinator.latest!.start
+        let recovered = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(recovered.latest?.start == savedStart && recovered.latest?.recovered == true && SyntheticRecorder.shared.recordCount == 1, "Recovery never rearms")
+        recovered.refreshClock(now: savedStart.addingTimeInterval(100), uptime: recovered.latest!.startUptime + 10)
+        expect(recovered.latest?.phase == .uncertain && recovered.latest?.clockDiscontinuity == true && owner.current == .overnightMotion, "Clock changes preserve blocking reservation")
+
+        defaults.removeObject(forKey: "overnightMotion.v1")
+        owner.release(.overnightMotion)
+        let comparison = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        comparison.start(.comparison, configuration: .init())
+        expect(comparison.latest?.requestCount == 0 && SyntheticRecorder.shared.recordCount == 1, "Comparison never records")
+        let comparisonTrial = comparison.latest!
+        comparison.refreshClock(now: comparisonTrial.end, uptime: comparisonTrial.startUptime + 28800)
+        expect(comparison.latest?.phase == .elapsed && owner.current == .none, "Fixed elapsed window releases ownership")
+        comparison.refreshClock(now: comparisonTrial.end.addingTimeInterval(100), uptime: comparisonTrial.startUptime + 28801)
+        expect(comparison.latest?.phase == .elapsed && comparison.latest?.clockDiscontinuity == true && !comparison.hasReservation,
+               "Clock changes after elapsed window invalidate evidence without inventing a new reservation")
+
+        // A saved completed request lets tests retrieve real worker output without waiting 20 minutes.
+        var completed = OvernightMotionTrial(mode: .pilot, start: Date().addingTimeInterval(-1500),
+            uptime: ProcessInfo.processInfo.systemUptime - 1500, configuration: .init(), battery: 0.8)
+        completed.phase = .elapsed
+        completed.requestCount = 1
+        defaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [completed])), forKey: "overnightMotion.v1")
+        SyntheticRecorder.shared.configure()
+        let retrieval = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        retrieval.retrieve(pilotProbe: false)
+        await settle(retrieval)
+        expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.firstUsefulReadAt != nil, "Actual coordinator stores bounded full summary")
+        let firstRead = retrieval.latest!.firstUsefulReadAt
+        retrieval.retrieve(pilotProbe: false)
+        await settle(retrieval)
+        expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.firstUsefulReadAt == firstRead, "Refresh replaces summary and preserves first availability observation")
+        SyntheticRecorder.shared.configure(output: .slow)
+        retrieval.retrieve(pilotProbe: false)
+        retrieval.applicationStateChanged("background")
+        await settle(retrieval)
+        expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.observations.last?.cancelled == true, "Late/cancelled result cannot overwrite prior summary")
+        SyntheticRecorder.shared.configure(output: .missing)
+        retrieval.retrieve(pilotProbe: true)
+        await settle(retrieval)
+        expect(retrieval.latest?.latestProbe?.nilChunks == 1 && retrieval.latest?.precedingIncompleteProbeAt != nil, "Pilot incomplete visibility retained")
+        var qualified = retrieval.latest!
+        qualified.configuration.watchOS = WKInterfaceDevice.current().systemVersion
+        qualified.configuration.appBuild = retrieval.build
+        qualified.firstUsefulProbeAt = qualified.start.addingTimeInterval(700)
+        var qualification = OvernightMotionArchive(trials: [qualified])
+        qualification.updatePilotEvidence()
+        defaults.set(try JSONEncoder().encode(qualification), forKey: "overnightMotion.v1")
+        SyntheticRecorder.shared.configure()
+        let unlocked = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(unlocked.canStart(.overnight), "Qualified pilot unlocks overnight on matching OS/build")
+        unlocked.start(.overnight, configuration: .init())
+        expect(unlocked.latest?.mode == .overnight && SyntheticRecorder.shared.recordCount == 1, "Qualified overnight issues one request")
+        owner.release(.overnightMotion)
+        var prepared = OvernightMotionTrial(mode: .pilot, start: Date(), uptime: ProcessInfo.processInfo.systemUptime,
+                                           configuration: .init(), battery: nil)
+        prepared.record("Request prepared")
+        defaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [prepared])), forKey: "overnightMotion.v1")
+        let interruptedPrepare = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(interruptedPrepare.latest?.phase == .uncertain && interruptedPrepare.hasReservation && SyntheticRecorder.shared.recordCount == 1, "Interrupted preparation preserves uncertainty and never reissues")
+        defaults.set(Data("bad archive".utf8), forKey: "overnightMotion.v1")
+        let corrupt = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(corrupt.storageError != nil && owner.current == .unresolved && !corrupt.canStart(.comparison), "Corrupt metadata blocks requests")
+        owner.reconcile(alertPending: false, motionPending: true, overnightPending: true)
+        expect(owner.current == .unresolved, "Conflicting reservations are not guessed away")
+
+        var settings = OvernightMotionTrial.Configuration()
+        settings.watchModel = "Synthetic"
+        settings.wrist = "Worn, unlocked"; settings.powerMode = "Off"
+        settings.sleepFocus = "On"; settings.sleepTracking = "On"
+        settings.debuggerDetached = "Yes"; settings.charging = "No"; settings.interruption = "None"
+        var baseline = OvernightMotionTrial(mode: .comparison, start: origin, uptime: 1000, configuration: settings, battery: 0.8)
+        baseline.phase = .elapsed
+        baseline.batteryReturn = .init(date: baseline.end, level: 0.65)
+        var night = OvernightMotionTrial(mode: .overnight, start: origin.addingTimeInterval(86400), uptime: 1000, configuration: settings, battery: 0.8)
+        night.phase = .elapsed; night.requestCount = 1
+        night.batteryReturn = .init(date: night.end, level: 0.6)
+        let batteries = OvernightMotionArchive(trials: [baseline, night])
+        expect(batteries.batteryAssessment(for: night).hasPrefix("Battery thresholds met"), "Matched battery baseline")
+        night.configuration.powerMode = "On"
+        expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
+        night.configuration.charging = "Yes"
+        expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
+        print("PASS: streaming chunks, sample/bucket boundaries, gaps, invalid values, clocks, bounds, authorization, fixed requests, pilot gate, recovery, cancellation, summary replacement and battery comparisons")
+    }
+}

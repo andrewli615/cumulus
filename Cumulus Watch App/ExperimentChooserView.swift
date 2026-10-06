@@ -3,6 +3,7 @@ import SwiftUI
 struct ExperimentChooserView: View {
     @ObservedObject var coordinator: ScheduledAlertCoordinator
     @ObservedObject var background: BackgroundMotionCoordinator
+    @ObservedObject var overnight: OvernightMotionCoordinator
     @ObservedObject var owner: ExperimentSessionOwner
 
     var body: some View {
@@ -12,15 +13,15 @@ struct ExperimentChooserView: View {
                     Text("Explore your\nWatch data.")
                         .font(.title2.bold())
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Five small experiments.")
+                    Text("Six small experiments.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if owner.current != .none {
                     ExperimentCard {
                         ExperimentHeading(title: "Session status", symbol: "clock")
-                        Text(owner.current == .unresolved ? "Session ownership unresolved" : (owner.current == .alert ? coordinator.status : background.status))
+                        Text(owner.current == .unresolved ? "Session ownership unresolved" : (owner.current == .alert ? coordinator.status : owner.current == .overnightMotion ? overnight.status : background.status))
                             .font(.caption)
-                        Text("Finish the scheduled experiment before opening motion or health history.")
+                        Text("Finish the active trial before opening motion or health history.")
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                 }
@@ -52,6 +53,11 @@ struct ExperimentChooserView: View {
                     ExperimentDestination(title: "Cardiac history", subtitle: "Heart records & coverage", symbol: "heart.text.square")
                 }
                 .disabled(owner.current != .none)
+                NavigationLink {
+                    OvernightMotionView(coordinator: overnight, owner: owner)
+                } label: {
+                    ExperimentDestination(title: "Overnight motion", subtitle: "Fixed recording · later retrieval", symbol: "moon.stars")
+                }
                 Text("Research in progress. Keep an independent alarm.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
