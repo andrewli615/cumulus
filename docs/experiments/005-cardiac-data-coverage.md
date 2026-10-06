@@ -1,6 +1,6 @@
 # Experiment 005: Cardiac-data coverage
 
-Status: reader and screen implemented; physical trial completion and outcomes unknown. Software verification is recorded below.
+Status: owner reports Experiment 005 succeeded and all tests passed. Detailed per-type observations and trial configuration remain unknown. Software verification is recorded below.
 
 ## Question
 
@@ -64,26 +64,27 @@ Verified on 2026-10-06:
 - Existing background-motion and sleep-history synthetic suites passed.
 - Signing-free Debug builds passed for generic watchOS and watchOS Simulator with Xcode 27 and the existing watchOS 26.6 minimum. Only the skipped AppIntents metadata-extraction warning was reported.
 - Project/permission property lists, local documentation links, and whitespace checks passed.
-- Interactive Cardiac history navigation, large-text layout, VoiceOver, permission UI, and physical availability remain unverified. No real HealthKit records were used in these checks.
+- Codex has not independently verified interactive Cardiac history navigation, large-text layout, VoiceOver, permission UI, or physical availability. The owner subsequently reported an overall experiment pass. No real HealthKit records were used in these software checks.
 
 The synthetic suite compiles the actual reader and summary calculations against platform doubles. Builds establish SDK integration; neither establishes device delivery or continuous measurement.
 
 ## Result
 
-No specific Experiment 005 observation or completion report has been supplied. The earlier “steps 1–3 done” statement concerned the UI/sleep-history procedure before this screen was implemented; it does not establish a cardiac result.
+On 2026-10-06, the owner reported: “experiment 5 has succeeded all tests passed.” Record this as an **owner-reported experiment pass under the tested conditions**. The statement establishes the reported overall result; it does not supply individual data-type observations or captured measurements.
 
 | Observation | Recorded evidence |
 | --- | --- |
-| Cardiac physical trial performed | **Unknown**. |
-| Readable heart-rate, SDNN, or heartbeat-series results | **Unknown** for each type. |
+| Cardiac physical trial performed | Owner reports Experiment 005 succeeded. |
+| Overall procedure/check outcome | Owner reports all tests passed. |
+| Readable heart-rate and SDNN results | **Unknown** individually; no per-type observations supplied. |
 | Grouped heart-rate records with quantity count greater than one | **Unknown**. |
 | Readable heartbeat series | **Unknown**. |
-| Counts, source spans/gaps, units, dates, and Health comparisons | **Unknown**. |
-| Errors, invalid-record/truncation warnings, refresh, and clearing | **Unknown**. |
-| Watch model, watchOS, build, time zone, settings, and trial times | **Unknown**. |
+| Counts, source spans/gaps, units, dates, and Health comparisons | Exact observations **Unknown**. |
+| Errors, invalid-record/truncation warnings, refresh, and clearing | All checks reported passed; individual observations **Unknown**. |
+| Watch model, watchOS, build, time zone, settings, and trial times | **Unknown**. October 6 is the report date, not a captured trial timestamp. |
 | Independent inspection of physical records | Not performed by Codex. |
 
-Historical availability is **unclassified pending physical observations**. No personal values or raw records need to enter Git.
+Preserve the reported pass without inventing counts, settings, or per-type availability. Type-specific availability cannot yet be classified from captured observations; grouped-quantity and heartbeat-series presence still require a nonpersonal confirmation to decide the next timing reader. No personal values or raw records need to enter Git. This result does not establish continuous overnight cardiac sensing, timely alarm inputs, or sleep-stage accuracy.
 
 ### Conditional internal-timing follow-up
 

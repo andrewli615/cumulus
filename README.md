@@ -10,7 +10,7 @@ A watchOS smart-alarm research app for learning which Watch measurements can sup
 | Scheduled alert test | Requests a session three minutes ahead and a haptic while running | Original mixed results, then owner-reported successful retest after changing Watch haptics. [Experiment 001](docs/experiments/001-scheduled-alert.md) |
 | Background motion test | Collects 60 seconds of sample timing/count summaries | Owner reports both background trials and manual-stop check passed. [Experiment 003](docs/experiments/003-background-motion.md) |
 | Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; owner reports procedure completion; individual outcomes and trial details are unknown. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
-| Cardiac history | Reads stored heart rate, SDNN, and heartbeat-series metadata with source-specific gap summaries | Implemented; physical outcomes, grouped quantities, and series availability unknown. [Experiment 005](docs/experiments/005-cardiac-data-coverage.md) |
+| Cardiac history | Reads stored heart rate, SDNN, and heartbeat-series metadata with source-specific gap summaries | Owner reports success and all tests passed; grouped quantities, series presence, and trial details remain unknown. [Experiment 005](docs/experiments/005-cardiac-data-coverage.md) |
 
 The physical reports support only the tested conditions. Exact trial measurements and setup details were not supplied, and summaries were not independently inspected. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
@@ -23,7 +23,7 @@ The physical reports support only the tested conditions. Exact trial measurement
 3. Choose an experiment from the app's chooser. Motion probe uses **Start monitoring**; Sleep history uses **Read / Refresh**. HealthKit results may be empty or old; neither screen requests continuous optical sensing.
 4. Schedule alert and background trials while the app is active, following their linked procedures. **Session scheduled** is an observed software state; **Haptic requested** records an API call, not proof of perception. Cancel or stop with the app active. Do not reinstall or clear app data while a trial is pending.
 
-The owner reports completing the previous UI and sleep-history checks on 2026-10-06. Detailed outcomes and configuration were not supplied. Cardiac history navigation/layout remains unverified. Simulator builds and synthetic checks do not establish physical sensor or alarm behavior.
+The owner reports completing the previous UI and sleep-history checks on 2026-10-06. Detailed outcomes and configuration were not supplied. The owner also reports Experiment 005 succeeded and all tests passed; Codex has not independently inspected its physical/UI outcomes. Simulator builds and synthetic checks do not establish physical sensor or alarm behavior.
 
 ## Verify changes
 

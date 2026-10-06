@@ -2,12 +2,13 @@
 
 Research reviewed: 2026-10-05
 
-Status: sleep-history and cardiac-history readers implemented. The owner reports completing the sleep/UI procedure, with detailed outcomes unspecified; cardiac outcomes are unknown. Experiment 006 is plan only; no overnight recorder is implemented. Later implementation chunks require separate owner review. No production staging algorithm is selected.
+Status: sleep-history and cardiac-history readers implemented. The owner reports completing the sleep/UI procedure, with detailed outcomes unspecified; the owner reports Experiment 005 succeeded and all tests passed, with individual type observations and setup unknown. Experiment 006 is plan only; no overnight recorder is implemented. Later implementation chunks require separate owner review. No production staging algorithm is selected.
 
 ## Evidence we have
 
 - Experiment 001 preserves the original mixed alert results and a subsequent owner-reported pass of three alerts plus cancellation after changing Watch haptics. Exact setting changes and retest timings are unspecified.
 - Experiment 003 records owner-reported passes for two 60-second background motion runs and the manual-stop check. The owner confirmed the sample/freshness thresholds and that the displayed count remained fixed for five seconds after stop.
+- Experiment 005 has an owner-reported pass of all tests on October 6. Grouped heart-rate record presence and heartbeat-series presence remain unknown; no internal-timing follow-up is selected yet.
 - Exact trial measurements and device/setup details were not supplied; summaries were not independently inspected. These are reports of support under tested conditions, not evidence of overnight reliability or validated sleep staging.
 - Signing-free device and simulator builds and synthetic checks passed. Interactive simulator navigation/layout remains unverified because Computer Use permission was not granted. This is distinct from the earlier environment's simulator-service failures.
 
@@ -18,7 +19,7 @@ See [Experiment 001](experiments/001-scheduled-alert.md), [Experiment 003](exper
 | Step | Proposed work | Evidence needed before building on it |
 | --- | --- | --- |
 | 1. Align documentation | Preserve results, qualify evidence, and record this sequence. | Consistent status summaries and source links. Implemented; keep summaries aligned as evidence changes. |
-| 2. Inspect available records | Sleep and cardiac history implemented; detailed physical outcomes unknown. Internal cardiac timing is conditional on confirmed grouped quantities or heartbeat series; respiratory rate and wrist temperature remain separately reviewed. | Categories, source attribution, measurement dates, coverage/gaps, and first observed availability. Empty records are not proof of denied permission. |
+| 2. Inspect available records | Sleep and cardiac history implemented; cardiac experiment reported passed, with detailed per-type observations unknown. Internal cardiac timing is conditional on confirmed grouped quantities or heartbeat series; respiratory rate and wrist temperature remain separately reviewed. | Categories, source attribution, measurement dates, coverage/gaps, and first observed availability. Empty records are not proof of denied permission. |
 | 3. Test overnight motion | [Experiment 006](experiments/006-overnight-motion.md) planned: availability gate, pilot, two eight-hour trials, and battery comparison. No app implementation yet. | Predefined criteria for continuity, sample rate, retrieval lag, battery, and storage; record actual configuration. Decide separately whether data suits offline research and timely decisions. |
 | 4. Reproduce offline baselines | Audit BIDSleep/SLAMSS-IFS code, dataset version, license, labels, preprocessing, and acquisition requirements; compare with an explainable feature model. | Reproducible participant-separated evaluation, per-class errors, and compatible signal coverage. Do not mix one participant's nights between train and test. |
 | 5. Evaluate an alarm-window estimator | Use only data available by the decision time, with explicit missing-data and uncertain outputs. | Causal replay, measured latency, calibration, useful coverage, and performance under missing/stale inputs. Define acceptance thresholds before testing. |
