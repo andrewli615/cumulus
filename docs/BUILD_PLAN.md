@@ -2,6 +2,8 @@
 
 Cumulus will investigate accessible Watch measurements, apply explainable mathematical features, test their biological interpretation, and use validated inputs to inform a wake decision. Raw motion, derived health measurements, and Apple's sleep classifications are different kinds of evidence. Access to historical data does not establish access to timely live data.
 
+The intended first release is **Watch-only and for personal use**. Research gates precede sleep-stage product features; no new feature should depend on unqualified overnight inputs. The [research input audit](research/INPUT_COMPATIBILITY_AUDIT.md) is complete, but no classifier or benchmark is selected for implementation yet.
+
 For each requested chunk, explain the behavior, data flow, technical risk, and one alternative, then implement and verify it without pausing for routine approval. Keep changes small and revisable; inspect the diff and relevant checks. Commit each coherent chunk after its checks pass, write a concise message, and report it. Do not push unless asked. Completing one chunk does not authorize unrelated later work.
 
 | Chunk | Deliverable | Exit question |
@@ -12,10 +14,10 @@ For each requested chunk, explain the behavior, data flow, technical risk, and o
 | 4. Background motion feasibility | Separate Experiment 003: short background collection, bounded timestamp/count metadata, and prewritten device criteria | Is motion collection supported under the tested conditions, independently of unresolved alert reliability? |
 | 5. Stored-record inspection | Read-only sleep history first; separately reviewed cardiac and other record coverage checks | What can Cumulus read, with what sources, gaps, and availability times? |
 | 6. Overnight motion feasibility | Prewritten `CMSensorRecorder` trial with availability, continuity, retrieval-delay, battery, and storage checks | Can this Watch supply useful overnight recordings without assuming continuous app execution? |
-| 7. Offline model comparison | Reproduce a BIDSleep/SLAMSS-IFS benchmark and an explainable baseline | Can we reproduce results on held-out participants with compatible inputs and labels? |
+| 7. Offline model comparison | After compatible inputs are confirmed, select one reproducible published model and an explainable baseline; keep code outside the Watch target | Are inputs sufficiently available, artifacts/terms resolved, and results valid on held-out participants with truthful causal availability? |
 | 8. Causal alarm-window estimation | Predictions using only measurements available at decision time, including uncertainty | Does the model work under the real input and latency constraints? |
 | 9. Alarm-outcome evaluation | Separate trials of alert reliability and the waking benefit of the decision rule | Does the estimator improve the experience without hiding alert failures? |
-| 10. Refinement | Repeated nights, accessibility, battery, privacy, and architecture decision | What evidence supports release and Watch-only or companion design? |
+| 10. Personal Watch MVP refinement | Repeated nights, accessibility, battery, privacy, interruptions, and waking benefit | What evidence supports the personal Watch-only release? |
 
 ## Implemented chunk: foreground probe
 
@@ -77,6 +79,10 @@ One active-app action issues one fixed-duration request. New requests measure th
 The initial implementation passed all four synthetic suites and signing-free Watch/device-simulator builds; interactive UI remains unverified. The owner reports 59,586 pilot samples, 39/40 qualifying buckets, 49.95 Hz, a 0.1 s largest gap, and 5.42 s / 1.58 s boundary gaps. The leading gap fails the unchanged threshold, and late-only probing leaves early visibility unknown. The old preparation timestamp confounds attribution of startup delay; preserve its failed result. An eight-hour test was subsequently reported in progress at approximately 10% battery, with mode, elapsed duration, charging, and final outcome unknown. Finish and preserve that run before installing the fixes and repeating the pilot. Then perform the comparable battery night and two recording nights only if the pilot qualifies. Apply timing, visibility, battery, and execution criteria independently; retrospective usefulness does not prove live availability or a reliable wake deadline.
 
 ## Subsequent proposals
+
+The completed [input compatibility audit](research/INPUT_COMPATIBILITY_AUDIT.md) keeps SLAMSS-IFS/BIDSleep as a conditional offline candidate, not a ready-to-run live model. Cumulus currently discards raw acceleration values after timing/quality inspection; the stored summaries cannot supply model features. Heart-rate density and beat-series presence remain unknown. Resolve these input and availability gates plus preprocessing, label-initialization, artifacts, and reuse terms before proposing benchmark code or private feature handling. No dataset download, app feature, or classifier is added by the audit.
+
+The sequence remains: close the outstanding Experiment 006 run without reinstalling or clearing history; repeat the corrected pilot with unchanged thresholds; qualify the comparison and two recording nights; confirm compatible, sufficiently available inputs; then implement a reviewed offline benchmark. Report participant-separated macro-F1 and per-stage errors, uncertainty/coverage, and causal replay separately from retrospective reproduction. If no input path qualifies, stop short of a sleep-stage classifier. Only after research gates support it should a personal alarm flow add readiness/uncertainty states and a separately verified fixed latest-wake fallback, followed by alert-delivery and waking-benefit trials.
 
 Internal series timing is conditional on observed grouped quantities or heartbeat series in Experiment 005. Both are currently unknown; defer that reader unless observations provide a reason. Other stored-record coverage remains separately reviewed. Offline model comparison and causal alarm-window estimation remain later reviewed chunks in [the sleep research roadmap](SLEEP_RESEARCH_ROADMAP.md). No production model is selected, and this reader adds no persistent health-data recording.
 
