@@ -5,13 +5,15 @@ Run from the repository root on macOS with Xcode installed:
 ```sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
+./scripts/check-cardiac-history.sh
 ```
 
-Both runners default `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Developer`; override it for another installation. Each creates a temporary build directory and removes it on exit. No personal records or raw device logs are used.
+All runners default `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Developer`; override it for another installation. Each creates a temporary build directory and removes it on exit. No personal records or raw device logs are used.
 
 | Suite | Coverage |
 | --- | --- |
 | `BackgroundMotionChecks.swift` | Sample bucket boundaries, gaps/delays, stale samples, stopping and late callbacks, error handling, archive bounds, session ownership, cancellation, expiry, and relaunch routing. Compiles the actual trial, owner, coordinators, and app delegate. |
+| `CardiacHistoryChecks.swift` | Source-specific gap merging and window edges, grouped counts, units, per-type result limits/errors, partial completion, read-only authorization, invalid records, cancellation, and late callbacks. Compiles the actual cardiac reader and coverage calculations. |
 | `SleepHistoryChecks.swift` | Read-only authorization, unavailable/empty/error states, category mapping, source/date preservation, 500-row truncation, cancellation, and late authorization/query callbacks. Compiles the actual sleep reader. |
 
 The scripts remove platform imports only from temporary source copies and supply platform doubles. Repository app sources are not rewritten. The sleep suite makes the previously temporary reader harness repeatable; it uses short waits to let MainActor tasks complete and does not simulate HealthKit delivery timing.
