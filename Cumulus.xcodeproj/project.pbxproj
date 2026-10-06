@@ -22,6 +22,7 @@
 		A00000000000000000000010 /* ExperimentSessionOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000010 /* ExperimentSessionOwner.swift */; };
 		A00000000000000000000011 /* SleepStageReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* SleepStageReader.swift */; };
 		A00000000000000000000012 /* SleepHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000012 /* SleepHistoryView.swift */; };
+		A00000000000000000000013 /* ExperimentStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000013 /* ExperimentStyle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 		B00000000000000000000010 /* ExperimentSessionOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentSessionOwner.swift; sourceTree = "<group>"; };
 		B00000000000000000000011 /* SleepStageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepStageReader.swift; sourceTree = "<group>"; };
 		B00000000000000000000012 /* SleepHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryView.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* ExperimentStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentStyle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +91,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000001 /* CumulusApp.swift */,
+				B00000000000000000000013 /* ExperimentStyle.swift */,
 				B0000000000000000000000A /* ExperimentChooserView.swift */,
 				B00000000000000000000009 /* WatchAppDelegate.swift */,
 				B00000000000000000000010 /* ExperimentSessionOwner.swift */,
@@ -228,6 +231,7 @@
 				A00000000000000000000011 /* SleepStageReader.swift in Sources */,
 				A00000000000000000000012 /* SleepHistoryView.swift in Sources */,
 				A00000000000000000000001 /* CumulusApp.swift in Sources */,
+				A00000000000000000000013 /* ExperimentStyle.swift in Sources */,
 				A0000000000000000000000C /* ScheduledAlertView.swift in Sources */,
 				A0000000000000000000000B /* ScheduledAlertCoordinator.swift in Sources */,
 				A0000000000000000000000A /* ExperimentChooserView.swift in Sources */,

@@ -5,40 +5,59 @@ struct SleepHistoryView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        List {
-            Section("Stored sleep records") {
-                Text("Historical HealthKit records, not live sleep detection. Sources can include Apple and other apps.")
-                    .font(.caption2)
-                Button("Read / Refresh") { reader.refresh() }
-                    .disabled(reader.isLoading || reader.isRequestingAccess)
-                if reader.isLoading { ProgressView() }
-                Text(reader.status).font(.caption)
-                if let start = reader.windowStart, let end = reader.windowEnd {
-                    Text("Window: \(start.formatted(date: .abbreviated, time: .shortened)) – \(end.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption2)
+        ExperimentPage {
+            ExperimentCard {
+                ExperimentHeading(title: "Sleep history", symbol: "moon.zzz.fill")
+                Text("Your stored intervals.")
+                    .font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
+                Text("Historical HealthKit records, not live sleep detection.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                Button {
+                    reader.refresh()
+                } label: {
+                    Text("Read / Refresh").frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(reader.isLoading || reader.isRequestingAccess)
+                if reader.isLoading {
+                    ProgressView().accessibilityLabel("Reading sleep history")
+                }
+                Text(reader.status).font(.caption).fixedSize(horizontal: false, vertical: true)
                 if let refreshed = reader.refreshedAt {
-                    Text("Read at: \(refreshed.formatted(date: .abbreviated, time: .standard))")
-                        .font(.caption2)
+                    ExperimentMetric(label: "Read at", value: refreshed.formatted(date: .abbreviated, time: .standard))
                 }
                 if reader.isTruncated {
-                    Text("Showing only the newest 500 intervals. This is not a complete history.")
+                    Label("Newest 500 intervals only", systemImage: "exclamationmark.circle")
                         .font(.caption).foregroundStyle(.orange)
+                    Text("This is not a complete history.").font(.caption2)
                 }
-                Text("Intervals can overlap or cross the window boundary. Missing stages do not prove wakefulness. An empty result does not establish denied permission.")
-                    .font(.caption2)
-                Text("Times use this Watch’s current time zone: \(TimeZone.current.identifier).")
-                    .font(.caption2)
             }
-            Section("Intervals, newest first") {
-                ForEach(reader.intervals) { interval in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(interval.category).font(.headline)
-                        Text("Start: \(interval.start.formatted(date: .abbreviated, time: .standard))")
-                        Text("End: \(interval.end.formatted(date: .abbreviated, time: .standard))")
-                        Text("Source: \(interval.source)")
-                        Text(interval.sourceIdentifier)
-                    }.font(.caption2)
+            if let start = reader.windowStart, let end = reader.windowEnd {
+                ExperimentCard {
+                    ExperimentMetric(label: "Window start", value: start.formatted(date: .abbreviated, time: .shortened))
+                    ExperimentMetric(label: "Window end", value: end.formatted(date: .abbreviated, time: .shortened))
+                }
+            }
+            Text("Sources can include Apple and other apps. Intervals can overlap or cross the window boundary. Missing stages do not prove wakefulness. An empty result does not establish denied permission.")
+                .font(.caption2).foregroundStyle(.secondary)
+            Text("Time zone: \(TimeZone.current.identifier)")
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !reader.intervals.isEmpty {
+                ExperimentHeading(title: "Newest first", symbol: "clock")
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    ForEach(reader.intervals) { interval in
+                        ExperimentCard {
+                            Text(interval.category).font(.headline)
+                            ExperimentMetric(label: "Start", value: interval.start.formatted(date: .abbreviated, time: .standard))
+                            ExperimentMetric(label: "End", value: interval.end.formatted(date: .abbreviated, time: .standard))
+                            Text("Source: \(interval.source)").font(.caption)
+                            Text(interval.sourceIdentifier)
+                                .font(.caption2).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
                 }
             }
         }

@@ -10,37 +10,34 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Cumulus").font(.headline)
-                Text("Data probe").font(.title3)
+        ExperimentPage {
+            ExperimentCard {
+                ExperimentHeading(title: "Motion probe", symbol: "waveform.path.ecg")
                 Text(isMonitoring ? "Monitoring requested" : "Collection stopped")
-                    .font(.caption)
-
-                Button(isMonitoring ? "Stop monitoring" : "Start monitoring") {
+                    .font(.caption).foregroundStyle(.secondary)
+                Button {
                     if isMonitoring {
                         stop()
                     } else {
                         motion.start()
                         heart.start()
                     }
+                } label: {
+                    Text(isMonitoring ? "Stop monitoring" : "Start monitoring")
+                        .frame(maxWidth: .infinity)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!isMonitoring && (heart.isRequestingAccess || scenePhase != .active))
-
-                Text("Foreground only. Stops when you leave this probe. This screen does not schedule alerts.")
-                    .font(.caption2)
-
-                Divider()
-                motionSection
-                Divider()
-                heartSection
-
-                Text("Readings stay in memory. Nothing is exported or saved by this probe.")
-                    .font(.caption2)
+                Text("Foreground only. Stops when you leave this probe.")
+                    .font(.caption2).foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 8)
+            ExperimentCard { motionSection }
+            ExperimentCard { heartSection }
+            Text("Readings stay in memory. Nothing is exported or saved. This probe does not schedule alerts.")
+                .font(.caption2).foregroundStyle(.secondary)
         }
+        .navigationTitle("Motion")
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
                 stop(reason: "Stopped on background entry")
@@ -53,7 +50,7 @@ struct ContentView: View {
 
     private var motionSection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Motion").font(.headline)
+            ExperimentHeading(title: "Acceleration", symbol: "waveform.path")
             Text(motion.status).font(.caption)
             if let reading = motion.latest {
                 Text("\(motion.isMonitoring ? "Latest" : "Retained") acceleration (g)")
@@ -68,7 +65,7 @@ struct ContentView: View {
                         .font(.caption2)
                 }
             }
-            Text("Samples: \(motion.sampleCount)").font(.caption2)
+            ExperimentMetric(label: "Samples received", value: "\(motion.sampleCount)")
             if let rate = motion.observedRate {
                 Text(String(format: "Observed average: %.1f Hz", rate)).font(.caption2)
             }
@@ -78,11 +75,11 @@ struct ContentView: View {
 
     private var heartSection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Heart rate").font(.headline)
+            ExperimentHeading(title: "Heart rate", symbol: "heart")
             Text(heart.status).font(.caption)
             if let reading = heart.latest {
                 Text("\(reading.beatsPerMinute, specifier: "%.0f") bpm")
-                    .font(.title3).monospacedDigit()
+                    .font(.title2.bold()).monospacedDigit()
                 Text(heart.isMonitoring ? "Latest readable record" : "Retained record; collection stopped")
                     .font(.caption2)
                 TimelineView(.periodic(from: .now, by: 1)) { context in

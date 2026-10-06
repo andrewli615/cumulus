@@ -51,7 +51,7 @@ Xcode groups organize the files by responsibility; source files remain in `Cumul
 
 | Xcode group | Files and purpose |
 | --- | --- |
-| App | `CumulusApp.swift`, `ExperimentChooserView.swift`, `WatchAppDelegate.swift`, `ExperimentSessionOwner.swift`: entry, navigation, relaunch routing, and exclusive session ownership. |
+| App | `CumulusApp.swift`, `ExperimentChooserView.swift`, `WatchAppDelegate.swift`, `ExperimentSessionOwner.swift`: entry, navigation, relaunch routing, and exclusive session ownership. `ExperimentStyle.swift` supplies shared page, card, heading, and metric views. |
 | Foreground probe | `ContentView.swift`, `MotionMonitor.swift`, `HeartRateReader.swift`: screen, motion callbacks, and read-only heart records. |
 | Scheduled alert | `ScheduledAlertView.swift`, `ScheduledAlertCoordinator.swift`: controls, lifecycle, and event history. |
 | Background motion | `BackgroundMotionView.swift`, `BackgroundMotionCoordinator.swift`, `BackgroundMotionTrial.swift`: trial setup, collection lifetime, and bounded summaries. |
@@ -59,6 +59,12 @@ Xcode groups organize the files by responsibility; source files remain in `Cumul
 | Resources | `Info.plist`, `Cumulus.entitlements`, `Assets.xcassets`: permission explanations, capabilities, and starter assets. The app icon remains a placeholder. |
 
 Foreground readings and sleep intervals stay in memory. Sleep history clears on screen exit or background entry. Alert diagnostics retain the latest 40 events; background diagnostics retain five trials, twelve five-second buckets per trial, and up to 40 events per trial. These store no raw motion vectors or HealthKit readings. Shared session ownership blocks conflicting experiments and preserves uncertainty after relaunch. See [architecture](docs/ARCHITECTURE.md) for data flow.
+
+## Interface
+
+The Watch UI uses black backgrounds, charcoal cards, semantic system fonts, and blue primary actions, inspired by the visual hierarchy of Apple's website. Status and actions come before diagnostics. Background trial details remain available through **Inspect trial** and the recent-trial list; native setup controls preserve all trial fields. Sleep intervals retain their sources and full dates. Color is accompanied by text, and content wraps rather than relying on fixed-height cards.
+
+The refresh changes presentation only. Collection, authorization, persistence, and session coordinators retain their existing behavior. SwiftUI previews are included for the shared components and foreground probe. On 2026-10-05, the UI refresh passed both synthetic suites, signing-free Debug builds for generic watchOS and watchOS Simulator, project parsing, and whitespace checks. Interactive layout, large-text, and VoiceOver checks remain pending because Computer Use permission was previously unavailable; builds and synthetic checks cannot establish those results.
 
 ## Repository map
 

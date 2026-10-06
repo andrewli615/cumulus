@@ -5,55 +5,64 @@ struct ScheduledAlertView: View {
     @ObservedObject var coordinator: ScheduledAlertCoordinator
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+        ExperimentPage {
+            ExperimentCard {
+                ExperimentHeading(title: "Scheduled alert", symbol: "alarm")
                 Text(coordinator.status).font(.headline)
                 if let date = coordinator.requestedStart {
-                    Text("Requested start").font(.caption)
-                    Text(date.formatted(date: .abbreviated, time: .standard))
-                        .monospacedDigit()
+                    ExperimentMetric(label: "Requested start", value: date.formatted(date: .abbreviated, time: .standard))
                 }
-
-                Button("Schedule test alert") { coordinator.schedule() }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(scenePhase != .active || !coordinator.canSchedule)
-                Text("Starts about 3 minutes from now.").font(.caption2)
-
                 if coordinator.canCancel {
                     Button("Cancel") { coordinator.cancel() }
+                        .buttonStyle(.borderedProminent)
                         .disabled(scenePhase != .active)
                 }
                 if coordinator.canStop {
                     Button("Stop alert") { coordinator.stopAlert() }
+                        .buttonStyle(.borderedProminent)
                         .disabled(scenePhase != .active)
                 }
+                if !coordinator.canCancel && !coordinator.canStop {
+                    Button {
+                        coordinator.schedule()
+                    } label: {
+                        Text("Schedule test alert")
+                            .frame(maxWidth: .infinity)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(scenePhase != .active || !coordinator.canSchedule)
+                    Text("Requested for 3 minutes from now.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
                 if coordinator.isUnverified {
+                    Label("Session unverified", systemImage: "exclamationmark.circle")
+                        .font(.caption).foregroundStyle(.orange)
                     Text("A saved request does not confirm a live session. Waiting for WatchKit to deliver it; this app cannot cancel a session it has not received.")
                         .font(.caption2)
                 }
                 if let error = coordinator.storageError {
-                    Text(error).font(.caption2)
-                }
-                Text("Experimental. Keep an independent alarm for any real wake requirement.")
-                    .font(.caption2)
-                Text("No motion or heart data is collected by this test.").font(.caption2)
-
-                Divider()
-                Text("Recent events").font(.headline)
-                ForEach(coordinator.events.reversed()) { event in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(event.date.formatted(date: .abbreviated, time: .standard))
-                            .font(.caption2).monospacedDigit()
-                        Text(event.message).font(.caption)
-                        if let requested = event.requestedStart {
-                            Text("For \(requested.formatted(date: .omitted, time: .standard))")
-                                .font(.caption2)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
+                    Text(error).font(.caption).foregroundStyle(.orange)
                 }
             }
-            .padding(.horizontal, 8)
+            Text("Experimental. Keep an independent alarm for any real wake requirement. No motion or heart data is collected by this test.")
+                .font(.caption2).foregroundStyle(.secondary)
+            ExperimentHeading(title: "Recent events", symbol: "clock")
+            if coordinator.events.isEmpty {
+                Text("No events recorded yet.").font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(coordinator.events.reversed()) { event in
+                ExperimentCard {
+                    Text(event.message).font(.caption)
+                    Text(event.date.formatted(date: .abbreviated, time: .standard))
+                        .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+                    if let requested = event.requestedStart {
+                        Text("For \(requested.formatted(date: .omitted, time: .standard))")
+                            .font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
         }
         .navigationTitle("Alert test")
         .task(id: scenePhase) {
