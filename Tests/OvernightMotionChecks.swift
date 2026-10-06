@@ -34,6 +34,14 @@ import Foundation
         try good.validate()
         expect(good.count == 60_000 && good.buckets.count == 40 && good.buckets.allSatisfy { $0.count == 1500 }, "Exact bucket boundaries at 50 Hz")
         expect(good.meetsTimingCriteria, "Uniform pilot passes timing criteria")
+        expect(good.timingFailures.isEmpty, "Passing data has no failed criteria")
+        var lateStart = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(1200))
+        for index in 271..<60_000 {
+            lateStart.receive(date: origin.addingTimeInterval(Double(index) / 50), uptime: 1000 + Double(index) / 50,
+                              axesFinite: true, chunkStart: origin)
+        }
+        expect(!lateStart.meetsTimingCriteria && lateStart.timingFailures == ["Leading gap exceeds 5 s"],
+               "A 5.42-second leading gap fails only its original threshold and is explained")
         var anomalies = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(60))
         anomalies.receive(date: origin.addingTimeInterval(29), uptime: 29, axesFinite: true, chunkStart: origin)
         anomalies.receive(date: origin.addingTimeInterval(32), uptime: 32, axesFinite: true, chunkStart: origin)
@@ -96,7 +104,7 @@ import Foundation
         var invalidatedPilot = archive
         invalidatedPilot.trials[0].clockDiscontinuity = true
         invalidatedPilot.updatePilotEvidence()
-        expect(invalidatedPilot.pilotEvidence == nil && invalidatedPilot.trials[0].morningVisibility.contains("inconclusive"), "Later clock uncertainty cannot preserve a pilot pass or claim timely visibility")
+        expect(invalidatedPilot.pilotEvidence == nil && invalidatedPilot.trials[0].morningVisibility.contains("inconclusive"), "Uncertainty in the trial's recording/retrieval evidence invalidates its pass")
         for _ in 0..<4 {
             var finished = OvernightMotionTrial(mode: .comparison, start: origin, uptime: 1000, configuration: .init(), battery: nil)
             finished.phase = .elapsed
@@ -144,13 +152,43 @@ import Foundation
         WKApplication.shared().applicationState = .active
         coordinator.start(.overnight, configuration: .init())
         expect(coordinator.latest == nil, "Overnight requires qualified pilot")
+        WKInterfaceDevice.current().batteryReadDelay = 0.1
+        SyntheticRecorder.shared.configure(recordDelay: 0.1)
         coordinator.start(.pilot, configuration: .init())
+        WKInterfaceDevice.current().batteryReadDelay = 0
         expect(coordinator.latest?.requestCount == 1 && owner.current == .overnightMotion, "One fixed request reserves shared ownership")
+        let timed = coordinator.latest!
+        let call = timed.recorderCall!
+        let apiEntry = SyntheticRecorder.shared.firstRecordDate!
+        expect(timed.start.timeIntervalSince(call.preparedAt) >= 0.09 && apiEntry >= timed.start
+            && apiEntry.timeIntervalSince(timed.start) < 0.1, "Slow preparation is excluded from the recorder-call window")
+        var firstSample = OvernightMotionSummary(start: timed.start, end: timed.end)
+        firstSample.receive(date: apiEntry.addingTimeInterval(0.02), uptime: timed.startUptime + 0.02,
+                            axesFinite: true, chunkStart: timed.start)
+        expect(firstSample.leadingGap! < 0.1, "Leading gap measures the sample against API entry, not battery preparation")
+        expect(timed.reservationEnd > timed.end && call.returnedUptime - timed.startUptime >= 0.09,
+               "A slow recorder call extends the reservation beyond the sample window")
+        coordinator.refreshClock(now: timed.end, uptime: timed.startUptime + 1200)
+        expect(coordinator.hasReservation && owner.current == .overnightMotion, "Ownership cannot end before API return plus duration")
+        let expirySuite = suite + ".expiry"
+        let expiryDefaults = UserDefaults(suiteName: expirySuite)!
+        defer { expiryDefaults.removePersistentDomain(forName: expirySuite) }
+        expiryDefaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [timed])), forKey: "overnightMotion.v1")
+        let expiryOwner = ExperimentSessionOwner(defaults: expiryDefaults)
+        expect(expiryOwner.claim(.overnightMotion), "Synthetic pending reservation is owned")
+        let expiry = OvernightMotionCoordinator(owner: expiryOwner, defaults: expiryDefaults)
+        expiry.refreshClock(now: timed.reservationEnd.addingTimeInterval(1), uptime: timed.reservationEndUptime + 1)
+        expect(expiry.latest?.phase == .elapsed && expiryOwner.current == .none,
+               "Ownership is released after the full conservative reservation")
+        expect(!coordinator.canRetrieve(pilotProbe: true, now: timed.start.addingTimeInterval(599.99))
+            && coordinator.canRetrieve(pilotProbe: true, now: timed.start.addingTimeInterval(600)),
+            "Time-driven pilot controls use the supplied display date at minute ten")
         coordinator.start(.pilot, configuration: .init())
         expect(SyntheticRecorder.shared.recordCount == 1 && !owner.claim(.alert), "No overlap with other experiments")
         let savedStart = coordinator.latest!.start
         let recovered = OvernightMotionCoordinator(owner: owner, defaults: defaults)
-        expect(recovered.latest?.start == savedStart && recovered.latest?.recovered == true && SyntheticRecorder.shared.recordCount == 1, "Recovery never rearms")
+        expect(recovered.latest?.start == savedStart && recovered.latest?.recorderCall?.returnedAt == call.returnedAt
+            && recovered.latest?.recovered == true && SyntheticRecorder.shared.recordCount == 1, "Recovery retains call timing and never rearms")
         recovered.refreshClock(now: savedStart.addingTimeInterval(100), uptime: recovered.latest!.startUptime + 10)
         expect(recovered.latest?.phase == .uncertain && recovered.latest?.clockDiscontinuity == true && owner.current == .overnightMotion, "Clock changes preserve blocking reservation")
 
@@ -164,13 +202,35 @@ import Foundation
         expect(comparison.latest?.phase == .elapsed && owner.current == .none, "Fixed elapsed window releases ownership")
         comparison.refreshClock(now: comparisonTrial.end.addingTimeInterval(100), uptime: comparisonTrial.startUptime + 28801)
         expect(comparison.latest?.phase == .elapsed && comparison.latest?.clockDiscontinuity == true && !comparison.hasReservation,
-               "Clock changes after elapsed window invalidate evidence without inventing a new reservation")
+               "Clock changes before a final return observation preserve uncertainty without inventing a reservation")
+
+        var oldPending = OvernightMotionTrial(mode: .overnight, start: Date(), uptime: ProcessInfo.processInfo.systemUptime,
+                                              configuration: .init(), battery: 0.8)
+        oldPending.phase = .requested
+        oldPending.requestCount = 1
+        defaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [oldPending])), forKey: "overnightMotion.v1")
+        let oldRecovered = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(oldRecovered.latest?.start == oldPending.start && oldRecovered.latest?.end == oldPending.end
+            && oldRecovered.latest?.recorderCall == nil && oldRecovered.hasReservation && oldRecovered.storageError == nil,
+            "A legacy in-progress recording retains its dates and missing call timing")
+        expect(SyntheticRecorder.shared.recordCount == 1, "Migrating a legacy request does not rearm the recorder")
 
         // A saved completed request lets tests retrieve real worker output without waiting 20 minutes.
         var completed = OvernightMotionTrial(mode: .pilot, start: Date().addingTimeInterval(-1500),
             uptime: ProcessInfo.processInfo.systemUptime - 1500, configuration: .init(), battery: 0.8)
         completed.phase = .elapsed
         completed.requestCount = 1
+        var uncertainRead = completed
+        uncertainRead.startUptime += 200
+        defaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [uncertainRead])), forKey: "overnightMotion.v1")
+        SyntheticRecorder.shared.configure()
+        let firstUncertainRead = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        firstUncertainRead.retrieve(pilotProbe: false)
+        await settle(firstUncertainRead)
+        expect(firstUncertainRead.latest?.fullSummary?.count == 60_000
+            && firstUncertainRead.latest?.clockDiscontinuity == true
+            && firstUncertainRead.latest?.firstUsefulReadAt == nil,
+            "A clock change before first retrieval retains diagnostic samples without claiming useful timing")
         defaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [completed])), forKey: "overnightMotion.v1")
         SyntheticRecorder.shared.configure()
         let retrieval = OvernightMotionCoordinator(owner: owner, defaults: defaults)
@@ -200,6 +260,20 @@ import Foundation
         SyntheticRecorder.shared.configure()
         let unlocked = OvernightMotionCoordinator(owner: owner, defaults: defaults)
         expect(unlocked.canStart(.overnight), "Qualified pilot unlocks overnight on matching OS/build")
+        unlocked.refreshClock(now: Date().addingTimeInterval(86400), uptime: 100)
+        expect(unlocked.latest?.clockDiscontinuity == false && unlocked.pilotReady && unlocked.latest?.firstUsefulReadAt == firstRead,
+               "A reboot after completed retrieval cannot rewrite past evidence or remove qualification")
+        var lateClock = qualification
+        lateClock.trials[0].startUptime += 200
+        defaults.set(try JSONEncoder().encode(lateClock), forKey: "overnightMotion.v1")
+        let laterRead = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        laterRead.retrieve(pilotProbe: false)
+        await settle(laterRead)
+        expect(laterRead.pilotReady && laterRead.latest?.clockDiscontinuity == false
+            && laterRead.latest?.firstUsefulReadAt == firstRead && laterRead.latest?.fullSummary?.count == 60_000,
+            "A later clock-uncertain read retains the completed summary and first observation")
+        expect(laterRead.latest?.observations.last?.clockDiscontinuity == true
+            && laterRead.latest?.observations.last?.useful == false, "A new read with uncertain timing cannot claim visibility")
         unlocked.start(.overnight, configuration: .init())
         expect(unlocked.latest?.mode == .overnight && SyntheticRecorder.shared.recordCount == 1, "Qualified overnight issues one request")
         owner.release(.overnightMotion)
@@ -232,6 +306,6 @@ import Foundation
         expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
         night.configuration.charging = "Yes"
         expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
-        print("PASS: streaming chunks, sample/bucket boundaries, gaps, invalid values, clocks, bounds, authorization, fixed requests, pilot gate, recovery, cancellation, summary replacement and battery comparisons")
+        print("PASS: streaming chunks, timing failures, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, cancellation, summary replacement and battery comparisons")
     }
 }

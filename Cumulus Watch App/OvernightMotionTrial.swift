@@ -89,6 +89,27 @@ struct OvernightMotionSummary: Codable, Sendable {
             && invalid == 0 && outOfOrder == 0 && unexpectedObjects == 0 && nilChunks == 0
             && !clockDiscontinuity && !aborted
     }
+    var timingFailures: [String] {
+        var failures: [String] = []
+        if buckets.isEmpty || Double(qualifyingBuckets) / Double(buckets.count) < 0.95 { failures.append("Bucket coverage below 95%") }
+        if let rate = observedRate {
+            if !(45...55).contains(rate) { failures.append("Sample rate outside 45–55 Hz") }
+        } else { failures.append("Sample rate unknown") }
+        if maximumGap > 2 { failures.append("Largest gap exceeds 2 s") }
+        if let leading = leadingGap {
+            if leading > 5 { failures.append("Leading gap exceeds 5 s") }
+        } else { failures.append("Leading gap unknown") }
+        if let trailing = trailingGap {
+            if trailing > 5 { failures.append("Trailing gap exceeds 5 s") }
+        } else { failures.append("Trailing gap unknown") }
+        if invalid > 0 { failures.append("Invalid samples") }
+        if outOfOrder > 0 { failures.append("Sample order anomalies") }
+        if unexpectedObjects > 0 { failures.append("Unexpected objects") }
+        if nilChunks > 0 { failures.append("Nil retrieval chunks") }
+        if clockDiscontinuity { failures.append("Sample clock discontinuity") }
+        if aborted { failures.append("Enumeration incomplete") }
+        return failures
+    }
 
     func validate() throws {
         guard start.timeIntervalSince1970.isFinite, end.timeIntervalSince1970.isFinite,
@@ -156,6 +177,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         let emptyChunks: Int
         let cancelled: Bool
         let error: String?
+        var clockDiscontinuity: Bool?
     }
     struct Event: Codable, Identifiable, Sendable {
         let id: UUID
@@ -166,11 +188,18 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         let date: Date
         let level: Double?
     }
+    struct RecorderCall: Codable, Sendable {
+        let preparedAt: Date
+        let preparedUptime: TimeInterval
+        let returnedAt: Date
+        let returnedUptime: TimeInterval
+    }
     let id: UUID
     let mode: Mode
-    let start: Date
-    let end: Date
-    let startUptime: TimeInterval
+    var start: Date
+    var end: Date
+    var startUptime: TimeInterval
+    var recorderCall: RecorderCall?
     var configuration: Configuration
     var phase: Phase
     var requestCount = 0
@@ -204,6 +233,17 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         if events.count > 40 { events.removeFirst(events.count - 40); eventsTruncated = true }
     }
     var reservesWindow: Bool { phase != .elapsed }
+    var reservationEnd: Date {
+        max(end, recorderCall?.returnedAt.addingTimeInterval(mode.duration) ?? end)
+    }
+    var reservationEndUptime: TimeInterval { (recorderCall?.returnedUptime ?? startUptime) + mode.duration }
+    var hasCompletedObservation: Bool {
+        phase == .elapsed && (mode == .comparison ? batteryReturn != nil : fullSummary != nil && fullReadAt != nil)
+    }
+    func clockIsContinuous(now: Date, uptime: TimeInterval) -> Bool {
+        let elapsed = uptime - startUptime
+        return elapsed >= 0 && abs(now.timeIntervalSince(start) - elapsed) <= 5
+    }
     var batteryDrop: Double? {
         guard let begin = batteryStart.level, let finish = batteryReturn?.level else { return nil }
         return (begin - finish) * 100
@@ -264,6 +304,13 @@ struct OvernightMotionArchive: Codable, Sendable {
                   trial.events.allSatisfy({ $0.date.timeIntervalSince1970.isFinite && $0.message.count <= 400 }),
                   [trial.batteryStart.level, trial.batteryReturn?.level].compactMap({ $0 }).allSatisfy({ $0.isFinite && (0...1).contains($0) })
                   else { throw OvernightArchiveError.invalid }
+            if let call = trial.recorderCall {
+                guard trial.mode != .comparison, trial.requestCount == 1,
+                      call.preparedAt.timeIntervalSince1970.isFinite, call.returnedAt.timeIntervalSince1970.isFinite,
+                      call.preparedUptime.isFinite, call.preparedUptime >= 0, call.preparedUptime <= trial.startUptime,
+                      call.returnedUptime.isFinite, call.returnedUptime >= trial.startUptime,
+                      trial.reservationEnd.timeIntervalSince1970.isFinite else { throw OvernightArchiveError.invalid }
+            }
             let settings = trial.configuration
             guard [settings.watchModel, settings.watchOS, settings.appBuild, settings.timeZone, settings.wrist,
                    settings.powerMode, settings.sleepFocus, settings.sleepTracking, settings.debuggerDetached,

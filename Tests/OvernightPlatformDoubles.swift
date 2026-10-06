@@ -12,7 +12,15 @@ import Foundation
     static func current() -> WKInterfaceDevice { instance }
     var systemVersion = "Synthetic"
     var isBatteryMonitoringEnabled = false
-    var batteryLevel: Float = 0.8
+    var batteryReadDelay: TimeInterval = 0
+    private var storedBatteryLevel: Float = 0.8
+    var batteryLevel: Float {
+        get {
+            if batteryReadDelay > 0 { Thread.sleep(forTimeInterval: batteryReadDelay) }
+            return storedBatteryLevel
+        }
+        set { storedBatteryLevel = newValue }
+    }
 }
 #endif
 
@@ -32,14 +40,23 @@ final class SyntheticRecorder: @unchecked Sendable {
     private var available = true
     private var authorization = CMAuthorizationStatus.authorized
     private var output = Output.uniform
-    private var records: [TimeInterval] = []
+    private var records: [(duration: TimeInterval, date: Date)] = []
+    private var recordDelay: TimeInterval = 0
     private var queries: [(Date, Date)] = []
-    func configure(available: Bool = true, authorization: CMAuthorizationStatus = .authorized, output: Output = .uniform) {
-        lock.withLock { self.available = available; self.authorization = authorization; self.output = output; records = []; queries = [] }
+    func configure(available: Bool = true, authorization: CMAuthorizationStatus = .authorized, output: Output = .uniform,
+                   recordDelay: TimeInterval = 0) {
+        lock.withLock {
+            self.available = available; self.authorization = authorization; self.output = output
+            self.recordDelay = recordDelay; records = []; queries = []
+        }
     }
     func access() -> (Bool, CMAuthorizationStatus) { lock.withLock { (available, authorization) } }
-    func record(_ duration: Double) { lock.withLock { records.append(duration) } }
+    func record(_ duration: Double) {
+        let delay = lock.withLock { records.append((duration, Date())); return recordDelay }
+        if delay > 0 { Thread.sleep(forTimeInterval: delay) }
+    }
     var recordCount: Int { lock.withLock { records.count } }
+    var firstRecordDate: Date? { lock.withLock { records.first?.date } }
     var queryCount: Int { lock.withLock { queries.count } }
     var maximumQuery: Double { lock.withLock { queries.map { $0.1.timeIntervalSince($0.0) }.max() ?? 0 } }
     func data(from start: Date, to end: Date) -> [Any]? {

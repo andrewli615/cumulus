@@ -84,27 +84,43 @@ final class OvernightMotionCoordinator: ObservableObject {
         settings.watchOS = WKInterfaceDevice.current().systemVersion
         settings.appBuild = build
         settings.timeZone = TimeZone.current.identifier
+        let preparedAt = Date()
+        let preparedUptime = ProcessInfo.processInfo.systemUptime
+        let battery = batteryLevel()
         let trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: ProcessInfo.processInfo.systemUptime,
-                                         configuration: settings, battery: batteryLevel())
+                                         configuration: settings, battery: battery)
         archive.append(trial)
         archive.trials[archive.trials.count - 1].record("Recorder available: \(access.available); authorization: \(access.authorization)")
-        archive.trials[archive.trials.count - 1].record(mode == .comparison ? "Comparison started; no recording request" : "Request prepared; original window saved")
+        archive.trials[archive.trials.count - 1].record(mode == .comparison ? "Comparison started; no recording request" : "Request prepared; provisional window saved")
         guard persist() else { owner.markUnresolved(); return }
         if mode != .comparison {
+            let startedAt = Date()
+            let startedUptime = ProcessInfo.processInfo.systemUptime
             recorder.record(duration: mode.duration)
+            let returnedAt = Date()
+            let returnedUptime = ProcessInfo.processInfo.systemUptime
             mutateLatest { trial in
+                trial.start = startedAt
+                trial.end = startedAt.addingTimeInterval(mode.duration)
+                trial.startUptime = startedUptime
+                trial.recorderCall = .init(preparedAt: preparedAt, preparedUptime: preparedUptime,
+                                           returnedAt: returnedAt, returnedUptime: returnedUptime)
                 trial.requestCount = 1
                 trial.phase = .requested
-                trial.record("Recording request issued; sample delivery unconfirmed")
+                trial.record("Recorder call entered; sample delivery unconfirmed", at: startedAt)
+                trial.record("Recorder call returned; reservation includes full duration", at: returnedAt)
             }
+            refreshClock(now: returnedAt, uptime: returnedUptime)
         }
-        status = mode == .comparison ? "Comparison window active" : "Request issued; retrieve later to inspect samples"
+        if latest?.clockDiscontinuity != true {
+            status = mode == .comparison ? "Comparison window active" : "Request issued; retrieve later to inspect samples"
+        }
     }
 
     func refreshClock(now: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
         guard let trial = latest, storageError == nil else { return }
-        let elapsed = uptime - trial.startUptime
-        if elapsed < 0 || abs(now.timeIntervalSince(trial.start) - elapsed) > 5 {
+        guard !trial.hasCompletedObservation else { return }
+        if !trial.clockIsContinuous(now: now, uptime: uptime) {
             if !trial.clockDiscontinuity {
                 mutateLatest { trial in
                     trial.clockDiscontinuity = true
@@ -117,7 +133,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         }
         guard trial.reservesWindow else { return }
         guard trial.phase != .uncertain else { status = "Request outcome uncertain; no automatic restart"; return }
-        if now >= trial.end {
+        if now >= trial.reservationEnd && uptime >= trial.reservationEndUptime {
             mutateLatest { trial in trial.phase = .elapsed; trial.record("Requested window elapsed", at: now) }
             owner.release(.overnightMotion)
             status = "Requested window elapsed; delivery still unconfirmed"
@@ -125,7 +141,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     }
 
     func acknowledgeElapsedWindow() {
-        guard let trial = latest, trial.phase == .uncertain, Date() >= trial.end,
+        guard let trial = latest, trial.phase == .uncertain, Date() >= trial.reservationEnd,
               WKApplication.shared().applicationState == .active, storageError == nil else { return }
         mutateLatest { trial in
             trial.phase = .elapsed
@@ -155,7 +171,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     }
 
     func recordReturn() {
-        guard let trial = latest, trial.batteryReturn == nil, Date() >= trial.end,
+        guard let trial = latest, trial.batteryReturn == nil, Date() >= trial.reservationEnd,
               WKApplication.shared().applicationState == .active, storageError == nil else { return }
         let battery = batteryLevel()
         mutateLatest { trial in
@@ -174,14 +190,14 @@ final class OvernightMotionCoordinator: ObservableObject {
         }
     }
 
-    func canRetrieve(pilotProbe: Bool) -> Bool {
+    func canRetrieve(pilotProbe: Bool, now: Date = Date()) -> Bool {
         guard let trial = latest, trial.mode != .comparison, trial.requestCount == 1,
               !isRetrieving, !isRequestingAccess, storageError == nil, access.canRecord,
               WKApplication.shared().applicationState == .active,
               owner.current == .none || owner.current == .overnightMotion else { return false }
         let start = pilotProbe ? trial.start.addingTimeInterval(540) : trial.start
         let end = pilotProbe ? trial.start.addingTimeInterval(600) : trial.end
-        return (!pilotProbe || trial.mode == .pilot) && Date() >= end && Date().timeIntervalSince(start) < 259200
+        return (!pilotProbe || trial.mode == .pilot) && now >= end && now.timeIntervalSince(start) < 259200
     }
 
     func retrieve(pilotProbe: Bool) {
@@ -198,6 +214,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         guard Date().timeIntervalSince(start) < 259200 else { status = "Window exceeds three-day retention; evidence inconclusive"; return }
         recordReturn()
         let requestedAt = Date()
+        let requestClockContinuous = trial.clockIsContinuous(now: requestedAt, uptime: ProcessInfo.processInfo.systemUptime)
         let id = UUID()
         retrievalID = id
         let flag = OvernightRetrievalCancellation()
@@ -218,15 +235,20 @@ final class OvernightMotionCoordinator: ObservableObject {
                 self.cancellation = nil
                 self.refreshClock()
                 let cancelled = result.cancelled || flag.isCancelled || WKApplication.shared().applicationState != .active
-                let useful = !cancelled && result.error == nil && result.summary.meetsTimingCriteria && self.latest?.clockDiscontinuity == false
-                let observation = OvernightMotionTrial.Observation(pilotProbe: pilotProbe, requestedAt: requestedAt, completedAt: result.completedAt,
+                let readClockUncertain = !requestClockContinuous
+                    || !trial.clockIsContinuous(now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
+                let preserveCompletedEvidence = readClockUncertain && trial.hasCompletedObservation
+                let useful = !cancelled && !readClockUncertain && result.error == nil
+                    && result.summary.meetsTimingCriteria && self.latest?.clockDiscontinuity == false
+                var observation = OvernightMotionTrial.Observation(pilotProbe: pilotProbe, requestedAt: requestedAt, completedAt: result.completedAt,
                     count: result.summary.count, useful: useful, first: result.summary.first, last: result.summary.last,
                     nilChunks: result.summary.nilChunks, emptyChunks: result.summary.emptyChunks, cancelled: cancelled,
                     error: result.error.map { String($0.prefix(400)) })
+                observation.clockDiscontinuity = readClockUncertain
                 self.mutateLatest { current in
                     current.observations.append(observation)
                     current.observations = Array(current.observations.suffix(40))
-                    if !cancelled {
+                    if !cancelled && !preserveCompletedEvidence {
                         if pilotProbe {
                             current.latestProbe = observation
                             if useful { current.firstUsefulProbeAt = current.firstUsefulProbeAt ?? result.completedAt }
@@ -237,10 +259,15 @@ final class OvernightMotionCoordinator: ObservableObject {
                             if useful { current.firstUsefulReadAt = current.firstUsefulReadAt ?? result.completedAt }
                         }
                     }
-                    current.record(cancelled ? "Retrieval cancelled; previous summary retained" : "Retrieval completed: \(result.summary.count) samples, nil \(result.summary.nilChunks), empty \(result.summary.emptyChunks)")
+                    if cancelled { current.record("Retrieval cancelled; previous summary retained") }
+                    else if preserveCompletedEvidence { current.record("Retrieval clock uncertain; previous summary retained") }
+                    else { current.record("Retrieval completed: \(result.summary.count) samples, nil \(result.summary.nilChunks), empty \(result.summary.emptyChunks)") }
                     if let error = result.error { current.record("Retrieval error: \(error)") }
                 }
-                self.status = cancelled ? "Retrieval cancelled; system request continues to its fixed end" : (result.error ?? "Summary updated; review timing and conditions")
+                if cancelled { self.status = "Retrieval cancelled; system request continues to its fixed end" }
+                else if readClockUncertain { self.status = preserveCompletedEvidence
+                    ? "Retrieval clock uncertain; completed evidence retained" : "Samples retrieved; clock timing inconclusive" }
+                else { self.status = result.error ?? "Summary updated; review timing and conditions" }
             }
         })
     }

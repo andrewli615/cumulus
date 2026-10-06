@@ -11,6 +11,30 @@ struct OvernightMotionView: View {
     @State private var confirmElapsed = false
 
     var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            page(at: context.date)
+        }
+        .navigationTitle("Overnight motion")
+        .onAppear {
+            charging = coordinator.latest?.configuration.charging ?? "Unknown"
+            interruption = coordinator.latest?.configuration.interruption ?? "Unknown"
+            coordinator.applicationStateChanged("active")
+        }
+        .onDisappear { coordinator.cancelRetrieval() }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { coordinator.cancelRetrieval(); return }
+            while !Task.isCancelled {
+                coordinator.refreshClock()
+                coordinator.recordReturn()
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+            }
+        }
+        .confirmationDialog("Only confirm after the full requested duration has elapsed. This does not stop system recording or resolve clock uncertainty.", isPresented: $confirmElapsed) {
+            Button("I waited the full duration") { coordinator.acknowledgeElapsedWindow() }
+        }
+    }
+
+    private func page(at now: Date) -> some View {
         ExperimentPage {
             Text("A night of\nmeasurements.").font(.title2.bold())
             Text("Experiment 006 · fixed requests, later retrieval")
@@ -51,18 +75,27 @@ struct OvernightMotionView: View {
                     ExperimentHeading(title: trial.mode.title, symbol: "clock")
                     ExperimentMetric(label: "Requested start", value: trial.start.formatted(date: .abbreviated, time: .standard))
                     ExperimentMetric(label: "Fixed end", value: trial.end.formatted(date: .abbreviated, time: .standard))
+                    if trial.recorderCall != nil {
+                        ExperimentMetric(label: "Reserved until", value: trial.reservationEnd.formatted(date: .abbreviated, time: .standard))
+                        Text("Window starts at the recorder call. Its return does not confirm samples.").font(.caption2)
+                    } else if trial.mode != .comparison && trial.requestCount == 1 {
+                        Text("Earlier build: recorder-call timing unknown; original window retained.").font(.caption2).foregroundStyle(.secondary)
+                    }
                     ExperimentMetric(label: "Phase", value: trial.phase.rawValue.capitalized)
                     ExperimentMetric(label: "Requests recorded", value: String(trial.requestCount))
                     if trial.recovered { Text("Original window recovered after relaunch.").font(.caption2) }
                     if trial.clockDiscontinuity { Text("Clock/reboot uncertainty: timing evidence is inconclusive.").font(.caption2).foregroundStyle(.orange) }
-                    if trial.phase == .uncertain && Date() >= trial.end {
+                    if trial.phase == .uncertain && now >= trial.reservationEnd {
                         Button("Confirm fixed window elapsed") { confirmElapsed = true }
                     }
                     if trial.mode != .comparison {
                         Button("Read pilot block (9–10 min)") { coordinator.retrieve(pilotProbe: true) }
-                            .disabled(!coordinator.canRetrieve(pilotProbe: true))
+                            .disabled(!coordinator.canRetrieve(pilotProbe: true, now: now))
                         Button("Retrieve whole window") { coordinator.retrieve(pilotProbe: false) }
-                            .disabled(!coordinator.canRetrieve(pilotProbe: false))
+                            .disabled(!coordinator.canRetrieve(pilotProbe: false, now: now))
+                        if trial.mode == .pilot && now < trial.start.addingTimeInterval(600) {
+                            Text("Pilot read opens at \(trial.start.addingTimeInterval(600).formatted(date: .omitted, time: .standard)).").font(.caption2)
+                        }
                         if coordinator.isRetrieving {
                             Text(coordinator.progress).font(.caption)
                             Button("Cancel retrieval") { coordinator.cancelRetrieval() }
@@ -77,7 +110,7 @@ struct OvernightMotionView: View {
                         OvernightTrialView(coordinator: coordinator, trialID: trial.id)
                     }
                 }
-                if Date() >= trial.end {
+                if now >= trial.reservationEnd {
                     ExperimentCard {
                         ExperimentHeading(title: "Return observations", symbol: "battery.50percent")
                         Text("Report what happened during this trial. Unknown stays unknown.").font(.caption2)
@@ -100,24 +133,6 @@ struct OvernightMotionView: View {
             }
             Text("Retrieve in the foreground. No sleep classification or wake guarantee. Keep an independent alarm.")
                 .font(.caption2).foregroundStyle(.secondary)
-        }
-        .navigationTitle("Overnight motion")
-        .onAppear {
-            charging = coordinator.latest?.configuration.charging ?? "Unknown"
-            interruption = coordinator.latest?.configuration.interruption ?? "Unknown"
-            coordinator.applicationStateChanged("active")
-        }
-        .onDisappear { coordinator.cancelRetrieval() }
-        .task(id: scenePhase) {
-            guard scenePhase == .active else { coordinator.cancelRetrieval(); return }
-            while !Task.isCancelled {
-                coordinator.refreshClock()
-                coordinator.recordReturn()
-                do { try await Task.sleep(for: .seconds(1)) } catch { return }
-            }
-        }
-        .confirmationDialog("Only confirm after the full requested duration has elapsed. This does not stop system recording or resolve clock uncertainty.", isPresented: $confirmElapsed) {
-            Button("I waited the full duration") { coordinator.acknowledgeElapsedWindow() }
         }
     }
 }
@@ -155,7 +170,13 @@ private struct OvernightTrialView: View {
                 ExperimentCard {
                     ExperimentHeading(title: "Sample timing", symbol: "waveform.path")
                     Text(trial.timingStatus).font(.caption)
+                    if trial.clockDiscontinuity {
+                        Text("Trial clock/reboot uncertainty: timing is inconclusive.").font(.caption2).foregroundStyle(.orange)
+                    }
                     if let summary = trial.fullSummary {
+                        ForEach(summary.timingFailures, id: \.self) { failure in
+                            Label(failure, systemImage: "exclamationmark.circle").font(.caption2).foregroundStyle(.orange)
+                        }
                         ExperimentMetric(label: "Unique valid samples", value: String(summary.count))
                         ExperimentMetric(label: "Buckets ≥ 1,350", value: "\(summary.qualifyingBuckets) / \(summary.buckets.count)")
                         ExperimentMetric(label: "Observed rate", value: summary.observedRate.map { String(format: "%.2f Hz", $0) } ?? "Unknown")
@@ -190,6 +211,21 @@ private struct OvernightTrialView: View {
                     Text(trial.morningVisibility).font(.caption2)
                 }
                 ExperimentCard {
+                    ExperimentHeading(title: "Request timing", symbol: "clock")
+                    ExperimentMetric(label: "Window start", value: date(trial.start))
+                    ExperimentMetric(label: "Window end", value: date(trial.end))
+                    if let call = trial.recorderCall {
+                        ExperimentMetric(label: "Preparation began", value: date(call.preparedAt))
+                        ExperimentMetric(label: "Preparation duration", value: seconds(trial.startUptime - call.preparedUptime))
+                        ExperimentMetric(label: "Recorder call returned", value: date(call.returnedAt))
+                        ExperimentMetric(label: "Call duration", value: seconds(call.returnedUptime - trial.startUptime))
+                        ExperimentMetric(label: "Reserved until", value: date(trial.reservationEnd))
+                        Text("These dates describe the request, not confirmation that recording started.").font(.caption2)
+                    } else if trial.mode != .comparison {
+                        Text("Recorder-call timing was not saved. The original window and measurements are unchanged.").font(.caption2)
+                    }
+                }
+                ExperimentCard {
                     ExperimentHeading(title: "Battery & conditions", symbol: "battery.50percent")
                     ExperimentMetric(label: "Before leaving", value: trial.batteryStart.level.map { String(format: "%.0f%%", $0 * 100) } ?? "Unknown")
                     ExperimentMetric(label: "Battery start time", value: date(trial.batteryStart.date))
@@ -204,6 +240,9 @@ private struct OvernightTrialView: View {
                     ExperimentHeading(title: "Retrieval attempts", symbol: "arrow.down.circle")
                     ForEach(Array(trial.observations.enumerated()), id: \.offset) { _, read in
                         Text("\(read.pilotProbe ? "Pilot block" : "Full window")\n\(date(read.requestedAt)) → \(date(read.completedAt))\n\(read.count) samples · \(read.useful ? "useful" : "incomplete") · nil \(read.nilChunks) · empty \(read.emptyChunks)\nFirst \(date(read.first))\nLast \(date(read.last))\n\(read.cancelled ? "Cancelled" : read.error ?? "No API error reported")").font(.caption2)
+                        if read.clockDiscontinuity == true {
+                            Text("Retrieval clock uncertain; this attempt cannot establish visibility.").font(.caption2).foregroundStyle(.orange)
+                        }
                     }
                 }
                 ExperimentCard {
