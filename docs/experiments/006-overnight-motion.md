@@ -1,6 +1,6 @@
 # Experiment 006: Overnight motion feasibility
 
-Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The outstanding eight-hour run is a nonrecording battery comparison with no return reading yet. Overnight feasibility remains unresolved.
+Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The completed eight-hour comparison records 10% → 85% battery, charging, an interruption, and clock/reboot uncertainty; its battery result is inconclusive. Overnight feasibility remains unresolved.
 
 ## Question and prediction
 
@@ -122,7 +122,7 @@ At the time of that report, empty-chunk count, outside-window count, clock/reboo
 
 The requested start was reported as **2:52** and the first useful pilot probe as **3:16:24**. Start seconds, date, AM/PM, and time zone were not provided. The owner confirmed pressing **Read pilot block** later; the prior incomplete observation is **Unknown**. Thus useful data was observed retrospectively, but visibility within four minutes of the block end is **inconclusive**. Do not interpret the late observation as a measured API publication delay.
 
-**Pilot qualification was not established.** The reported leading gap fails the unchanged sample-window criterion; early visibility was not observed. Code review found that the earlier build timestamped the window before preparation and the recorder call. That confounds attribution of the 5.42 s to app preparation versus recorder startup; the new timing fields do not repair or relabel the old result. Repeat the pilot using the corrected build and prewritten probe schedule after the outstanding trial finishes.
+**Pilot qualification was not established.** The reported leading gap fails the unchanged sample-window criterion; early visibility was not observed. Code review found that the earlier build timestamped the window before preparation and the recorder call. That confounds attribution of the 5.42 s to app preparation versus recorder startup; the new timing fields do not repair or relabel the old result. The comparison outcome below is now preserved; repeat the pilot using the corrected build and prewritten probe schedule.
 
 ### Saved pilot diagnostics inspected on October 6
 
@@ -143,13 +143,27 @@ Recorded dates below use the saved **America/Vancouver** time zone, UTC−07:00 
 
 The unchanged software checks reject the saved pilot for **leading gap and order anomalies**. Preserve the earlier report and this discrepancy; do not relabel the order count as expected overlap or infer its cause. The corrected pilot must investigate order failures as well as startup timing and timely visibility.
 
-### Eight-hour comparison still pending
+### Eight-hour comparison: completed, battery baseline inconclusive
 
-The owner reported an eight-hour test at approximately **10% battery remaining** and later confirmed it had not ended. Inspection identifies the saved mode as **comparison**, with **zero recording requests**, not an eight-hour sensor recording. Its requested window is 2026-10-06 **03:31:21.450–11:31:21.450 America/Vancouver**. First background departure and the saved 10% starting battery reading are at **04:00:08.533**, 28 min 47.084 s after the requested start. The snapshot still has comparison phase, no return reading, and no retrieval observations. Saved watchOS/build are 26.6 / 0.1 (1); wearing, power/sleep settings, debugger detachment, charging, and interruptions are unknown.
+The owner reported an eight-hour test at approximately **10% battery remaining** and later confirmed it had not ended. The initial 12:44 UTC inspection identifies the saved mode as **comparison**, with **zero recording requests**, not an eight-hour sensor recording. Its requested window is 2026-10-06 **03:31:21.450–11:31:21.450 America/Vancouver**. First background departure and the saved 10% starting battery reading are at **04:00:08.533**, 28 min 47.084 s after the requested start. That initial snapshot has comparison phase, no return reading, and no retrieval observations. Saved watchOS/build are 26.6 / 0.1 (1); wearing, power/sleep settings, debugger detachment, charging, and interruptions are unknown.
 
-These records do not establish completed eight-hour wear or consumption. Read-only development-tool inspection occurred while the comparison was pending; no app launch, debugger attachment, or installation was performed by Codex. Include that tooling activity when assessing comparison conditions. Charging was recommended earlier but has not been confirmed. The 10% observation cannot establish recorder battery cost because this trial issued no recording request. No comparison pass, recording-night pass, or feasibility conclusion is recorded.
+That initial snapshot does not establish completed eight-hour wear or consumption. Read-only development-tool inspection occurred while the comparison was pending; no app launch, debugger attachment, or installation was performed by Codex. Include that tooling activity when assessing comparison conditions. At that inspection, charging had been recommended but was not yet confirmed. The 10% observation cannot establish recorder battery cost because this trial issued no recording request. It did not establish a comparison pass, recording-night pass, or feasibility conclusion.
 
-Keep the current build installed until the comparison window finishes and preserve its outcome. Then repeat the corrected pilot, followed by a matching nonrecording night and two recording nights only if it qualifies. A comparison from 0.1 (1) does not match a recording on a newer build under the existing configuration checks; retain it as exploratory evidence rather than relaxing the match. Use Experiment 005 observations to decide whether internal cardiac timing inspection has a reason; grouped heart-rate records and heartbeat-series availability remain **Unknown**.
+On October 6, the owner reported that the eight-hour trial had finished. At **15:47 America/Vancouver** (22:47 UTC), a second read-only private copy of the same app's diagnostic preferences passed validation against the current model. The installed app remains **0.1 (1)**. No app launch, debugger attachment, sensor retrieval, or installation was performed by Codex.
+
+| Final saved observation | Result |
+| --- | --- |
+| Mode / lifecycle | Comparison; elapsed; zero recording requests; relaunch recovery recorded. No motion summary or retrieval observations. |
+| Starting battery | 10% at 2026-10-06, 04:00:08.533 America/Vancouver. |
+| Return battery | 85% at 15:43:24.926; battery increased by approximately 75 percentage points. This is not measured consumption. |
+| Difference between saved battery dates | 11 h 43 min 16.393 s; the saved return date is 4 h 12 min 3.476 s after the requested eight-hour window ended. These wall-clock differences do not establish uninterrupted wear, especially with the uncertainty flag. |
+| Recorded return conditions | Charging **Yes**; interruption **Observed**. Details and timing of the interruption remain unknown. |
+| Clock evidence | Clock/reboot-discontinuity flag is true. The stored flag does not identify its cause or establish that a reboot occurred. Treat timing as uncertain. |
+| Other conditions | Wearing/lock state, Low Power Mode, Sleep Focus, sleep tracking, and debugger detachment remain unknown. |
+
+**Battery baseline: inconclusive.** Charging violates the predefined no-charging comparison condition; the increased battery and extended measurement interval cannot estimate eight-hour battery drain. Preserve the original pending snapshot and this final observation without treating the run as a recording night or changing the criteria. The owner-reported finish and elapsed app state do not independently establish eight hours of uninterrupted wear. Overall overnight-motion feasibility remains unresolved; no corrected-build pilot or two qualifying recording nights are recorded.
+
+The exploratory comparison outcome is now preserved. Install **0.1 (4)** and repeat the corrected pilot, followed by a matching nonrecording night and two recording nights only if it qualifies. A comparison from 0.1 (1) does not match a recording on a newer build under the existing configuration checks; retain it as exploratory evidence rather than relaxing the match. Use Experiment 005 observations to decide whether internal cardiac timing inspection has a reason; grouped heart-rate records and heartbeat-series availability remain **Unknown**.
 
 ## Software verification
 
