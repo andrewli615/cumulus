@@ -2,6 +2,8 @@
 
 A watchOS smart-alarm research app for learning which Watch measurements can support an explainable wake decision. Six experiment screens are implemented, including fixed-duration overnight motion requests and later retrieval. Cumulus does not yet infer sleep stages; overnight feasibility remains unresolved after an owner-reported pilot. Keep an independent alarm for real wake requirements.
 
+The [personal Watch-only product goal](docs/EXPERIENCE.md) is a latest wake time plus an earlier wake window: use a validated decision when timely inputs suffice, otherwise follow a separately tested latest-wake fallback. Setup, editing, cancellation, recovery, and a concise account of requests/errors must remain truthful. That product flow and fallback are not implemented; see [the remaining MVP evidence](docs/BUILD_PLAN.md#personal-mvp-exit-evidence). Sleep-stage classification is a possible research task, not a prerequisite chosen in advance.
+
 ## Current experiments
 
 | Screen | What it does | Evidence and next check |
@@ -15,7 +17,7 @@ A watchOS smart-alarm research app for learning which Watch measurements can sup
 
 The physical reports support only the tested conditions. Experiment 006 includes owner-reported measurements; earlier experiments lack exact metrics. Setup details and independent inspection remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** finish the outstanding eight-hour test on its current build and preserve its result. Then install the timing fixes and repeat the [Experiment 006](docs/experiments/006-overnight-motion.md) twenty-minute pilot, including timely fixed-block probes. New requests separate preparation from recorder-call timing; earlier trials keep their original windows. Run the qualifying battery comparison and two overnight trials only after the pilot qualifies. Keep missing nonpersonal 004/005 observations unknown; internal cardiac timing remains conditional on observed grouped quantities or heartbeat series. See [the build plan](docs/BUILD_PLAN.md) and [sleep research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md).
+**Next:** finish the outstanding eight-hour test on its current build and preserve its result. Then install **0.1 (2)** and repeat the [Experiment 006](docs/experiments/006-overnight-motion.md) twenty-minute pilot, including timely fixed-block probes. New requests separate preparation from recorder-call timing; earlier trials keep their original windows. Earlier revisions shared **0.1 (1)**, so that older number alone cannot identify their timing implementation. The pilot gate requires the same running build and watchOS; prior-build summaries remain readable. Run the qualifying battery comparison and two overnight trials only after the pilot qualifies. Keep missing nonpersonal 004/005 observations unknown; internal cardiac timing remains conditional on observed grouped quantities or heartbeat series. Confirm usable input timing before selecting a method or building the final wake flow. See [the build plan](docs/BUILD_PLAN.md) and [sleep research roadmap](docs/SLEEP_RESEARCH_ROADMAP.md).
 
 ## Open in Xcode
 

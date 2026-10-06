@@ -2,25 +2,25 @@
 
 ## One sentence
 
-How would we describe the value to someone who wears Apple Watch to sleep?
+Cumulus aims to be a calm personal Watch alarm that may choose an earlier wake opportunity from validated, timely data and otherwise follows a separately tested latest-wake fallback.
 
-For this first experiment, the wearer opens Cumulus, schedules a test haptic a few minutes ahead, and sees the requested time with a status that says whether scheduling was accepted or failed. They may lower their wrist or leave the app while waiting. When the session starts, the app asks the system to play its alarm haptic; after returning to the app, the wearer can inspect the recorded event times or cancel a still-pending session. This tests the delivery mechanism only; it is not yet the full sleep-alarm experience.
+This is the product target. The current app has six research screens; it does not implement that alarm flow, a production wake rule, or its fallback. Overnight input qualification remains unresolved in [Experiment 006](experiments/006-overnight-motion.md).
 
 ## A single night
 
-Write this as a short story in the person's words:
+1. **Before sleep:** I set the latest time I need to wake and an earlier wake window. I can review, edit, or cancel them in a few clear steps.
+2. **A glance:** I see whether the alarm is armed, the latest wake time, what can trigger an earlier alert, and the fallback Cumulus expects. Saved settings alone never look armed.
+3. **During sleep:** Cumulus uses only inputs qualified for this Watch configuration and available at the decision time. Old HealthKit records, Apple sleep labels, and delayed motion are not presented as live sensing.
+4. **Waking:** A validated rule may select an earlier alert when current information is sufficient. Missing, stale, or uncertain inputs follow the separately tested latest-wake fallback. I can stop the alert.
+5. **Afterward:** I see a brief account of the decision path, what alert Cumulus requested, and any errors or uncertainty. A recorded haptic request does not claim I felt it or woke.
 
-1. **Before sleep:** What time do they need to wake? How many actions should setting it take?
-2. **A glance:** What is the single most useful status when they raise their wrist?
-3. **During sleep:** What does the app need to do quietly, without interaction?
-4. **Waking:** What should an early alert and a latest-time alert feel and look like?
-5. **Something went wrong:** How will they know the app could not set or complete the alarm?
-
-The product scenario remains undecided. The experiment uses a short relative delay (a few minutes) to make the session behavior observable without deciding the eventual wake-window interaction.
+The target interaction is defined; exact controls, the qualified input path, decision rule, and fallback mechanism still need design and evidence. The existing scheduled-alert experiment's short relative delay answers a different, limited delivery question. See [behavior requirements](BEHAVIOR.md).
 
 ## Product goal
 
-The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs and wake decision have evidence behind them. The eventual alarm should show whether it is set, whether data is usable, and what fixed latest-wake fallback is armed. The exact wake-window interaction is still open; a saved preference must never be presented as an armed system alarm.
+The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs, decision method, fallback, and alert behavior have evidence behind them. Sleep-stage classification is one possible research task, not a required solution. A phone companion, server, or cloud sync needs a demonstrated requirement.
+
+Process locally by default and retain only what the chosen behavior needs. Define retention and deletion before adding persistent health-data storage. Final battery, privacy, clearing, accessibility, interruption, delivery, and waking-outcome criteria must be written before their validation trials; see [the MVP evidence gates](BUILD_PLAN.md#personal-mvp-exit-evidence).
 
 ## Experience principles
 
@@ -53,4 +53,4 @@ Learning exercise: open the two `ExperimentStyle.swift` previews and explain why
 
 ## First design exercise
 
-Sketch just three states on paper or in Figma: **unset**, **set**, and **needs attention**. For each, write the one thing someone must understand within a few seconds. Leave color, typography, and widgets until these states are clear.
+Sketch three target states: **unset**, **armed**, and **needs attention**. For each, write the one thing someone must understand within a few seconds and the observed evidence needed to show it. Explain why saving a wake time alone cannot produce the armed state.
