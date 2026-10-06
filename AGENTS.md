@@ -4,7 +4,10 @@
 - Keep the owner informed before meaningful changes and explain each file's purpose. At completion, report changed files, verification, remaining risks, and one learning exercise.
 - Treat plans and architecture as revisable when evidence changes. Keep changes small, clear, and easy to revise. Ask before expanding the requested milestone, taking destructive actions, or publishing externally.
 - Keep project goals current in the existing build plan, roadmap, and relevant experiment notes. Mark documented platform facts, assumptions, and owner-reported results distinctly. Prefer updating existing docs; add a new file only for a distinct experiment or research audit.
-- Commit small, coherent changes regularly after their relevant checks pass; do not accumulate unrelated work. Write a concise commit message and report the commit. Do not amend, push, or publish unless asked.
+- At task start, inspect Git status, branch, remotes, and recent commits. Preserve unrelated work; never reset, clean, rebase, amend, or stage unrelated changes.
+- Stage only task files and inspect the staged diff. Run relevant checks, then commit small, coherent changes regularly with an accurate, concise agent-written message. Report the commit and checks.
+- Do not amend existing commits, force-push, push, tag, release, or publish unless explicitly asked. Before a requested push, verify the remote, branch, outgoing commits, and working tree; push only the intended commits and report the result.
+- Use GitHub for relevant read-only context. Create or change pull requests, issues, comments, labels, releases, or repository settings only when explicitly asked; verify the repository and target, then confirm the result.
 - For unfamiliar or changing watchOS APIs, use Context7 and verify against official Apple documentation. Separate documented behavior, inference, and physical Watch observations.
 - Keep alarm status truthful. Do not claim a reliable wake deadline without device evidence; recommend an independent alarm during development.
 - Keep HealthKit data and raw device logs out of the repository.
