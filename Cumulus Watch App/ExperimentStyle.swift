@@ -14,6 +14,7 @@ struct ExperimentPage<Content: View>: View {
         }
         .background(.black)
         .tint(.blue)
+        .fontDesign(.serif)
     }
 }
 

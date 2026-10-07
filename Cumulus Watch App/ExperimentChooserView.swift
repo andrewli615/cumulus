@@ -67,6 +67,7 @@ struct ExperimentChooserView: View {
             .buttonStyle(.plain)
             .navigationTitle("Cumulus")
         }
+        .fontDesign(.serif)
     }
 }
 

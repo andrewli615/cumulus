@@ -21,6 +21,8 @@ For each requested chunk, explain the behavior, data flow, technical risk, and o
 
 ## Parallel visual design goal
 
+Use the system serif design throughout app text, retaining semantic text sizes, weights, Dynamic Type, and fixed-width digits in diagnostics. Apply the design at the chooser's navigation root and shared experiment page so setup lists and standalone page previews inherit it; keep dark cards and blue actions. On October 7, signing-free Watch and Simulator SDK builds passed. Five initial-viewport screenshots on an isolated 40 mm simulator showed serif text wrapping without horizontal clipping at normal and larger (`.xxxLarge`) sizes; headings need more vertical space. Full scrolling, VoiceOver, and physical layout remain unverified.
+
 The presentation-only cloud pass is implemented in [the experience guide](EXPERIENCE.md): one small decorative system cloud at the chooser and each experiment's top heading, the existing dark cards and blue actions, and plain diagnostics. Watch/device-simulator builds and normal/larger-text preview compilation passed; interactive inspection was blocked by macOS screen-capture permission. Physical layout, larger text, and VoiceOver checks remain. Sensing, HealthKit access, sessions, and storage are unchanged. Original app-icon artwork remains a later step; simulator previews are for layout only.
 
 ## Implemented chunk: foreground probe
