@@ -5,10 +5,13 @@ struct SimulatorPreviewScreen: View {
     let screen: String
     @StateObject private var archive: TestArchiveStore
     @StateObject private var owner: ExperimentSessionOwner
+    @State private var previewMode: OvernightMotionTrial.Mode = .pilot
     private let trial: OvernightMotionTrial
 
     init(screen: String) {
         self.screen = screen
+        _previewMode = State(initialValue: OvernightMotionTrial.Mode(rawValue:
+            ProcessInfo.processInfo.environment["CUMULUS_UI_TRIAL"] ?? "") ?? .pilot)
         let store = TestArchiveStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("CumulusUIFixtures"),
                                      build: "Synthetic UI fixture", os: "Simulated")
         _archive = StateObject(wrappedValue: store)
@@ -26,6 +29,11 @@ struct SimulatorPreviewScreen: View {
     var body: some View {
         NavigationStack {
             switch screen {
+            case "trial-selector":
+                ExperimentPage {
+                    ExperimentCard { OvernightTrialSelector(mode: $previewMode) }
+                }.navigationTitle("Recording")
+            case "trial-choices": OvernightTrialChoiceView(mode: $previewMode)
             case "archive": TestArchiveView(archive: archive, owner: owner, clearCompletedData: {})
             case "report":
                 if let report = archive.reports.first { TestReportView(report: report, archive: archive) }
@@ -37,6 +45,7 @@ struct SimulatorPreviewScreen: View {
             default: Text("Unknown synthetic preview")
             }
         }
+        .fontDesign(.serif)
         .dynamicTypeSize(ProcessInfo.processInfo.environment["CUMULUS_UI_TEXT"] == "larger" ? .xxxLarge : .large)
     }
 }

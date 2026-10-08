@@ -55,25 +55,36 @@ struct OvernightMotionView: View {
             }
             if !coordinator.hasReservation {
                 ExperimentCard {
-                    Picker("Trial", selection: $mode) {
-                        ForEach(OvernightMotionTrial.Mode.allCases) { Text($0.title).tag($0) }
+                    OvernightTrialSelector(mode: $mode)
+                    NavigationLink {
+                        OvernightSetupView(configuration: $configuration)
+                    } label: {
+                        Text("Setup & conditions")
+                            .font(.body)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
-                    NavigationLink("Setup & conditions") { OvernightSetupView(configuration: $configuration) }
                     Text(mode == .comparison ? "Track battery for eight hours. No recording request is made."
                          : "One request for \(mode == .pilot ? "20 minutes" : "eight hours"). The system recording cannot be stopped from Cumulus.")
-                        .font(.caption2).foregroundStyle(.secondary)
+                        .font(.callout).foregroundStyle(.secondary)
                     if mode == .overnight && !coordinator.pilotReady {
                         Text("First pass the pilot timing and visibility checks on this OS and app build.")
-                            .font(.caption2).foregroundStyle(.orange)
+                            .font(.callout).foregroundStyle(.orange)
                     }
-                    Button(mode == .comparison ? "Start comparison" : "Request recording") {
+                    Button {
                         charging = "Unknown"
                         interruption = "Unknown"
                         coordinator.start(mode, configuration: configuration)
+                    } label: {
+                        Text(mode == .comparison ? "Start comparison" : "Request recording")
+                            .font(.body.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!coordinator.canStart(mode))
                 }
+                .disabled(coordinator.isRetrieving)
             }
             if let trial = coordinator.latest, trial.mode == .pilot {
                 PilotGuideCard(trial: trial, now: now)
@@ -127,7 +138,9 @@ struct OvernightMotionView: View {
                         ExperimentHeading(title: "Return observations", symbol: "battery.50percent")
                         Text("Report what happened during this trial. Unknown stays unknown.").font(.caption2)
                         conditionPicker("Charging", selection: $charging, options: ["Unknown", "No", "Yes"])
+                            .disabled(coordinator.isRetrieving)
                         conditionPicker("Interruptions", selection: $interruption, options: ["Unknown", "None", "Observed"])
+                            .disabled(coordinator.isRetrieving)
                         Button("Save observations") { coordinator.recordConditions(charging: charging, interruption: interruption) }
                             .disabled(coordinator.isRetrieving)
                     }
@@ -149,8 +162,81 @@ struct OvernightMotionView: View {
     }
 }
 
+struct OvernightTrialSelector: View {
+    @Binding var mode: OvernightMotionTrial.Mode
+
+    var body: some View {
+        NavigationLink {
+            OvernightTrialChoiceView(mode: $mode)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Choose trial").font(.callout).foregroundStyle(.secondary)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right").font(.body)
+                        .foregroundStyle(.secondary).accessibilityHidden(true)
+                }
+                Text(mode.title).font(.body.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens the trial choices. Selecting a trial does not start it.")
+    }
+}
+
+struct OvernightTrialChoiceView: View {
+    @Binding var mode: OvernightMotionTrial.Mode
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            ForEach(OvernightMotionTrial.Mode.allCases) { option in
+                Button {
+                    mode = option
+                    dismiss()
+                } label: {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(option.title).font(.body.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(detail(for: option)).font(.callout).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 4)
+                        if mode == option {
+                            Image(systemName: "checkmark").foregroundStyle(.blue)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(mode == option ? .isSelected : [])
+                .accessibilityHint("Selects the trial and returns to setup. It does not start a recording.")
+            }
+        }
+        .navigationTitle("Choose trial")
+    }
+
+    private func detail(for mode: OvernightMotionTrial.Mode) -> String {
+        switch mode {
+        case .pilot: "Short recording check."
+        case .overnight: "Record motion after the pilot qualifies."
+        case .comparison: "Battery baseline. No recording."
+        }
+    }
+}
+
 private func conditionPicker(_ title: String, selection: Binding<String>, options: [String]) -> some View {
     Picker(title, selection: selection) { ForEach(options, id: \.self) { Text($0).tag($0) } }
+        .pickerStyle(.navigationLink)
+        .font(.body)
 }
 
 private struct OvernightSetupView: View {

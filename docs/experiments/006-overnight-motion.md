@@ -184,3 +184,13 @@ On October 6, signed build **0.1 (5)** was installed on the connected Series 8 a
 ### Build 6 guided pilot
 
 The overnight screen now presents the next manual return/probe/read target from the original start time, including later diagnostic probes after a failed early window. It does not issue automatic queries, haptics, reminders or recording requests. Clock uncertainty suppresses countdown advice. The four-minute block-visibility deadline is based on query completion, not tapping before its end. Saved tests now validates and explains archived timing failures and inconclusive comparisons without changing recorded results. Storage-readiness checks block new trials when a report cannot predictably fit. These software/UI changes do not relax any criterion or establish a new physical pass; qualify the current build before matching comparison/recording nights.
+
+### Build 7 trial controls
+
+On October 8, the owner reported a trial in progress and difficulty with the small trial picker and its scrolling. Its mode, build, and outcome were not independently inspected. Build **0.1 (7)** replaces that wheel with **Choose trial**, opening a separate native list with large, wrapping rows for the same three modes. Selecting a row returns to setup without starting a trial. Setup and start labels are larger; overnight condition pickers open native choice lists. The inferred wheel/page scrolling conflict has not been independently reproduced on the Watch. No sensor, session, storage, request duration, or criterion changes accompany this revision.
+
+Finish and retrieve the active trial before installing the UI update. Preserve its original build and results. The existing same-build pilot gate remains in force for subsequent recording nights; a UI update does not qualify measurements from another build.
+
+Apple documents the [navigation-link picker style](https://developer.apple.com/documentation/swiftui/pickerstyle/navigationlink) as opening a list-style options view; Context7 and the installed Watch SDK were checked. Trial/setup and condition navigation are disabled during retrieval to avoid cancelling an ongoing read through existing screen-exit handling.
+
+On October 8, signing-free Watch and Simulator builds reported build 7, and the overnight synthetic suite passed. Eight synthetic initial-view screenshots on an isolated 40 mm simulator covered all selected modes and the choice list at normal/larger SwiftUI sizes, with no horizontal clipping of selected names. Simulator interaction was unavailable through the UI tool; actual tap/dismiss, scrolling, Crown behavior, and VoiceOver remain unverified. The active physical trial was not contacted, interrupted, reinstalled, or evaluated during this UI milestone.

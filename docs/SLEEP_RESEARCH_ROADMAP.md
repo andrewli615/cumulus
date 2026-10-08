@@ -81,3 +81,5 @@ The [July 2026 systematic-review preprint](https://www.preprints.org/manuscript/
 A heart-rate measurement occurred at 07:00 but Cumulus first read it at 07:03. Explain why an offline chart can include it at 07:00 while a replay of an alarm decision at 07:01 must exclude it. Then explain why a retrospective HealthKit query alone cannot prove when that record first became readable.
 
 Build **0.1 (6)** also adds a manual timed pilot guide, archived evidence review and explicit storage-readiness guards. This makes the input experiments easier to run and interpret without selecting a model, persisting raw features, or claiming a usable live decision path. All physical gates remain in force; use the current build for qualifying trials.
+
+Build **0.1 (7)** changes the overnight trial-selection UI to large choices on a separate scrolling screen and navigation-link condition pickers. Finish and preserve the owner-reported active trial before installing. Signal collection, model selection, and all existing physical qualification gates remain unchanged.
