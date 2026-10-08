@@ -16,7 +16,7 @@ The limits are 2,000 heart-rate records, 500 HRV records, and 50 heartbeat-serie
 
 - Heart rate displays stored quantity values in bpm and the quantity count. Records with count greater than one are labeled grouped. Their individual quantity values and timestamps are not expanded by this milestone.
 - HRV displays stored SDNN in milliseconds, dates, sources, and quantity counts. It does not derive variability from BPM records.
-- Heartbeat series displays start/end, source, and recorded beat count. Individual beat timings and gap flags are not queried yet; finding series is only an availability check for a possible later beat-timing reader.
+- Heartbeat series displays start/end, source, and recorded beat count. The overview does not query individual beat timings or gap flags. Build 6 offers a separate conditional inspector only when an eligible record is observed; see [Experiment 007](007-cardiac-internal-timing.md).
 
 Each source summary groups by source bundle identifier and source name. This is app/source attribution, not a guarantee of one physical device per group. It shows record count, grouped quantity record count where applicable, earliest start, latest end, and the longest interval outside record spans. That calculation merges overlapping spans, clips them to the query window, and includes leading and trailing gaps. It is not a measurement of continuous physiological coverage: a record span can contain intermittent measurements, missing beats, or a summary value. No fraction of valid sensing time or physiological sampling rate is inferred.
 
@@ -91,9 +91,9 @@ Preserve the reported pass without inventing counts, settings, or per-type avail
 - If grouped heart-rate records are confirmed, consider a focused quantity-series reader to inspect contained value timestamps, boundaries, and gaps. A grouped count alone does not establish continuous sensing.
 - If heartbeat series are confirmed, consider a focused beat-timing reader that preserves gap flags and excludes intervals crossing missing beats.
 - If neither appears in the observed window, do not add either reader solely because the API exists. Record the window and sources. Broader inspection needs a specific reason, such as a known source or night expected to contain series.
-- While both outcomes remain unknown, defer that implementation and obtain the observation first. No internal-timing reader is added by this documentation change.
+- Earlier documentation deferred implementation while historical outcomes were unknown. Build 6 now provides a runtime-gated [focused inspector](007-cardiac-internal-timing.md): no query/action appears unless a fresh read observes an eligible record. The historical outcomes remain unknown, and physical behavior is untested.
 
-[Experiment 006](006-overnight-motion.md) has a recording screen and bounded timing/battery diagnostics. Its owner-reported pilot missed the leading-gap criterion and did not establish timely visibility; the eight-hour outcome remains pending. Overnight feasibility is unresolved, independently of the reported cardiac procedure pass.
+[Experiment 006](006-overnight-motion.md) has a recording screen and bounded timing/battery diagnostics. Its owner-reported pilot missed the leading-gap criterion and did not establish timely visibility; the inspected eight-hour comparison is inconclusive because charging/interruption and timing uncertainty prevent a valid battery baseline. Overnight feasibility is unresolved, independently of the reported cardiac procedure pass.
 
 ## Learning exercise
 

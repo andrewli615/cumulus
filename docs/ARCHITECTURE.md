@@ -6,13 +6,14 @@ Cumulus uses one native watch-only SwiftUI target. Six experiments share a choos
 
 | Boundary | Current implementation |
 | --- | --- |
-| App lifetime | `CumulusApp` installs `WatchAppDelegate`, which owns the scheduled coordinators, overnight coordinator and `ExperimentSessionOwner`. |
-| Navigation | `ExperimentChooserView` exposes all six screens. Pending or unresolved session ownership disables the foreground probe, sleep-history and cardiac-history entries. |
+| App lifetime | `CumulusApp` installs `WatchAppDelegate`, which owns the scheduled coordinators, overnight coordinator, `ExperimentSessionOwner`, and shared `TestArchiveStore`. |
+| Navigation | `ExperimentChooserView` exposes six experiments and Saved tests. Pending or unresolved session ownership disables the foreground probe, sleep-history and cardiac-history entries. |
 | Foreground measurement | `ContentView` owns `MotionMonitor` and `HeartRateReader`. Core Motion callbacks copy numeric values before MainActor display updates. HealthKit queries read stored heart records with their age. Leaving the screen or backgrounding stops the probe. |
 | Scheduled alert | Screen action → `ScheduledAlertCoordinator` → WatchKit session → lifecycle callbacks → diagnostic history and UI state. The coordinator outlives the screen. |
 | Background motion | Screen setup → `BackgroundMotionCoordinator` → running session → dedicated motion queue → locked accumulator → bounded summaries and UI. `BackgroundMotionTrial` holds sample timing/count calculations. The 60-second collection stops before requesting a haptic. |
 | Sleep history | Read / Refresh → `SleepStageReader` → read authorization → snapshot query → Sendable interval values → MainActor UI. Request identity rejects late results after clearing; no query survives screen exit or background entry as an active reader request. |
 | Cardiac history | Read-only per-type snapshots → source-specific coverage calculations → in-memory UI; clearing and request identity reject late results. |
+| Conditional cardiac timing | Observed eligible record → explicit foreground inspector → finite HealthKit series descriptor → bounded aggregate timing and count diagnostics. Individual values, dates, offsets and HealthKit IDs remain in memory; no HRV or stage estimate. |
 | Overnight motion | Explicit fixed-duration request → Apple system recorder → foreground ten-minute retrieval chunks on a serial worker → timing/quality summaries → MainActor UI and local metadata. No extended-runtime or workout session, haptic, or raw-vector storage. |
 
 Session callbacks hand off identity and event details to MainActor. Old-session callbacks are ignored. Collection stopping and session invalidation are separate events; stopping samples does not itself prove that a session has ended.
@@ -35,9 +36,18 @@ Overnight requests save a provisional window before calling the recorder. On ret
 | Background diagnostics | Latest five trial summaries, twelve five-second buckets and at most 40 events per trial, plus lifecycle bookkeeping in local UserDefaults. No raw vectors. |
 | Cardiac records | In-memory snapshots only, with per-type limits and clearing on exit/background. |
 | Overnight diagnostics | Three trials, up to 960 thirty-second buckets, 40 events and 40 compact read observations per trial; pilot evidence contains only trial ID/OS/build. Raw vectors are discarded; system-managed retention is separate. |
+| Saved test reports | One JSON file per run in Application Support/Cumulus/TestArchive, at most 200 reports or 32 MB. Full bounded alert/background/overnight diagnostic snapshots and health-query/foreground counts and statuses; no individual HealthKit records or raw vectors. |
 | Shared session owner | Local UserDefaults routing state; reconciled with coordinator evidence on launch. |
 
-HealthKit records and raw device logs do not belong in Git. A future private recording feature requires its own retention and deletion design.
+`TestReport` defines the report schema; `TestArchiveStore` performs bounded atomic file writes and imports existing retained session trials. `TestArchiveView` presents summaries and lifecycle events. Existing small UserDefaults histories remain recovery state; new per-run files preserve reports independently of those rolling histories. Already discarded readings and trimmed history cannot be reconstructed. The capture build/OS are separate from the original trial configuration. Save boundaries are lifecycle checkpoints and completed queries/retrievals, never individual sensor callbacks.
+
+Files remain local until deletion or uninstall, with no automatic expiry, upload, or phone transfer. They are excluded from backup and use watchOS protection until first user authentication. The 200-report/32-MB ceiling refuses an overflowing write without evicting older reports; failures remain visible until inspection/reload. Unreadable files are preserved and count toward capacity. Each file is at most 512,000 bytes, including a diagnostic payload of at most 350,000 bytes. JSON dates use fractional Unix seconds; diagnostic snapshots are base64-encoded JSON, decoded by the private retrieval script. Summary lists omit the payload from memory.
+
+Delete completed test data confirms removal and independently checks all coordinators for pending, unresolved, or retrieving work. It removes reports and completed recovery histories, including pilot qualification. A deletion watermark precedes file removal so older recovery records cannot be reimported after interrupted deletion. Deletion does not stop Apple's recorder or remove HealthKit records. Leaving history screens still clears individual records in memory without erasing completed diagnostic reports.
+
+HealthKit records and raw device logs do not belong in Git. `scripts/retrieve-test-archive.py` copies reports through Xcode device tools to a new private directory outside any Git checkout and produces a decoded evaluation JSON; it does not launch the app or start a sensor/query. Private copies have independent retention: app deletion does not erase them. Actual sample delivery, locked-device access, on-Watch deletion/layout and battery overhead still require physical checks. Raw-value recording remains a separate feature requiring a retention/deletion design.
+
+Foundation's [atomic write option](https://developer.apple.com/documentation/foundation/nsdata/writingoptions/atomic), [file protection option](https://developer.apple.com/documentation/foundation/nsdata/writingoptions/completefileprotectionuntilfirstuserauthentication), and [backup exclusion guidance](https://developer.apple.com/documentation/foundation/optimizing-your-app-s-data-for-icloud-backup) were checked through Context7 and official Apple documentation. Atomic replacement does not establish recorder delivery or eliminate possible storage failure.
 
 ## Verification boundary
 
@@ -52,3 +62,13 @@ HealthKit records and raw device logs do not belong in Git. A future private rec
 - What waking benefit and alert reliability must be measured before release?
 
 Keep these questions separate from the implemented experiments. Follow [the build plan](BUILD_PLAN.md) and record future choices in [decisions](decisions/README.md) when evidence supports them.
+
+## Guided evidence inspection
+
+`PilotGuide` computes manual targets from the recorded trial start; clock uncertainty removes its countdown. No timer fires a sensor/query or background notification. Existing controls remain explicit. `SavedReportAssessment` validates a typed archived overnight snapshot and presents failed criteria, late visibility, charging and unknown conditions without rewriting saved observations or declaring model readiness.
+
+`CardiacTimingSelection` is an in-memory copy of an observed record's ID, declared count and boundaries. Cardiac history offers at most five recent eligible candidates and keeps selection navigation independent of the overview list so clearing the list does not erase a pushed inspector. `CardiacTimingReader` owns request identity, cancellation, 60-second timeout and partial checkpoints; `HealthKitCardiacTimingQuery` implements finite quantity/heartbeat descriptors scoped to that ID. A 20,000-entry cap and spacing rules preserve partial results and gaps. No individual HealthKit record or value is encoded in the saved timing report. See [Experiment 007](experiments/007-cardiac-internal-timing.md).
+
+Archive readiness now requires no unresolved storage error, fewer than 200 report files, and at least 512,000 bytes of reserve before a new test. Backend checks cover session scheduling and history/timing reads as well as UI controls. This prevents predictable limit failures, not every possible I/O failure; unexpected failures remain explicit. Clearing completed data still refuses pending sessions and does not delete system-managed recordings or independent private copies.
+
+`SimulatorPreviewScreen` provides synthetic initial-screen fixtures behind `DEBUG && targetEnvironment(simulator)` and the explicit `CUMULUS_UI_PREVIEW` environment variable. Optional `CUMULUS_UI_TEXT=larger` applies a SwiftUI text-size override for layout inspection because watchOS simctl does not support its global text-size command. This code and environment route are excluded from physical and Release builds. Fixtures cannot establish physical usability, sensor behavior, or successful deletion; the archive preview's deletion callback intentionally performs no deletion.
