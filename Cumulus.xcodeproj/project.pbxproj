@@ -29,6 +29,15 @@
 		A00000000000000000000017 /* OvernightMotionRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000017 /* OvernightMotionRecorder.swift */; };
 		A00000000000000000000018 /* OvernightMotionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000018 /* OvernightMotionCoordinator.swift */; };
 		A00000000000000000000019 /* OvernightMotionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000019 /* OvernightMotionView.swift */; };
+		A0000000000000000000001A /* TestReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001A /* TestReport.swift */; };
+		A0000000000000000000001B /* TestArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001B /* TestArchiveStore.swift */; };
+		A0000000000000000000001C /* TestArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001C /* TestArchiveView.swift */; };
+		A0000000000000000000001D /* PilotGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001D /* PilotGuide.swift */; };
+		A0000000000000000000001E /* SavedReportAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001E /* SavedReportAssessment.swift */; };
+		A0000000000000000000001F /* CardiacTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000001F /* CardiacTiming.swift */; };
+		A00000000000000000000020 /* HealthKitCardiacTimingQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000020 /* HealthKitCardiacTimingQuery.swift */; };
+		A00000000000000000000021 /* CardiacTimingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000021 /* CardiacTimingView.swift */; };
+		A00000000000000000000022 /* SimulatorPreviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* SimulatorPreviewScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -57,6 +66,15 @@
 		B00000000000000000000017 /* OvernightMotionRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionRecorder.swift; sourceTree = "<group>"; };
 		B00000000000000000000018 /* OvernightMotionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionCoordinator.swift; sourceTree = "<group>"; };
 		B00000000000000000000019 /* OvernightMotionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OvernightMotionView.swift; sourceTree = "<group>"; };
+		B0000000000000000000001A /* TestReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestReport.swift; sourceTree = "<group>"; };
+		B0000000000000000000001B /* TestArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestArchiveStore.swift; sourceTree = "<group>"; };
+		B0000000000000000000001C /* TestArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestArchiveView.swift; sourceTree = "<group>"; };
+		B0000000000000000000001D /* PilotGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PilotGuide.swift; sourceTree = "<group>"; };
+		B0000000000000000000001E /* SavedReportAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedReportAssessment.swift; sourceTree = "<group>"; };
+		B0000000000000000000001F /* CardiacTiming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardiacTiming.swift; sourceTree = "<group>"; };
+		B00000000000000000000020 /* HealthKitCardiacTimingQuery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitCardiacTimingQuery.swift; sourceTree = "<group>"; };
+		B00000000000000000000021 /* CardiacTimingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardiacTimingView.swift; sourceTree = "<group>"; };
+		B00000000000000000000022 /* SimulatorPreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorPreviewScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +126,15 @@
 				B00000000000000000000013 /* ExperimentStyle.swift */,
 				B0000000000000000000000A /* ExperimentChooserView.swift */,
 				B00000000000000000000009 /* WatchAppDelegate.swift */,
+				B0000000000000000000001C /* TestArchiveView.swift */,
+				B00000000000000000000022 /* SimulatorPreviewScreen.swift */,
+				B00000000000000000000021 /* CardiacTimingView.swift */,
+				B00000000000000000000020 /* HealthKitCardiacTimingQuery.swift */,
+				B0000000000000000000001F /* CardiacTiming.swift */,
+				B0000000000000000000001E /* SavedReportAssessment.swift */,
+				B0000000000000000000001D /* PilotGuide.swift */,
+				B0000000000000000000001B /* TestArchiveStore.swift */,
+				B0000000000000000000001A /* TestReport.swift */,
 				B00000000000000000000010 /* ExperimentSessionOwner.swift */,
 			);
 			name = "App";
@@ -258,6 +285,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A00000000000000000000022 /* SimulatorPreviewScreen.swift in Sources */,
+				A00000000000000000000021 /* CardiacTimingView.swift in Sources */,
+				A00000000000000000000020 /* HealthKitCardiacTimingQuery.swift in Sources */,
+				A0000000000000000000001F /* CardiacTiming.swift in Sources */,
+				A0000000000000000000001E /* SavedReportAssessment.swift in Sources */,
+				A0000000000000000000001D /* PilotGuide.swift in Sources */,
+				A0000000000000000000001C /* TestArchiveView.swift in Sources */,
+				A0000000000000000000001B /* TestArchiveStore.swift in Sources */,
+				A0000000000000000000001A /* TestReport.swift in Sources */,
 				A00000000000000000000016 /* OvernightMotionTrial.swift in Sources */,
 				A00000000000000000000017 /* OvernightMotionRecorder.swift in Sources */,
 				A00000000000000000000018 /* OvernightMotionCoordinator.swift in Sources */,
@@ -321,7 +357,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -350,7 +386,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

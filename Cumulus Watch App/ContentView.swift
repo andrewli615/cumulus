@@ -4,6 +4,9 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var motion = MotionMonitor()
     @StateObject private var heart = HeartRateReader()
+    var testArchive: TestArchiveStore? = nil
+    @State private var reportID: UUID?
+    @State private var startedAt: Date?
 
     private var isMonitoring: Bool {
         motion.isMonitoring || heart.isMonitoring
@@ -21,8 +24,11 @@ struct ContentView: View {
                     if isMonitoring {
                         stop()
                     } else {
+                        reportID = UUID()
+                        startedAt = Date()
                         motion.start()
                         heart.start()
+                        saveReport(status: "Monitoring requested; completion not recorded")
                     }
                 } label: {
                     Text(isMonitoring ? "Stop monitoring" : "Start monitoring")
@@ -30,13 +36,13 @@ struct ContentView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(!isMonitoring && (heart.isRequestingAccess || scenePhase != .active))
+                .disabled(!isMonitoring && (heart.isRequestingAccess || scenePhase != .active || testArchive?.canStartNewReport == false))
                 Text("Foreground only. Stops when you leave this probe.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
             ExperimentCard { motionSection }
             ExperimentCard { heartSection }
-            Text("Readings stay in memory. Nothing is exported or saved. This probe does not schedule alerts.")
+            Text("Readings stay in memory. Sample counts and diagnostic status are saved locally in Saved tests. This probe does not schedule alerts.")
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .navigationTitle("Motion")
@@ -100,7 +106,22 @@ struct ContentView: View {
         }
     }
 
+    private func saveReport(status: String) {
+        guard let id = reportID, let startedAt else { return }
+        let report = TestReport(id: "foreground-" + id.uuidString.lowercased(), kind: .foreground,
+            createdAt: startedAt, title: "Foreground probe", status: status,
+            metrics: ["Samples": String(motion.sampleCount),
+                "Observed Hz": motion.observedRate.map { String($0) } ?? "Unknown",
+                "Motion status": String(motion.status.prefix(500)),
+                "Heart reader status": String(heart.status.prefix(500)),
+                "Readable heart record present": String(heart.latest != nil)])
+        testArchive?.save(report)
+    }
+
     private func stop(reason: String = "Stopped") {
+        saveReport(status: reason)
+        reportID = nil
+        startedAt = nil
         motion.stop(reason: reason)
         heart.stop(reason: reason)
     }

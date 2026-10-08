@@ -9,7 +9,10 @@ for source in OvernightMotionRecorder OvernightMotionCoordinator; do
 done
 xcrun --sdk macosx swiftc -swift-version 6 -D OVERNIGHT_CHECKS -sdk "$(xcrun --sdk macosx --show-sdk-path)" \
     -module-cache-path "$build_dir/modules" \
+    'Cumulus Watch App/TestReport.swift' \
+    'Cumulus Watch App/TestArchiveStore.swift' \
     'Cumulus Watch App/OvernightMotionTrial.swift' \
+    'Cumulus Watch App/PilotGuide.swift' \
     'Cumulus Watch App/ExperimentSessionOwner.swift' \
     "$build_dir/OvernightMotionRecorder.swift" \
     "$build_dir/OvernightMotionCoordinator.swift" \

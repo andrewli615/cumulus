@@ -26,11 +26,12 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
     @Published private(set) var canCancel = false
     @Published private(set) var canStop = false
 
-    var canSchedule: Bool { session == nil && !isUnverified && storageError == nil && owner.current == .none }
+    var canSchedule: Bool { session == nil && !isUnverified && storageError == nil && owner.current == .none && testArchive?.canStartNewReport != false }
     var blocksMotionProbe: Bool { session != nil || isUnverified }
 
     private let owner: ExperimentSessionOwner
     private let defaults: UserDefaults
+    private let testArchive: TestArchiveStore?
     private let storageKey = "scheduledAlertExperiment.v1"
     private var session: WKExtendedRuntimeSession?
     private var didRecordScheduled = false
@@ -39,9 +40,10 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
     private var pendingStop: String?
     private var unresolvedSession = false
 
-    init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard) {
+    init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard, testArchive: TestArchiveStore? = nil) {
         self.owner = owner
         self.defaults = defaults
+        self.testArchive = testArchive
         super.init()
         guard let data = defaults.data(forKey: storageKey) else { return }
         do {
@@ -52,6 +54,7 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
             didRequestHaptic = saved.hapticRequested
             isUnverified = saved.unresolvedSession
             status = isUnverified ? "Unverified after relaunch" : "No live session attached"
+            saveReport(saved, importing: true)
         } catch {
             storageError = "Could not read saved experiment history. Session state is unknown."
             status = "Needs attention"
@@ -201,6 +204,27 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
         }
     }
 
+    func clearCompletedHistory() {
+        guard owner.current == .none, !blocksMotionProbe, storageError == nil else { return }
+        defaults.removeObject(forKey: storageKey)
+        requestedStart = nil
+        events = []
+        didRequestHaptic = false
+        status = "Completed history cleared"
+    }
+
+    private func saveReport(_ saved: SavedExperiment, importing: Bool = false) {
+        guard let date = saved.requestedStart else { return }
+        let runEvents = saved.events.filter { $0.requestedStart == date }
+        let report = TestReport(id: "alert-" + String(date.timeIntervalSince1970.bitPattern, radix: 16),
+            kind: .alert, createdAt: runEvents.first?.date ?? date, title: "Scheduled alert",
+            status: status, metrics: ["Requested start (Unix seconds)": String(date.timeIntervalSince1970),
+                "Unresolved session": String(saved.unresolvedSession), "Haptic requested": String(saved.hapticRequested),
+                "Perceived alert": "Unknown; software cannot confirm perception", "Event history limit": "40"],
+            events: runEvents.map { .init(date: $0.date, message: String($0.message.prefix(500))) })
+        testArchive?.saveDiagnostics(saved, report: report, importing: importing)
+    }
+
     private func record(_ message: String, at date: Date = Date()) {
         events.append(Event(id: UUID(), date: date, requestedStart: requestedStart, message: message))
         events = Array(events.suffix(40))
@@ -209,6 +233,7 @@ final class ScheduledAlertCoordinator: NSObject, ObservableObject, WKExtendedRun
         do {
             defaults.set(try JSONEncoder().encode(saved), forKey: storageKey)
             storageError = nil
+            saveReport(saved)
         } catch {
             storageError = "Could not encode experiment history; recent events may not survive relaunch."
         }

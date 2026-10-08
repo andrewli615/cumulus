@@ -124,7 +124,13 @@ struct CMAccelerometerData: Sendable { let timestamp: TimeInterval }
         expect(owner.current == .alert, "Wrong owner cannot release")
         owner.release(.alert)
         let alert = ScheduledAlertCoordinator(owner: owner, defaults: defaults)
-        let coordinator = BackgroundMotionCoordinator(owner: owner, defaults: defaults)
+        let reportDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: reportDirectory)
+            try? FileManager.default.removeItem(at: reportDirectory.appendingPathExtension("deleted-through"))
+        }
+        let testArchive = TestArchiveStore(directory: reportDirectory)
+        let coordinator = BackgroundMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         WKApplication.shared().applicationState = .background
         coordinator.schedule(configuration: .init())
         expect(coordinator.latest == nil, "Schedule requires active app")
@@ -211,6 +217,50 @@ struct CMAccelerometerData: Sendable { let timestamp: TimeInterval }
         let conflict = ExperimentSessionOwner(defaults: defaults)
         conflict.reconcile(alertPending: true, motionPending: true)
         expect(conflict.current == .unresolved && !conflict.claim(.alert), "Conflicting evidence blocks scheduling")
+        expect(testArchive.errorMessage == nil && !testArchive.reports.isEmpty, "Actual coordinator writes diagnostic reports")
+        let saved = try testArchive.report(id: testArchive.reports[0].id)
+        expect(saved.diagnostics != nil, "Full typed summary is retained independently of rolling history")
+        let deletionSuite = "Cumulus.archiveDeletion." + UUID().uuidString
+        let deletionDefaults = UserDefaults(suiteName: deletionSuite)!
+        defer { deletionDefaults.removePersistentDomain(forName: deletionSuite) }
+        var completed = trial()
+        completed.unresolvedSession = false
+        completed.phase = .stopped
+        deletionDefaults.set(try JSONEncoder().encode(BackgroundMotionArchive(trials: [completed])), forKey: "backgroundMotionExperiment.v1")
+        let delegate = WatchAppDelegate(testArchive: testArchive, defaults: deletionDefaults)
+        expect(delegate.sessionOwner.current == .none, "Completed history does not reserve a session")
+        let savedCount = testArchive.reports.count
+        expect(delegate.sessionOwner.claim(.alert), "Synthetic pending owner")
+        delegate.clearCompletedTestData()
+        expect(testArchive.reports.count == savedCount && deletionDefaults.data(forKey: "backgroundMotionExperiment.v1") != nil,
+               "Pending ownership prevents deletion of reports and recovery state")
+        delegate.sessionOwner.release(.alert)
+        delegate.clearCompletedTestData()
+        expect(testArchive.reports.isEmpty && deletionDefaults.data(forKey: "backgroundMotionExperiment.v1") == nil,
+               "Completed-data deletion clears archive and recovery history")
+        let relaunchedDelegate = WatchAppDelegate(testArchive: testArchive, defaults: deletionDefaults)
+        expect(testArchive.reports.isEmpty && relaunchedDelegate.backgroundCoordinator.archive.trials.isEmpty,
+               "Deleted reports cannot return after relaunch")
+        deletionDefaults.set(try JSONEncoder().encode(BackgroundMotionArchive(trials: [trial()])), forKey: "backgroundMotionExperiment.v1")
+        let pendingDelegate = WatchAppDelegate(testArchive: testArchive, defaults: deletionDefaults)
+        pendingDelegate.clearCompletedTestData()
+        expect(deletionDefaults.data(forKey: "backgroundMotionExperiment.v1") != nil && pendingDelegate.backgroundCoordinator.hasUnresolvedSession,
+               "Pending coordinator state independently blocks deletion")
+        let fullDirectory = reportDirectory.appendingPathComponent("full")
+        let fullArchive = TestArchiveStore(directory: fullDirectory, maximumReports: 0)
+        let freshSuite = "Cumulus.archiveCapacity." + UUID().uuidString
+        let freshDefaults = UserDefaults(suiteName: freshSuite)!
+        defer { freshDefaults.removePersistentDomain(forName: freshSuite) }
+        let freshOwner = ExperimentSessionOwner(defaults: freshDefaults)
+        let blockedAlert = ScheduledAlertCoordinator(owner: freshOwner, defaults: freshDefaults, testArchive: fullArchive)
+        let blockedMotion = BackgroundMotionCoordinator(owner: freshOwner, defaults: freshDefaults, testArchive: fullArchive)
+        let blockedOvernight = OvernightMotionCoordinator(owner: freshOwner, defaults: freshDefaults, testArchive: fullArchive)
+        expect(!blockedAlert.canSchedule && !blockedMotion.canSchedule && !blockedOvernight.canStart(.comparison), "Archive capacity blocks all new session/recording paths")
+        blockedAlert.schedule()
+        blockedMotion.schedule(configuration: .init())
+        blockedOvernight.start(.comparison, configuration: .init())
+        expect(freshOwner.current == .none && blockedMotion.archive.trials.isEmpty && blockedOvernight.archive.trials.isEmpty,
+               "Blocked requests do not reserve ownership or start a trial")
         print("PASS: sample boundaries, freshness, bounds, clocks, ownership, cancellation, error/expiry/manual-stop cleanup, stale callbacks and relaunch interruption")
     }
 }

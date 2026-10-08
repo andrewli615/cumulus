@@ -10,6 +10,8 @@ for source in BackgroundMotionCoordinator ScheduledAlertCoordinator WatchAppDele
 done
 xcrun --sdk macosx swiftc -swift-version 6 -sdk "$(xcrun --sdk macosx --show-sdk-path)" \
     -module-cache-path "$build_dir/modules" \
+    'Cumulus Watch App/TestReport.swift' \
+    'Cumulus Watch App/TestArchiveStore.swift' \
     'Cumulus Watch App/BackgroundMotionTrial.swift' \
     'Cumulus Watch App/ExperimentSessionOwner.swift' \
     "$build_dir/BackgroundMotionCoordinator.swift" \

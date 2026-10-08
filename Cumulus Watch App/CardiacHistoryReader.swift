@@ -88,15 +88,21 @@ final class CardiacHistoryReader: ObservableObject {
     @Published private(set) var windowStart: Date?
     @Published private(set) var windowEnd: Date?
 
+    var testArchive: TestArchiveStore?
+    private var reportStartedAt: Date?
     private let store = HKHealthStore()
     private var queries: [CardiacKind: HKSampleQuery] = [:]
     private var requestID = UUID()
 
     func refresh() {
         guard !isLoading, !isRequestingAccess else { return }
+        guard testArchive?.canStartNewReport != false else { status = "New read blocked: archive needs free storage"; return }
         clear()
+        reportStartedAt = Date()
         guard HKHealthStore.isHealthDataAvailable() else {
             status = "HealthKit unavailable on this device"
+            saveReport()
+            reportStartedAt = nil
             return
         }
         let end = Date()
@@ -107,6 +113,7 @@ final class CardiacHistoryReader: ObservableObject {
         isLoading = true
         isRequestingAccess = true
         status = "Requesting cardiac read access"
+        saveReport()
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -122,6 +129,8 @@ final class CardiacHistoryReader: ObservableObject {
                 guard self.requestID == request else { return }
                 self.isLoading = false
                 self.status = "Access request failed: \(error.localizedDescription)"
+                self.saveReport()
+                self.reportStartedAt = nil
             }
         }
     }
@@ -167,6 +176,8 @@ final class CardiacHistoryReader: ObservableObject {
                         self.status = self.snapshots.values.contains { $0.error != nil }
                             ? "Read finished with errors; inspect each type"
                             : "Historical snapshot ready"
+                        self.saveReport()
+                        self.reportStartedAt = nil
                     }
                 }
             }
@@ -174,7 +185,30 @@ final class CardiacHistoryReader: ObservableObject {
         store.execute(query)
     }
 
+    private func saveReport() {
+        guard let start = reportStartedAt else { return }
+        var metrics = ["Individual health records saved": "No",
+            "Query window start (Unix seconds)": windowStart.map { String($0.timeIntervalSince1970) } ?? "Unknown",
+            "Query window end (Unix seconds)": windowEnd.map { String($0.timeIntervalSince1970) } ?? "Unknown"]
+        for kind in CardiacKind.allCases {
+            guard let snapshot = snapshots[kind] else { metrics[kind.title + " result"] = "Not completed"; continue }
+            metrics[kind.title + " records"] = String(snapshot.records.count)
+            metrics[kind.title + " grouped records"] = String(snapshot.records.filter { $0.count > 1 }.count)
+            metrics[kind.title + " truncated"] = String(snapshot.isTruncated)
+            metrics[kind.title + " rejected"] = String(snapshot.rejectedRecords)
+            metrics[kind.title + " error"] = snapshot.error == nil ? "None reported" : "Reported; details remain in memory"
+        }
+        let report = TestReport(id: "cardiac-" + requestID.uuidString.lowercased(), kind: .cardiac,
+            createdAt: start, title: "Cardiac history read", status: String(status.prefix(500)), metrics: metrics)
+        testArchive?.save(report)
+    }
+
     func clear() {
+        if reportStartedAt != nil {
+            status = "Read cancelled; in-memory records cleared"
+            saveReport()
+            reportStartedAt = nil
+        }
         requestID = UUID()
         for query in queries.values { store.stop(query) }
         queries = [:]

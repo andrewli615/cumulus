@@ -5,6 +5,8 @@ struct ExperimentChooserView: View {
     @ObservedObject var background: BackgroundMotionCoordinator
     @ObservedObject var overnight: OvernightMotionCoordinator
     @ObservedObject var owner: ExperimentSessionOwner
+    @ObservedObject var testArchive: TestArchiveStore
+    let clearCompletedData: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -29,7 +31,7 @@ struct ExperimentChooserView: View {
                     }
                 }
                 NavigationLink {
-                    ContentView()
+                    ContentView(testArchive: testArchive)
                 } label: {
                     ExperimentDestination(title: "Motion probe", subtitle: "Movement & heart records", symbol: "waveform.path.ecg")
                 }
@@ -45,13 +47,13 @@ struct ExperimentChooserView: View {
                     ExperimentDestination(title: "Background motion", subtitle: "A 60-second sensor trial", symbol: "waveform.path")
                 }
                 NavigationLink {
-                    SleepHistoryView()
+                    SleepHistoryView(testArchive: testArchive)
                 } label: {
                     ExperimentDestination(title: "Sleep history", subtitle: "Explore stored intervals", symbol: "moon.zzz.fill")
                 }
                 .disabled(owner.current != .none)
                 NavigationLink {
-                    CardiacHistoryView()
+                    CardiacHistoryView(testArchive: testArchive, sessionOwner: owner)
                 } label: {
                     ExperimentDestination(title: "Cardiac history", subtitle: "Heart records & coverage", symbol: "heart.text.square")
                 }
@@ -61,6 +63,13 @@ struct ExperimentChooserView: View {
                 } label: {
                     ExperimentDestination(title: "Overnight motion", subtitle: "Fixed recording · later retrieval", symbol: "moon.stars")
                 }
+                NavigationLink {
+                    TestArchiveView(archive: testArchive, owner: owner, clearCompletedData: clearCompletedData)
+                } label: {
+                    ExperimentDestination(title: "Saved tests", subtitle: "Local diagnostic reports", symbol: "tray.full")
+                }
+                if let reason = testArchive.newReportBlockReason { Text(reason).font(.caption).foregroundStyle(.orange) }
+                if let message = testArchive.errorMessage { Text(message).font(.caption).foregroundStyle(.orange) }
                 Text("Research in progress. Keep an independent alarm.")
                     .font(.caption2).foregroundStyle(.secondary)
             }

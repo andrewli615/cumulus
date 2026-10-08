@@ -14,6 +14,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     private let recorder: OvernightMotionRecorder
     private let owner: ExperimentSessionOwner
     private let defaults: UserDefaults
+    private let testArchive: TestArchiveStore?
     private let key = "overnightMotion.v1"
     private var retrievalID: UUID?
     private var cancellation: OvernightRetrievalCancellation?
@@ -27,9 +28,10 @@ final class OvernightMotionCoordinator: ObservableObject {
     }
 
     init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard,
-         recorder: OvernightMotionRecorder = OvernightMotionRecorder()) {
+         recorder: OvernightMotionRecorder = OvernightMotionRecorder(), testArchive: TestArchiveStore? = nil) {
         self.owner = owner
         self.defaults = defaults
+        self.testArchive = testArchive
         self.recorder = recorder
         access = recorder.access()
         if let stored = defaults.object(forKey: key) {
@@ -38,6 +40,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                 let loaded = try JSONDecoder().decode(OvernightMotionArchive.self, from: data)
                 try loaded.validate()
                 archive = loaded
+                for trial in loaded.trials { saveReport(trial, importing: true) }
             } catch {
                 storageError = "Saved trial cannot be verified. Requests are blocked; preserve the existing data."
                 owner.markUnresolved()
@@ -55,7 +58,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     }
 
     func canStart(_ mode: OvernightMotionTrial.Mode) -> Bool {
-        storageError == nil && !hasReservation && !isRetrieving && !isRequestingAccess
+        storageError == nil && !hasReservation && !isRetrieving && !isRequestingAccess && testArchive?.canStartNewReport != false
             && owner.current == .none && WKApplication.shared().applicationState == .active
             && (mode == .comparison || access.canRecord) && (mode != .overnight || pilotReady)
     }
@@ -290,10 +293,42 @@ final class OvernightMotionCoordinator: ObservableObject {
         archive.updatePilotEvidence()
         _ = persist()
     }
+    func clearCompletedHistory() {
+        guard owner.current == .none, !hasReservation, !isRetrieving, !isRequestingAccess, storageError == nil else { return }
+        archive = OvernightMotionArchive()
+        defaults.removeObject(forKey: key)
+        status = "Completed history and pilot qualification cleared"
+    }
+
+    private func saveReport(_ trial: OvernightMotionTrial, importing: Bool = false) {
+        var metrics = ["Mode": trial.mode.title, "Phase": trial.phase.rawValue,
+            "Original build": trial.configuration.appBuild, "Original watchOS": trial.configuration.watchOS,
+            "Charging": trial.configuration.charging, "Interruption": trial.configuration.interruption,
+            "Clock discontinuity": String(trial.clockDiscontinuity), "Pilot software criteria": String(trial.pilotQualified),
+            "Visibility": trial.morningVisibility, "Events truncated": String(trial.eventsTruncated),
+            "Requested start (Unix seconds)": String(trial.start.timeIntervalSince1970),
+            "Requested end (Unix seconds)": String(trial.end.timeIntervalSince1970)]
+        if let summary = trial.fullSummary {
+            metrics["Samples"] = String(summary.count)
+            metrics["Qualifying buckets"] = "\(summary.qualifyingBuckets)/\(summary.buckets.count)"
+            metrics["Observed Hz"] = summary.observedRate.map { String($0) } ?? "Unknown"
+            metrics["Largest gap (s)"] = String(summary.maximumGap)
+            metrics["Leading gap (s)"] = summary.leadingGap.map { String($0) } ?? "Unknown"
+            metrics["Trailing gap (s)"] = summary.trailingGap.map { String($0) } ?? "Unknown"
+            metrics["Order anomalies"] = String(summary.outOfOrder)
+        }
+        let report = TestReport(id: "overnight-" + trial.id.uuidString.lowercased(), kind: .overnight,
+            createdAt: trial.recorderCall?.preparedAt ?? trial.start, title: "Overnight · " + trial.mode.title,
+            status: trial.timingStatus, metrics: metrics,
+            events: trial.events.map { .init(date: $0.date, message: $0.message) })
+        testArchive?.saveDiagnostics(trial, report: report, importing: importing)
+    }
+
     @discardableResult private func persist() -> Bool {
         do {
             try archive.validate()
             defaults.set(try JSONEncoder().encode(archive), forKey: key)
+            if let latest { saveReport(latest) }
             return true
         } catch {
             storageError = "Trial metadata could not be saved; requests blocked"

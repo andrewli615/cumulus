@@ -75,6 +75,9 @@ struct OvernightMotionView: View {
                     .disabled(!coordinator.canStart(mode))
                 }
             }
+            if let trial = coordinator.latest, trial.mode == .pilot {
+                PilotGuideCard(trial: trial, now: now)
+            }
             if let trial = coordinator.latest {
                 ExperimentCard {
                     ExperimentHeading(title: trial.mode.title, symbol: "clock")
@@ -289,5 +292,23 @@ private struct OvernightOrderAnomaliesView: View {
                 }
             }
         }.navigationTitle("Order anomalies")
+    }
+}
+
+struct PilotGuideCard: View {
+    let trial: OvernightMotionTrial
+    let now: Date
+    var body: some View {
+        let guide = PilotGuide(trial: trial, now: now)
+        ExperimentCard {
+            ExperimentHeading(title: guide.title, symbol: "list.number")
+            if let target = guide.target {
+                ExperimentMetric(label: "Target time", value: target.formatted(date: .omitted, time: .standard))
+                Text(now < target ? "In \(Int(ceil(target.timeIntervalSince(now)))) seconds" : "Target time reached")
+                    .font(.caption2).monospacedDigit()
+            }
+            Text(guide.instruction).font(.caption)
+            Text("The recording request continues while you leave. Probes require an active app and your tap.").font(.caption2).foregroundStyle(.secondary)
+        }
     }
 }

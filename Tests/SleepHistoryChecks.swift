@@ -48,7 +48,14 @@ final class HKSampleQuery: HKQuery {
 @main struct Checks {
     @MainActor static func settle() async { try? await Task.sleep(for: .milliseconds(30)) }
     @MainActor static func main() async {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            try? FileManager.default.removeItem(at: directory.appendingPathExtension("deleted-through"))
+        }
+        let archive = TestArchiveStore(directory: directory)
         let reader = SleepStageReader()
+        reader.testArchive = archive
         HKHealthStore.available = false
         reader.refresh()
         precondition(reader.status.contains("unavailable") && !reader.isLoading)
@@ -96,6 +103,18 @@ final class HKSampleQuery: HKQuery {
         precondition(reader.isRequestingAccess)
         try? await Task.sleep(for: .milliseconds(150))
         precondition(HKHealthStore.query == nil && !reader.isRequestingAccess && reader.intervals.isEmpty)
+        precondition(archive.errorMessage == nil && archive.reports.count > 3)
+        precondition(archive.reports.allSatisfy { $0.diagnostics == nil })
+        let reportCount = archive.reports.count
+        reader.clear()
+        await settle()
+        precondition(archive.reports.count == reportCount)
+        precondition(archive.reports.contains { $0.metrics["Readable interval count"] == "500" })
+        let fullArchive = TestArchiveStore(directory: directory.appendingPathComponent("full"), maximumReports: 0)
+        let blockedReader = SleepStageReader()
+        blockedReader.testArchive = fullArchive
+        blockedReader.refresh()
+        precondition(!blockedReader.isLoading && blockedReader.status.contains("blocked"))
         print("PASS: read-only request, unavailable/empty/error states, categories, source/date preservation, truncation, cancellation and late authorization/query callbacks")
     }
 }

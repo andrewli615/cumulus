@@ -33,6 +33,18 @@ import Foundation
     }
 
     @MainActor static func main() async throws {
+        var guided = OvernightMotionTrial(mode: .pilot, start: origin, uptime: 1000, configuration: .init(), battery: nil)
+        guided.phase = .requested
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(599)).target == origin.addingTimeInterval(600), "Guide uses original fixed block")
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(600)).title == "Read the pilot block now", "Probe opens at ten minutes")
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(841)).instruction.contains("not established"), "Missing timely probe remains unknown")
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(1500)).title == "Retrieve the whole window", "Full retrieval target at end plus five")
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(841)).target == origin.addingTimeInterval(960), "Late diagnostic probe at minute sixteen")
+        guided.observations = [.init(pilotProbe: true, requestedAt: origin.addingTimeInterval(960), completedAt: origin.addingTimeInterval(961),
+                                    count: 0, useful: false, first: nil, last: nil, nilChunks: 0, emptyChunks: 1, cancelled: false, error: nil)]
+        expect(PilotGuide(trial: guided, now: origin.addingTimeInterval(970)).target == origin.addingTimeInterval(1200), "Next late probe at minute twenty")
+        guided.clockDiscontinuity = true
+        expect(PilotGuide(trial: guided, now: origin).target == nil, "Clock uncertainty removes countdown")
         let good = uniform()
         try good.validate()
         expect(good.count == 60_000 && good.buckets.count == 40 && good.buckets.allSatisfy { $0.count == 1500 }, "Exact bucket boundaries at 50 Hz")
@@ -193,7 +205,13 @@ import Foundation
         defer { defaults.removePersistentDomain(forName: suite) }
         let owner = ExperimentSessionOwner(defaults: defaults)
         SyntheticRecorder.shared.configure(authorization: .notDetermined)
-        let coordinator = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        let reportDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: reportDirectory)
+            try? FileManager.default.removeItem(at: reportDirectory.appendingPathExtension("deleted-through"))
+        }
+        let testArchive = TestArchiveStore(directory: reportDirectory)
+        let coordinator = OvernightMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         coordinator.requestAccess()
         try? await Task.sleep(for: .milliseconds(20))
         expect(!coordinator.access.canRecord, "Activity callback is not recorder authorization")
@@ -427,6 +445,9 @@ import Foundation
         expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
         night.configuration.charging = "Yes"
         expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
+        expect(testArchive.errorMessage == nil && !testArchive.reports.isEmpty, "Actual coordinator writes diagnostic reports")
+        let saved = try testArchive.report(id: testArchive.reports[0].id)
+        expect(saved.diagnostics != nil, "Full typed summary is retained independently of rolling history")
         print("PASS: streaming chunks, timing failures, order anomaly categories and legacy compatibility, recorder-call windows, conservative reservations, time-driven eligibility, legacy recovery, completed evidence across reboot, gaps, clocks, bounds, authorization, pilot gate, conflicting probes, cancellation, summary replacement and battery comparisons")
     }
 }

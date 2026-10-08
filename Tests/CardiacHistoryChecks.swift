@@ -127,7 +127,14 @@ final class HKSampleQuery: HKQuery {
 
     @MainActor static func main() async {
         coverageChecks()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            try? FileManager.default.removeItem(at: directory.appendingPathExtension("deleted-through"))
+        }
+        let archive = TestArchiveStore(directory: directory)
         let reader = CardiacHistoryReader()
+        reader.testArchive = archive
         HKHealthStore.available = false
         reader.refresh()
         precondition(reader.status.contains("unavailable") && !reader.isLoading)
@@ -210,6 +217,18 @@ final class HKSampleQuery: HKQuery {
         precondition(reader.isRequestingAccess && HKHealthStore.requests == requests + 1)
         try? await Task.sleep(for: .milliseconds(150))
         precondition(HKHealthStore.queries.isEmpty && reader.snapshots.isEmpty && !reader.isRequestingAccess)
+        precondition(archive.errorMessage == nil && archive.reports.count > 3)
+        precondition(archive.reports.allSatisfy { $0.diagnostics == nil })
+        let reportCount = archive.reports.count
+        reader.clear()
+        await settle()
+        precondition(archive.reports.count == reportCount)
+        precondition(archive.reports.contains { $0.metrics["Heart rate grouped records"] != nil })
+        let fullArchive = TestArchiveStore(directory: directory.appendingPathComponent("full"), maximumReports: 0)
+        let blockedReader = CardiacHistoryReader()
+        blockedReader.testArchive = fullArchive
+        blockedReader.refresh()
+        precondition(!blockedReader.isLoading && blockedReader.status.contains("blocked"))
         print("PASS: source-specific gaps, overlap/boundaries, grouped records, units, bounds, errors, read-only access, cancellation and late callbacks")
     }
 }

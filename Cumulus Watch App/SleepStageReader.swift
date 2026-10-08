@@ -34,15 +34,21 @@ final class SleepStageReader: ObservableObject {
     @Published private(set) var refreshedAt: Date?
     @Published private(set) var isTruncated = false
 
+    var testArchive: TestArchiveStore?
+    private var reportStartedAt: Date?
     private let store = HKHealthStore()
     private var query: HKSampleQuery?
     private var requestID = UUID()
 
     func refresh() {
         guard !isLoading, !isRequestingAccess else { return }
+        guard testArchive?.canStartNewReport != false else { status = "New read blocked: archive needs free storage"; return }
         clear()
+        reportStartedAt = Date()
         guard HKHealthStore.isHealthDataAvailable() else {
             status = "HealthKit unavailable on this device"
+            saveReport()
+            reportStartedAt = nil
             return
         }
         let end = Date()
@@ -57,6 +63,7 @@ final class SleepStageReader: ObservableObject {
         isLoading = true
         isRequestingAccess = true
         status = "Requesting sleep read access"
+        saveReport()
         Task { [weak self] in
             guard let self else { return }
             do {
@@ -69,6 +76,8 @@ final class SleepStageReader: ObservableObject {
                 guard self.requestID == currentRequest else { return }
                 self.isLoading = false
                 self.status = "Access request failed: \(error.localizedDescription)"
+                self.saveReport()
+                self.reportStartedAt = nil
             }
         }
     }
@@ -92,6 +101,8 @@ final class SleepStageReader: ObservableObject {
                     self.isLoading = false
                     if let message {
                         self.status = "Read error: \(message)"
+                        self.saveReport()
+                        self.reportStartedAt = nil
                         return
                     }
                     self.intervals = Array(rows.prefix(500))
@@ -99,13 +110,31 @@ final class SleepStageReader: ObservableObject {
                     self.refreshedAt = received
                     self.status = rows.isEmpty ? "No readable sleep records in this window"
                         : "Historical snapshot; \(self.intervals.count) intervals shown"
+                    self.saveReport()
+                    self.reportStartedAt = nil
                 }
             }
         self.query = query
         store.execute(query)
     }
 
+    private func saveReport() {
+        guard let start = reportStartedAt else { return }
+        let report = TestReport(id: "sleep-" + requestID.uuidString.lowercased(), kind: .sleep,
+            createdAt: start, title: "Sleep history read", status: String(status.prefix(500)),
+            metrics: ["Readable interval count": String(intervals.count), "Truncated": String(isTruncated),
+                "Query window start (Unix seconds)": windowStart.map { String($0.timeIntervalSince1970) } ?? "Unknown",
+                "Query window end (Unix seconds)": windowEnd.map { String($0.timeIntervalSince1970) } ?? "Unknown",
+                "Individual health records saved": "No"])
+        testArchive?.save(report)
+    }
+
     func clear() {
+        if reportStartedAt != nil {
+            status = "Read cancelled; in-memory records cleared"
+            saveReport()
+            reportStartedAt = nil
+        }
         requestID = UUID()
         if let query { store.stop(query) }
         query = nil

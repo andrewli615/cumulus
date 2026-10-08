@@ -7,6 +7,8 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 sed '/^import HealthKit$/d' 'Cumulus Watch App/CardiacHistoryReader.swift' > "$build_dir/CardiacHistoryReader.swift"
 xcrun --sdk macosx swiftc -swift-version 6 -sdk "$(xcrun --sdk macosx --show-sdk-path)" \
     -module-cache-path "$build_dir/modules" \
+    'Cumulus Watch App/TestReport.swift' \
+    'Cumulus Watch App/TestArchiveStore.swift' \
     "$build_dir/CardiacHistoryReader.swift" \
     Tests/CardiacHistoryChecks.swift -o "$build_dir/checks"
 "$build_dir/checks"

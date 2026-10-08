@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SleepHistoryView: View {
+    var testArchive: TestArchiveStore? = nil
     @StateObject private var reader = SleepStageReader()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -14,6 +15,7 @@ struct SleepHistoryView: View {
                     .font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                 Text("Historical HealthKit records, not live sleep detection.")
                     .font(.caption2).foregroundStyle(.secondary)
+                Text("Saved tests keeps query counts and status; individual health records remain in memory.").font(.caption2).foregroundStyle(.secondary)
                 Button {
                     reader.refresh()
                 } label: {
@@ -64,6 +66,7 @@ struct SleepHistoryView: View {
             }
         }
         .navigationTitle("Sleep history")
+        .onAppear { reader.testArchive = testArchive }
         .onDisappear { reader.clear() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { reader.clear() }

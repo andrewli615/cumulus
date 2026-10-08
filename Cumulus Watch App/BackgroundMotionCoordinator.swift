@@ -14,6 +14,7 @@ final class BackgroundMotionCoordinator: NSObject, ObservableObject, WKExtendedR
 
     let owner: ExperimentSessionOwner
     private let defaults: UserDefaults
+    private let testArchive: TestArchiveStore?
     private let storageKey = "backgroundMotionExperiment.v1"
     private let motion = CMMotionManager()
     private let queue: OperationQueue = {
@@ -31,17 +32,19 @@ final class BackgroundMotionCoordinator: NSObject, ObservableObject, WKExtendedR
     private var recordedScheduled = false
     var latest: BackgroundMotionTrial? { archive.trials.last }
     var hasUnresolvedSession: Bool { storageError != nil || latest?.unresolvedSession == true || session != nil }
-    var canSchedule: Bool { owner.current == .none && !hasUnresolvedSession }
+    var canSchedule: Bool { owner.current == .none && !hasUnresolvedSession && testArchive?.canStartNewReport != false }
     var isCollecting: Bool { accumulator != nil }
 
-    init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard) {
+    init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard, testArchive: TestArchiveStore? = nil) {
         self.owner = owner
         self.defaults = defaults
+        self.testArchive = testArchive
         super.init()
         guard let data = defaults.data(forKey: storageKey) else { return }
         do {
             archive = try JSONDecoder().decode(BackgroundMotionArchive.self, from: data)
             try archive.validate()
+            for trial in archive.trials { saveReport(trial, importing: true) }
             if latest?.unresolvedSession == true {
                 archive.trials[archive.trials.count - 1].recover(at: Date(), uptime: now)
                 status = "Unverified after relaunch"
@@ -226,6 +229,26 @@ final class BackgroundMotionCoordinator: NSObject, ObservableObject, WKExtendedR
     private func persist() {
         do { defaults.set(try JSONEncoder().encode(archive), forKey: storageKey); storageError = nil }
         catch { storageError = "Could not encode trial metadata; evidence is incomplete." }
+        if let latest { saveReport(latest) }
+    }
+
+    func clearCompletedHistory() {
+        guard owner.current == .none, !hasUnresolvedSession else { return }
+        archive = BackgroundMotionArchive()
+        defaults.removeObject(forKey: storageKey)
+        status = "Completed history cleared"
+    }
+
+    private func saveReport(_ trial: BackgroundMotionTrial, importing: Bool = false) {
+        let report = TestReport(id: "background-" + trial.id.uuidString.lowercased(), kind: .background,
+            createdAt: trial.events.first?.date ?? trial.requestedStart, title: "Background motion",
+            status: trial.measurementAssessment, metrics: ["Phase": trial.phase.rawValue,
+                "Original build": trial.configuration.appBuild, "Original watchOS": trial.configuration.watchOS,
+                "Samples": trial.samples.map { String($0.count) } ?? "Unknown",
+                "Unresolved session": String(trial.unresolvedSession),
+                "Haptic requested": String(trial.hapticRequested), "Events truncated": String(trial.eventsTruncated)],
+            events: trial.events.map { .init(date: $0.date, message: String($0.message.prefix(500))) })
+        testArchive?.saveDiagnostics(trial, report: report, importing: importing)
     }
 
     nonisolated func extendedRuntimeSessionDidStart(_ session: WKExtendedRuntimeSession) {
