@@ -67,6 +67,9 @@ final class OvernightMotionRecorder: @unchecked Sendable {
             var chunks = 0
             var enumerated = 0
             var previousAcceptedQueryIndex: Int?
+            var previousAcceptedSampleIndex: Int?
+            var previousAcceptedBatch: UInt64?
+            var skipped = OvernightMotionSummary.SkippedRows()
             let safetyLimit = Int(duration * 100) + 1000
             while cursor < end {
                 if cancellation.isCancelled { break }
@@ -82,19 +85,21 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                             if enumerated > safetyLimit { summary.aborted = true; break }
                             guard let sample = object as? CMRecordedAccelerometerData else {
                                 summary.unexpectedObjects += 1
+                                skipped.record(uptime: nil, after: summary.lastUptime)
                                 previousInput = nil
                                 continue
                             }
                             seen += 1
                             // Copy the API values before the accumulator filters or rejects a row.
                             let date = sample.startDate
+                            let uptime = sample.timestamp
                             if timingBasis == .sensorTime, date.timeIntervalSince1970.isFinite,
                                date < cursor || date >= chunkEnd {
                                 summary.outsideQuery! += 1
+                                skipped.record(uptime: uptime, after: summary.lastUptime, outsideQuery: true)
                                 previousInput = nil
                                 continue
                             }
-                            let uptime = sample.timestamp
                             let batch = sample.identifier
                             let axes = sample.acceleration
                             let finite = date.timeIntervalSince1970.isFinite && uptime.isFinite && uptime >= 0
@@ -111,10 +116,21 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                                 OvernightMotionSummary.QueryPosition(queryIndex: chunks + 1, sampleIndex: seen,
                                     previousAcceptedQueryIndex: $0)
                             }
+                            let gapContext = position.flatMap { position in
+                                previousAcceptedSampleIndex.map {
+                                    OvernightMotionSummary.GapContext(position: position, previousSampleIndex: $0,
+                                        batchChanged: previousAcceptedBatch != batch, skipped: skipped)
+                                }
+                            }
                             summary.receive(date: date, uptime: uptime,
                                 axesFinite: axes.x.isFinite && axes.y.isFinite && axes.z.isFinite,
-                                chunkStart: cursor, position: position, inputComparison: input)
-                            if summary.count > previousCount { previousAcceptedQueryIndex = chunks + 1 }
+                                chunkStart: cursor, position: position, inputComparison: input, gapContext: gapContext)
+                            if summary.count > previousCount {
+                                previousAcceptedQueryIndex = chunks + 1
+                                previousAcceptedSampleIndex = seen
+                                previousAcceptedBatch = batch
+                                skipped = .init()
+                            } else { skipped.record(uptime: uptime, after: summary.lastUptime) }
                         }
                         if seen == 0 { summary.emptyChunks += 1 }
                     } else { summary.nilChunks += 1 }

@@ -323,6 +323,9 @@ private struct OvernightTrialView: View {
                         ExperimentMetric(label: "First sample", value: date(summary.first))
                         ExperimentMetric(label: "Last sample", value: date(summary.last))
                         ExperimentMetric(label: "Largest gap", value: seconds(summary.maximumGap))
+                        NavigationLink("Inspect largest gap") {
+                            OvernightGapView(diagnostic: summary.largestGapDiagnostic)
+                        }
                         ExperimentMetric(label: "Leading / trailing", value: "\(seconds(summary.leadingGap)) / \(seconds(summary.trailingGap))")
                         ExperimentMetric(label: summary.timingBasis == .sensorTime ? "Invalid / raw order comparisons" : "Invalid / order anomalies", value: "\(summary.invalid) / \(summary.outOfOrder)")
                         if summary.outOfOrder > 0 {
@@ -409,6 +412,11 @@ private struct OvernightTrialView: View {
                                 OvernightOrderAnomaliesView(diagnostics: diagnostics)
                             }.font(.caption)
                         }
+                        if let diagnostic = read.largestGapDiagnostic {
+                            NavigationLink("Inspect this read's largest gap") {
+                                OvernightGapView(diagnostic: diagnostic)
+                            }.font(.caption)
+                        }
                     }
                 }
                 ExperimentCard {
@@ -420,6 +428,40 @@ private struct OvernightTrialView: View {
                 }
             } else { Text("Trial no longer retained; only three recent trials are stored.") }
         }.navigationTitle("Trial details")
+    }
+}
+
+struct OvernightGapView: View {
+    let diagnostic: OvernightMotionSummary.GapDiagnostic?
+
+    var body: some View {
+        ExperimentPage {
+            ExperimentCard {
+                ExperimentHeading(title: "Largest gap", symbol: "clock")
+                if let gap = diagnostic {
+                    ExperimentMetric(label: "Measured gap", value: String(format: "%.6f s", gap.measuredGap))
+                    ExperimentMetric(label: "Next sample elapsed", value: String(format: "%.6f s", gap.relativeSeconds))
+                    ExperimentMetric(label: "Wall-date delta", value: String(format: "%+.6f s", gap.dateDelta))
+                    ExperimentMetric(label: "Sensor-time delta", value: String(format: "%+.6f s", gap.sensorDelta))
+                    ExperimentMetric(label: "Previous query / row", value: "\(gap.position.previousAcceptedQueryIndex) / \(gap.previousSampleIndex)")
+                    ExperimentMetric(label: "Next query / row", value: "\(gap.position.queryIndex) / \(gap.position.sampleIndex)")
+                    Text(gap.position.queryIndex == gap.position.previousAcceptedQueryIndex
+                         ? "Both accepted samples came from the same query."
+                         : "The gap crosses a query boundary.").font(.caption)
+                    ExperimentMetric(label: "Batch changed", value: gap.batchChanged ? "Yes" : "No")
+                    ExperimentMetric(label: "Skipped returned rows", value: String(gap.skipped.count))
+                    ExperimentMetric(label: "Outside query interval", value: String(gap.skipped.outsideQuery))
+                    ExperimentMetric(label: "Skipped finite timestamps", value: String(gap.skipped.finiteSensorTimes))
+                    if let minimum = gap.skipped.minimumSensorDelta, let maximum = gap.skipped.maximumSensorDelta {
+                        Text(String(format: "Skipped sensor times: %+.6f to %+.6f s relative to the previous accepted sample.", minimum, maximum))
+                            .font(.caption).fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text("Skipped rows may be overlap or rejected data. These measurements locate the gap; they do not establish its cause.").font(.caption)
+                } else {
+                    Text("Gap-source metadata was not saved for this read. Re-read the retained window with build 13 while recorder data remains available.").font(.body)
+                }
+            }
+        }.navigationTitle("Gap source")
     }
 }
 

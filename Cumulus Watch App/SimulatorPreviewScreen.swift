@@ -47,6 +47,13 @@ struct SimulatorPreviewScreen: View {
             case "trial-choices": OvernightTrialChoiceView(mode: $previewMode)
             case "trial-setup": OvernightSetupView(configuration: $previewConfiguration)
             case "order": OvernightOrderAnomaliesView(summary: orderSummary)
+            case "gap":
+                OvernightGapView(diagnostic: .init(relativeSeconds: 600, measuredGap: 3.02,
+                    dateDelta: 3.02, sensorDelta: 3.02,
+                    position: .init(queryIndex: 2, sampleIndex: 1, previousAcceptedQueryIndex: 1),
+                    previousSampleIndex: 29850, batchChanged: true,
+                    skipped: .init(count: 151, outsideQuery: 151, finiteSensorTimes: 151,
+                        minimumSensorDelta: 0.02, maximumSensorDelta: 3.02)))
             case "archive": TestArchiveView(archive: archive, owner: owner, clearCompletedData: {})
             case "report":
                 if let report = archive.reports.first { TestReportView(report: report, archive: archive) }

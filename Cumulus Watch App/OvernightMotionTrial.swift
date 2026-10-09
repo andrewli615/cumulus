@@ -14,6 +14,60 @@ struct OvernightMotionSummary: Codable, Sendable {
         let batchChanged: Bool
         let gettersStable: Bool
     }
+    struct SkippedRows: Codable, Sendable {
+        var count = 0
+        var outsideQuery = 0
+        var finiteSensorTimes = 0
+        var minimumSensorDelta: TimeInterval?
+        var maximumSensorDelta: TimeInterval?
+
+        mutating func record(uptime: TimeInterval?, after previousUptime: TimeInterval?, outsideQuery: Bool = false) {
+            guard let previousUptime else { return }
+            count += 1
+            if outsideQuery { self.outsideQuery += 1 }
+            if let uptime, uptime.isFinite, uptime >= 0 {
+                let delta = uptime - previousUptime
+                guard delta.isFinite else { return }
+                finiteSensorTimes += 1
+                minimumSensorDelta = min(minimumSensorDelta ?? delta, delta)
+                maximumSensorDelta = max(maximumSensorDelta ?? delta, delta)
+            }
+        }
+    }
+    struct GapContext: Sendable {
+        let position: QueryPosition
+        let previousSampleIndex: Int
+        let batchChanged: Bool
+        let skipped: SkippedRows
+    }
+    struct GapDiagnostic: Codable, Sendable {
+        let relativeSeconds: TimeInterval
+        let measuredGap: TimeInterval
+        let dateDelta: TimeInterval
+        let sensorDelta: TimeInterval
+        let position: QueryPosition
+        let previousSampleIndex: Int
+        let batchChanged: Bool
+        let skipped: SkippedRows
+
+        func validate(duration: TimeInterval, maximumGap: TimeInterval) throws {
+            guard relativeSeconds.isFinite, (0..<duration).contains(relativeSeconds),
+                  measuredGap.isFinite, measuredGap > 0, measuredGap == maximumGap,
+                  dateDelta.isFinite, abs(dateDelta) <= duration,
+                  sensorDelta.isFinite, sensorDelta > 0,
+                  (1...Int(ceil(duration / 600))).contains(position.queryIndex),
+                  (1...position.queryIndex).contains(position.previousAcceptedQueryIndex),
+                  (1...3_000_000).contains(position.sampleIndex), (1...3_000_000).contains(previousSampleIndex),
+                  (0...3_000_000).contains(skipped.count), (0...skipped.count).contains(skipped.outsideQuery),
+                  (0...skipped.count).contains(skipped.finiteSensorTimes) else { throw OvernightArchiveError.invalid }
+            if skipped.finiteSensorTimes == 0 {
+                guard skipped.minimumSensorDelta == nil, skipped.maximumSensorDelta == nil else { throw OvernightArchiveError.invalid }
+            } else {
+                guard let minimum = skipped.minimumSensorDelta, let maximum = skipped.maximumSensorDelta,
+                      minimum.isFinite, maximum.isFinite, minimum <= maximum else { throw OvernightArchiveError.invalid }
+            }
+        }
+    }
     struct OrderExample: Codable, Sendable {
         let relativeSeconds: TimeInterval
         let dateDelta: TimeInterval
@@ -106,6 +160,7 @@ struct OvernightMotionSummary: Codable, Sendable {
     var sensorOrderFailures: Int?
     var maximumWallMappingDifference: TimeInterval?
     var outsideQuery: Int?
+    var largestGapDiagnostic: GapDiagnostic?
     let start: Date
     let end: Date
     var buckets: [Bucket]
@@ -142,7 +197,8 @@ struct OvernightMotionSummary: Codable, Sendable {
     }
 
     mutating func receive(date: Date, uptime: TimeInterval, axesFinite: Bool, chunkStart: Date,
-                          position: QueryPosition? = nil, inputComparison: InputComparison? = nil) {
+                          position: QueryPosition? = nil, inputComparison: InputComparison? = nil,
+                          gapContext: GapContext? = nil) {
         guard date.timeIntervalSince1970.isFinite, uptime.isFinite, uptime >= 0, axesFinite else {
             invalid += 1
             if date.timeIntervalSince1970.isFinite, date >= start, date < end, !buckets.isEmpty {
@@ -190,6 +246,16 @@ struct OvernightMotionSummary: Codable, Sendable {
             : last.map { date.timeIntervalSince($0) } ?? 0
         let index = Int(timingDate.timeIntervalSince(start) / 30)
         guard buckets.indices.contains(index) else { invalid += 1; return }
+        if gap > maximumGap {
+            // Keep only the largest gap; diagnostics never change sample acceptance.
+            largestGapDiagnostic = gapContext.flatMap { context in
+                guard let last, let lastUptime else { return nil }
+                return GapDiagnostic(relativeSeconds: timingDate.timeIntervalSince(start), measuredGap: gap,
+                    dateDelta: date.timeIntervalSince(last), sensorDelta: uptime - lastUptime,
+                    position: context.position, previousSampleIndex: context.previousSampleIndex,
+                    batchChanged: context.batchChanged, skipped: context.skipped)
+            }
+        }
         buckets[index].count += 1
         buckets[index].first = buckets[index].first ?? timingDate
         buckets[index].last = timingDate
@@ -287,6 +353,10 @@ struct OvernightMotionSummary: Codable, Sendable {
                     throw OvernightArchiveError.invalid
                 }
             }
+        }
+        if let diagnostic = largestGapDiagnostic {
+            guard count >= 2 else { throw OvernightArchiveError.invalid }
+            try diagnostic.validate(duration: end.timeIntervalSince(start), maximumGap: maximumGap)
         }
         for bucket in buckets {
             let bucketStart = start.addingTimeInterval(Double(bucket.id) * 30)
@@ -397,6 +467,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         var clockDiscontinuity: Bool?
         var orderDiagnostics: OvernightMotionSummary.OrderDiagnostics?
         var timingAssessment: TimingAssessment?
+        var largestGapDiagnostic: OvernightMotionSummary.GapDiagnostic?
     }
     struct Event: Codable, Identifiable, Sendable {
         let id: UUID
@@ -591,6 +662,10 @@ struct OvernightMotionArchive: Codable, Sendable {
                 }
                 if let diagnostics = observation.orderDiagnostics {
                     try diagnostics.validate(duration: observation.pilotProbe ? 60 : trial.mode.duration)
+                }
+                if let diagnostic = observation.largestGapDiagnostic {
+                    guard observation.count >= 2, let assessment = observation.timingAssessment else { throw OvernightArchiveError.invalid }
+                    try diagnostic.validate(duration: observation.pilotProbe ? 60 : trial.mode.duration, maximumGap: assessment.maximumGap)
                 }
             }
             if let summary = trial.fullSummary {

@@ -288,6 +288,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                     error: result.error.map { String($0.prefix(400)) })
                 observation.clockDiscontinuity = readClockUncertain
                 observation.orderDiagnostics = result.summary.orderDiagnostics
+                observation.largestGapDiagnostic = result.summary.largestGapDiagnostic
                 observation.timingAssessment = .init(summary: result.summary, pilotProbe: pilotProbe)
                 self.mutateLatest { current in
                     current.observations.append(observation)

@@ -255,6 +255,45 @@ import Foundation
         expect(result.summary.count == 60_000 && result.summary.boundaryDuplicates == 1 && result.summary.meetsTimingCriteria, "Actual worker deduplicates inclusive chunk boundaries")
         expect(SyntheticRecorder.shared.queryCount == 2 && SyntheticRecorder.shared.maximumQuery <= 600, "Ten-minute queries")
         expect(result.summary.orderDiagnostics?.total == 0, "Expected inclusive-boundary overlap stays out of diagnostic failures")
+        SyntheticRecorder.shared.configure(output: .boundarySensorGap)
+        let boundaryGap = await read(recorder, timingBasis: .sensorTime)
+        try boundaryGap.summary.validate()
+        let sourceGap = boundaryGap.summary.largestGapDiagnostic!
+        expect(!boundaryGap.summary.meetsTimingCriteria && sourceGap.measuredGap > 3
+            && sourceGap.position.previousAcceptedQueryIndex == 1 && sourceGap.position.queryIndex == 2
+            && sourceGap.skipped.count == 0, "A missing boundary interval is distinguishable from filtered returned rows")
+        SyntheticRecorder.shared.configure(output: .boundaryFiltered)
+        let filteredGap = await read(recorder, timingBasis: .sensorTime)
+        try filteredGap.summary.validate()
+        let filteredSource = filteredGap.summary.largestGapDiagnostic!
+        expect(filteredGap.summary.count == boundaryGap.summary.count
+            && filteredGap.summary.maximumGap == boundaryGap.summary.maximumGap
+            && filteredSource.skipped.count == 151 && filteredSource.skipped.outsideQuery == 151
+            && filteredSource.skipped.finiteSensorTimes == 151
+            && filteredSource.skipped.minimumSensorDelta! > 0
+            && filteredSource.skipped.maximumSensorDelta == filteredSource.sensorDelta,
+            "Identical accepted gaps retain different evidence when query filtering excluded finite sensor rows")
+        expect(!filteredGap.summary.meetsTimingCriteria && filteredGap.summary.timingFailures == ["Largest gap exceeds 2 s"],
+            "Gap instrumentation cannot turn a query-filtering gap into a pass")
+        let restoredGap = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONEncoder().encode(filteredGap.summary))
+        try restoredGap.validate()
+        expect(restoredGap.largestGapDiagnostic?.skipped.count == 151, "Gap context survives persistence")
+        var badGap = filteredGap.summary
+        badGap.maximumGap += 0.001
+        try invalid(badGap, "A gap diagnostic inconsistent with the measured maximum was accepted")
+        var legacyGapJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(filteredGap.summary)) as! [String: Any]
+        legacyGapJSON.removeValue(forKey: "largestGapDiagnostic")
+        let legacyGap = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONSerialization.data(withJSONObject: legacyGapJSON))
+        try legacyGap.validate()
+        expect(legacyGap.largestGapDiagnostic == nil && !legacyGap.meetsTimingCriteria,
+            "Older reports retain their failed outcome and unknown gap source")
+        var skippedWithoutTime = OvernightMotionSummary.SkippedRows()
+        skippedWithoutTime.record(uptime: nil, after: 1000)
+        skippedWithoutTime.record(uptime: .nan, after: 1000)
+        skippedWithoutTime.record(uptime: 1001, after: nil)
+        expect(skippedWithoutTime.count == 2 && skippedWithoutTime.finiteSensorTimes == 0
+            && skippedWithoutTime.minimumSensorDelta == nil,
+            "Unknown and invalid skipped timestamps do not invent a range; rows before the first accepted sample are separate")
         SyntheticRecorder.shared.configure(output: .startExclusive)
         let startExclusive = await read(recorder)
         expect(startExclusive.summary.count == 59_999 && startExclusive.summary.boundaryDuplicates == 0
@@ -355,7 +394,10 @@ import Foundation
             expect(!faultyNight.summary.meetsTimingCriteria, "Real sensor order, gaps and clock alignment faults cannot qualify")
             switch output {
             case .sensorRepeat: expect(faultyNight.summary.sensorOrderFailures! > 0, "Repeated sensor timestamps remain failures")
-            case .sensorGap: expect(faultyNight.summary.maximumGap > 2, "Missing samples remain measurable gaps")
+            case .sensorGap:
+                let gap = faultyNight.summary.largestGapDiagnostic!
+                expect(faultyNight.summary.maximumGap > 2 && gap.position.queryIndex == gap.position.previousAcceptedQueryIndex
+                    && gap.skipped.count == 0, "Within-query missing samples retain distinct gap-source evidence")
             case .clockJump: expect(faultyNight.summary.clockDiscontinuity, "Existing wall-to-sensor alignment limit is retained")
             default: fatalError("Unexpected fault fixture")
             }
@@ -372,6 +414,7 @@ import Foundation
             first: detailedSensorNight.summary.first, last: detailedSensorNight.summary.last,
             nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
         modernRead.orderDiagnostics = detailedSensorNight.summary.orderDiagnostics
+        modernRead.largestGapDiagnostic = detailedSensorNight.summary.largestGapDiagnostic
         modernRead.timingAssessment = .init(summary: detailedSensorNight.summary, pilotProbe: false)
         modernLargeTrial.observations = Array(repeating: modernRead, count: 40)
         try OvernightMotionArchive(trials: [modernLargeTrial]).validate()
@@ -602,6 +645,8 @@ import Foundation
         await settle(retrieval)
         expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.firstUsefulReadAt != nil, "Actual coordinator stores bounded full summary")
         expect(retrieval.latest?.observations.last?.orderDiagnostics?.total == 0, "Completed reads retain their own diagnostics")
+        expect(retrieval.latest?.observations.last?.largestGapDiagnostic != nil,
+            "The actual coordinator retains gap evidence for each completed read")
         let firstRead = retrieval.latest!.firstUsefulReadAt
         SyntheticRecorder.shared.configure(output: .dateAnomalies)
         retrieval.retrieve(pilotProbe: false)

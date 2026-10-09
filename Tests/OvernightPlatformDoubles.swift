@@ -35,7 +35,7 @@ struct CMRecordedAccelerometerData: Sendable {
 
 // These doubles exercise the real streaming worker, not hardware or Core Motion delivery.
 final class SyntheticRecorder: @unchecked Sendable {
-    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, wallDateStep, sensorRepeat, sensorGap, clockJump, transitionAnomaly, empty, missing, unexpected, excessive, slow }
+    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, wallDateStep, sensorRepeat, sensorGap, boundarySensorGap, boundaryFiltered, clockJump, transitionAnomaly, empty, missing, unexpected, excessive, slow }
     static let shared = SyntheticRecorder()
     private let lock = NSLock()
     private var available = true
@@ -82,13 +82,20 @@ final class SyntheticRecorder: @unchecked Sendable {
             if kind == .transitionAnomaly, queryIndex == 2, index == 0 {
                 measurementDate = date.addingTimeInterval(-1 / rate)
             }
+            if kind == .boundaryFiltered, queryIndex == 1, (29850..<30000).contains(index) {
+                measurementDate = end.addingTimeInterval(0.1)
+            }
             var sensorTime = kind == .transitionAnomaly && queryIndex == 2 && index == 0
                 ? date.timeIntervalSince1970 + 1 / rate : date.timeIntervalSince1970
             if kind == .sensorRepeat, index == 1000 { sensorTime -= 1 / rate }
             return CMRecordedAccelerometerData(startDate: measurementDate, timestamp: sensorTime,
                 acceleration: CMAcceleration(x: 0, y: 0, z: 1),
                 identifier: UInt64(index / 100))
-        }.enumerated().filter { kind != .sensorGap || !(1000...1150).contains($0.offset) }.map(\.element)
+        }.enumerated().filter {
+            if kind == .sensorGap, (1000...1150).contains($0.offset) { return false }
+            if kind == .boundarySensorGap, queryIndex == 1, (29850...30000).contains($0.offset) { return false }
+            return true
+        }.map(\.element)
     }
 }
 final class CMSensorRecorder {
