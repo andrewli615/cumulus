@@ -6,6 +6,7 @@ struct SimulatorPreviewScreen: View {
     @StateObject private var archive: TestArchiveStore
     @StateObject private var owner: ExperimentSessionOwner
     @State private var previewMode: OvernightMotionTrial.Mode = .pilot
+    @State private var previewConfiguration = OvernightMotionTrial.Configuration()
     private let trial: OvernightMotionTrial
     private var orderSummary: OvernightMotionSummary {
         var summary = OvernightMotionSummary(start: trial.start, end: trial.start.addingTimeInterval(1200))
@@ -44,6 +45,7 @@ struct SimulatorPreviewScreen: View {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }
                 }.navigationTitle("Recording")
             case "trial-choices": OvernightTrialChoiceView(mode: $previewMode)
+            case "trial-setup": OvernightSetupView(configuration: $previewConfiguration)
             case "order": OvernightOrderAnomaliesView(summary: orderSummary)
             case "archive": TestArchiveView(archive: archive, owner: owner, clearCompletedData: {})
             case "report":

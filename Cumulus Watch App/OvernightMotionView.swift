@@ -255,18 +255,36 @@ private func conditionPicker(_ title: String, selection: Binding<String>, option
         .font(.body)
 }
 
-private struct OvernightSetupView: View {
+struct OvernightSetupView: View {
     @Binding var configuration: OvernightMotionTrial.Configuration
     var body: some View {
         List {
             Text("OS, build and time zone are captured automatically. Leave unobserved details Unknown.").font(.caption2)
-            TextField("Watch model", text: $configuration.watchModel)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Watch model").font(.headline)
+                TextField("Watch model", text: $configuration.watchModel)
+                    .font(.body)
+                    .frame(minHeight: 44)
+                    .accessibilityHint("Enter your Watch model, or leave Unknown if unconfirmed.")
+                Text("Example: Apple Watch Series 8. Leave Unknown if unconfirmed.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             conditionPicker("Wrist / lock", selection: $configuration.wrist, options: ["Unknown", "Worn, unlocked", "Other"])
             conditionPicker("Low Power Mode", selection: $configuration.powerMode, options: ["Unknown", "Off", "On"])
             conditionPicker("Sleep Focus", selection: $configuration.sleepFocus, options: ["Unknown", "Off", "On"])
             conditionPicker("Sleep tracking", selection: $configuration.sleepTracking, options: ["Unknown", "Off", "On"])
             conditionPicker("Debugger detached", selection: $configuration.debuggerDetached, options: ["Unknown", "Yes", "No"])
-            TextField("Other app (or None)", text: $configuration.otherApp)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Other app").font(.headline)
+                TextField("Other app", text: $configuration.otherApp)
+                    .font(.body)
+                    .frame(minHeight: 44)
+                    .accessibilityHint("Enter the app you plan to open during the trial, or None for the Watch face.")
+                Text("App you plan to open during the trial. Enter None for the Watch face, or leave Unknown if unconfirmed.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("Record actual charging and interruptions after returning.").font(.caption2)
         }
         .navigationTitle("Trial setup")
