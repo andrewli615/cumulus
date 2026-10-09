@@ -52,10 +52,11 @@ final class OvernightMotionRecorder: @unchecked Sendable {
     func record(duration: TimeInterval) { recorder.recordAccelerometer(forDuration: duration) }
 
     func retrieve(start: Date, end: Date, cancellation: OvernightRetrievalCancellation,
+                  timingBasis: OvernightMotionSummary.TimingBasis? = nil,
                   progress: @escaping @Sendable (Int, Int) -> Void,
                   completion: @escaping @Sendable (OvernightRetrievalResult) -> Void) {
         queue.async { [self] in
-            var summary = OvernightMotionSummary(start: start, end: end)
+            var summary = OvernightMotionSummary(start: start, end: end, timingBasis: timingBasis)
             let duration = end.timeIntervalSince(start)
             guard duration > 0, duration <= 28800 else {
                 completion(OvernightRetrievalResult(summary: summary, completedAt: Date(), cancelled: false, error: "Invalid retrieval window"))
@@ -87,6 +88,12 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                             seen += 1
                             // Copy the API values before the accumulator filters or rejects a row.
                             let date = sample.startDate
+                            if timingBasis == .sensorTime, date.timeIntervalSince1970.isFinite,
+                               date < cursor || date >= chunkEnd {
+                                summary.outsideQuery! += 1
+                                previousInput = nil
+                                continue
+                            }
                             let uptime = sample.timestamp
                             let batch = sample.identifier
                             let axes = sample.acceleration

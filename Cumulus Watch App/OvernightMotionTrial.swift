@@ -2,6 +2,7 @@ import Foundation
 import Darwin
 
 struct OvernightMotionSummary: Codable, Sendable {
+    enum TimingBasis: String, Codable, Sendable { case sensorTime }
     struct QueryPosition: Codable, Sendable {
         let queryIndex: Int
         let sampleIndex: Int
@@ -101,6 +102,10 @@ struct OvernightMotionSummary: Codable, Sendable {
         var invalid = 0
         var outOfOrder = 0
     }
+    var timingBasis: TimingBasis?
+    var sensorOrderFailures: Int?
+    var maximumWallMappingDifference: TimeInterval?
+    var outsideQuery: Int?
     let start: Date
     let end: Date
     var buckets: [Bucket]
@@ -122,7 +127,11 @@ struct OvernightMotionSummary: Codable, Sendable {
     var clockDiscontinuity = false
     var aborted = false
 
-    init(start: Date, end: Date) {
+    init(start: Date, end: Date, timingBasis: TimingBasis? = nil) {
+        self.timingBasis = timingBasis
+        sensorOrderFailures = timingBasis == .sensorTime ? 0 : nil
+        maximumWallMappingDifference = timingBasis == .sensorTime ? 0 : nil
+        outsideQuery = timingBasis == .sensorTime ? 0 : nil
         self.start = start
         self.end = end
         let duration = end.timeIntervalSince(start)
@@ -161,18 +170,29 @@ struct OvernightMotionSummary: Codable, Sendable {
                 orderAnomalyCounts = counts
             }
             if !buckets.isEmpty { buckets[Int(date.timeIntervalSince(start) / 30)].outOfOrder += 1 }
-            return
+            if timingBasis != .sensorTime || uptime <= lastUptime {
+                if timingBasis == .sensorTime { sensorOrderFailures! += 1 }
+                return
+            }
         }
-        if let first, let firstUptime,
-           abs(date.timeIntervalSince(first) - (uptime - firstUptime)) > 1 {
-            clockDiscontinuity = true
+        if let first, let firstUptime {
+            let difference = abs(date.timeIntervalSince(first) - (uptime - firstUptime))
+            if timingBasis == .sensorTime {
+                maximumWallMappingDifference = max(maximumWallMappingDifference ?? 0, difference)
+            }
+            if difference > 1 { clockDiscontinuity = true }
         }
-        let gap = last.map { date.timeIntervalSince($0) } ?? 0
-        let index = Int(date.timeIntervalSince(start) / 30)
+        // Sensor elapsed time measures motion; the original wall dates remain available for alignment.
+        let timingDate = timingBasis == .sensorTime
+            ? (first ?? date).addingTimeInterval(uptime - (firstUptime ?? uptime)) : date
+        guard timingDate >= start, timingDate < end else { outsideWindow += 1; return }
+        let gap = timingBasis == .sensorTime ? lastUptime.map { uptime - $0 } ?? 0
+            : last.map { date.timeIntervalSince($0) } ?? 0
+        let index = Int(timingDate.timeIntervalSince(start) / 30)
         guard buckets.indices.contains(index) else { invalid += 1; return }
         buckets[index].count += 1
-        buckets[index].first = buckets[index].first ?? date
-        buckets[index].last = date
+        buckets[index].first = buckets[index].first ?? timingDate
+        buckets[index].last = timingDate
         buckets[index].maximumGap = max(buckets[index].maximumGap, gap)
         count += 1
         first = first ?? date
@@ -183,18 +203,29 @@ struct OvernightMotionSummary: Codable, Sendable {
     }
 
     var leadingGap: TimeInterval? { first.map { $0.timeIntervalSince(start) } }
-    var trailingGap: TimeInterval? { last.map { end.timeIntervalSince($0) } }
+    var trailingGap: TimeInterval? {
+        if timingBasis == .sensorTime, let first, let firstUptime, let lastUptime {
+            return end.timeIntervalSince(first.addingTimeInterval(lastUptime - firstUptime))
+        }
+        return last.map { end.timeIntervalSince($0) }
+    }
+    var clockLabel: String { timingBasis == .sensorTime ? "Sensor elapsed time; raw wall dates retained" : "Legacy wall-date timing" }
+    var blockingOrderFailures: Int { timingBasis == .sensorTime ? sensorOrderFailures ?? outOfOrder : outOfOrder }
     var observedRate: Double? {
-        guard let first, let last, last > first, count > 1 else { return nil }
-        return Double(count - 1) / last.timeIntervalSince(first)
+        guard let first, let last, count > 1 else { return nil }
+        if timingBasis == .sensorTime, let firstUptime, let lastUptime, lastUptime > firstUptime {
+            return Double(count - 1) / (lastUptime - firstUptime)
+        }
+        return last > first ? Double(count - 1) / last.timeIntervalSince(first) : nil
     }
     var qualifyingBuckets: Int { buckets.filter { $0.count >= 1350 }.count }
     var meetsTimingCriteria: Bool {
+        if timingBasis == .sensorTime && (sensorOrderFailures == nil || maximumWallMappingDifference == nil || outsideQuery == nil) { return false }
         guard let rate = observedRate, let leading = leadingGap, let trailing = trailingGap,
               !buckets.isEmpty else { return false }
         return Double(qualifyingBuckets) / Double(buckets.count) >= 0.95
             && (45...55).contains(rate) && maximumGap <= 2 && leading <= 5 && trailing <= 5
-            && invalid == 0 && outOfOrder == 0 && unexpectedObjects == 0 && nilChunks == 0
+            && invalid == 0 && blockingOrderFailures == 0 && unexpectedObjects == 0 && nilChunks == 0
             && !clockDiscontinuity && !aborted
     }
     var timingFailures: [String] {
@@ -211,7 +242,7 @@ struct OvernightMotionSummary: Codable, Sendable {
             if trailing > 5 { failures.append("Trailing gap exceeds 5 s") }
         } else { failures.append("Trailing gap unknown") }
         if invalid > 0 { failures.append("Invalid samples") }
-        if outOfOrder > 0 { failures.append("Sample order anomalies") }
+        if blockingOrderFailures > 0 { failures.append(timingBasis == .sensorTime ? "Sensor timestamp order anomalies" : "Sample order anomalies") }
         if unexpectedObjects > 0 { failures.append("Unexpected objects") }
         if nilChunks > 0 { failures.append("Nil retrieval chunks") }
         if clockDiscontinuity { failures.append("Sample clock discontinuity") }
@@ -236,6 +267,12 @@ struct OvernightMotionSummary: Codable, Sendable {
                   : first != nil && last != nil && firstUptime != nil && lastUptime != nil) else {
             throw OvernightArchiveError.invalid
         }
+        if timingBasis == .sensorTime {
+            guard let sensorOrderFailures, (0...outOfOrder).contains(sensorOrderFailures),
+                  let maximumWallMappingDifference, maximumWallMappingDifference.isFinite, maximumWallMappingDifference >= 0,
+                  maximumWallMappingDifference <= 1 || clockDiscontinuity,
+                  let outsideQuery, (0...3_000_000).contains(outsideQuery) else { throw OvernightArchiveError.invalid }
+        }
         if let counts = orderAnomalyCounts {
             guard [counts.exactTimeRepeats, counts.dateOnly, counts.sensorTimeOnly, counts.bothTimes]
                 .allSatisfy({ (0...3_000_000).contains($0) }), counts.total == outOfOrder else {
@@ -259,7 +296,7 @@ struct OvernightMotionSummary: Codable, Sendable {
                   (bucket.first ?? bucketStart) <= (bucket.last ?? bucketEnd) else { throw OvernightArchiveError.invalid }
         }
         if let first, let last, let firstUptime, let lastUptime {
-            guard first <= last, firstUptime >= 0, firstUptime <= lastUptime else { throw OvernightArchiveError.invalid }
+            guard (timingBasis == .sensorTime || first <= last), firstUptime >= 0, firstUptime <= lastUptime else { throw OvernightArchiveError.invalid }
         }
     }
 }
@@ -307,6 +344,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         var interruption = "Unknown"
     }
     struct TimingAssessment: Codable, Sendable {
+        var timingBasis: OvernightMotionSummary.TimingBasis?
         let qualifyingBuckets: Int
         let bucketCount: Int
         let bucketCounts: [Int]?
@@ -315,6 +353,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         let failures: [String]
 
         init(summary: OvernightMotionSummary, pilotProbe: Bool) {
+            timingBasis = summary.timingBasis
             qualifyingBuckets = summary.qualifyingBuckets
             bucketCount = summary.buckets.count
             bucketCounts = pilotProbe ? summary.buckets.map(\.count) : nil
@@ -360,6 +399,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     var end: Date
     var startUptime: TimeInterval
     var elapsedClock: ElapsedClock?
+    var measurementBasis: OvernightMotionSummary.TimingBasis?
     var firstClockMismatch: ClockMismatch?
     var recorderCall: RecorderCall?
     var configuration: Configuration
@@ -380,13 +420,14 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     var events: [Event] = []
     var eventsTruncated = false
 
-    init(mode: Mode, start: Date, uptime: TimeInterval, configuration: Configuration, battery: Double?, elapsedClock: ElapsedClock? = nil) {
+    init(mode: Mode, start: Date, uptime: TimeInterval, configuration: Configuration, battery: Double?, elapsedClock: ElapsedClock? = nil, measurementBasis: OvernightMotionSummary.TimingBasis? = nil) {
         id = UUID()
         self.mode = mode
         self.start = start
         end = start.addingTimeInterval(mode.duration)
         startUptime = uptime
         self.elapsedClock = elapsedClock
+        self.measurementBasis = measurementBasis
         self.configuration = configuration
         phase = mode == .comparison ? .comparison : .prepared
         batteryStart = Battery(date: start, level: battery)
@@ -413,7 +454,8 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     }
     var pilotQualified: Bool {
         guard mode == .pilot, requestCount == 1, phase == .elapsed, !clockDiscontinuity,
-              fullSummary?.meetsTimingCriteria == true, latestProbe?.useful == true,
+              fullSummary?.meetsTimingCriteria == true, fullSummary?.timingBasis == measurementBasis,
+              latestProbe?.useful == true, latestProbe?.timingAssessment?.timingBasis == measurementBasis,
               let observed = firstUsefulProbeAt else { return false }
         return observed >= start.addingTimeInterval(600) && observed <= start.addingTimeInterval(840)
     }
@@ -500,7 +542,7 @@ struct OvernightMotionArchive: Codable, Sendable {
                 }
                 if let assessment = observation.timingAssessment {
                     let expectedBuckets = Int(ceil((observation.pilotProbe ? 60 : trial.mode.duration) / 30))
-                    guard assessment.bucketCount == expectedBuckets,
+                    guard assessment.timingBasis == trial.measurementBasis, assessment.bucketCount == expectedBuckets,
                           (0...expectedBuckets).contains(assessment.qualifyingBuckets),
                           assessment.maximumGap.isFinite, assessment.maximumGap >= 0,
                           assessment.observedRate.map({ $0.isFinite && $0 > 0 }) ?? true,
@@ -522,7 +564,7 @@ struct OvernightMotionArchive: Codable, Sendable {
             }
             if let summary = trial.fullSummary {
                 try summary.validate()
-                guard summary.start == trial.start, summary.end == trial.end else { throw OvernightArchiveError.invalid }
+                guard summary.start == trial.start, summary.end == trial.end, summary.timingBasis == trial.measurementBasis else { throw OvernightArchiveError.invalid }
             }
         }
     }

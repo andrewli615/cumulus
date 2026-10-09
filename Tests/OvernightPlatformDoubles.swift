@@ -35,7 +35,7 @@ struct CMRecordedAccelerometerData: Sendable {
 
 // These doubles exercise the real streaming worker, not hardware or Core Motion delivery.
 final class SyntheticRecorder: @unchecked Sendable {
-    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, wallDateStep, transitionAnomaly, empty, missing, unexpected, excessive, slow }
+    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, wallDateStep, sensorRepeat, sensorGap, clockJump, transitionAnomaly, empty, missing, unexpected, excessive, slow }
     static let shared = SyntheticRecorder()
     private let lock = NSLock()
     private var available = true
@@ -69,6 +69,7 @@ final class SyntheticRecorder: @unchecked Sendable {
         let rate = kind == .excessive ? 200.0 : 50.0
         let firstIndex = kind == .startExclusive ? 1 : 0
         let queryIndex = queryCount
+        let windowStart = lock.withLock { queries[0].0 }
         return (firstIndex...Int(end.timeIntervalSince(start) * rate)).map { index in
             let date = start.addingTimeInterval(Double(index) / rate)
             var measurementDate = date
@@ -76,16 +77,18 @@ final class SyntheticRecorder: @unchecked Sendable {
                 if index == 20 { measurementDate = start.addingTimeInterval(Double(index - 1) / rate) }
                 if index == 40 { measurementDate = start.addingTimeInterval(Double(index - 2) / rate) }
             }
-            if kind == .wallDateStep, index >= 100 { measurementDate = date.addingTimeInterval(-0.06) }
+            if kind == .wallDateStep, date.timeIntervalSince(windowStart) >= 2 { measurementDate = date.addingTimeInterval(-0.06) }
+            if kind == .clockJump, date.timeIntervalSince(windowStart) >= 2 { measurementDate = date.addingTimeInterval(-1.1) }
             if kind == .transitionAnomaly, queryIndex == 2, index == 0 {
                 measurementDate = date.addingTimeInterval(-1 / rate)
             }
-            let sensorTime = kind == .transitionAnomaly && queryIndex == 2 && index == 0
+            var sensorTime = kind == .transitionAnomaly && queryIndex == 2 && index == 0
                 ? date.timeIntervalSince1970 + 1 / rate : date.timeIntervalSince1970
+            if kind == .sensorRepeat, index == 1000 { sensorTime -= 1 / rate }
             return CMRecordedAccelerometerData(startDate: measurementDate, timestamp: sensorTime,
                 acceleration: CMAcceleration(x: 0, y: 0, z: 1),
                 identifier: UInt64(index / 100))
-        }
+        }.enumerated().filter { kind != .sensorGap || !(1000...1150).contains($0.offset) }.map(\.element)
     }
 }
 final class CMSensorRecorder {

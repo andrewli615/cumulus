@@ -12,9 +12,10 @@ import Foundation
         return summary
     }
     static func read(_ recorder: OvernightMotionRecorder, duration: Double = 1200,
-                     cancellation: OvernightRetrievalCancellation = .init()) async -> OvernightRetrievalResult {
+                     cancellation: OvernightRetrievalCancellation = .init(),
+                     timingBasis: OvernightMotionSummary.TimingBasis? = nil) async -> OvernightRetrievalResult {
         await withCheckedContinuation { continuation in
-            recorder.retrieve(start: origin, end: origin.addingTimeInterval(duration), cancellation: cancellation,
+            recorder.retrieve(start: origin, end: origin.addingTimeInterval(duration), cancellation: cancellation, timingBasis: timingBasis,
                               progress: { _, _ in }, completion: { continuation.resume(returning: $0) })
         }
     }
@@ -318,6 +319,41 @@ import Foundation
         expect(fullNight.summary.count == 1_440_000 && fullNight.summary.buckets.count == 960
             && fullNight.summary.boundaryDuplicates == 47 && fullNight.summary.meetsTimingCriteria,
             "Eight-hour stream stays bounded and keeps cross-chunk timing")
+        // The same raw wall-date behavior must fail legacy trials and remain visible in new ones.
+        SyntheticRecorder.shared.configure(output: .wallDateStep)
+        let sensorNight = await read(recorder, duration: 28800, timingBasis: .sensorTime)
+        try sensorNight.summary.validate()
+        expect(sensorNight.summary.meetsTimingCriteria && sensorNight.summary.sensorOrderFailures == 0
+            && sensorNight.summary.outOfOrder > 0 && sensorNight.summary.buckets.count == 960
+            && sensorNight.summary.maximumWallMappingDifference! > 0.05,
+            "Eight-hour sensor timing tolerates a bounded wall mapping step while retaining raw failures")
+        expect(sensorNight.summary.outsideQuery! > 0 && SyntheticRecorder.shared.queryCount == 48,
+            "Each query owns a half-open interval and records returned out-of-query rows")
+        let restoredSensor = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONEncoder().encode(sensorNight.summary))
+        expect(restoredSensor.timingBasis == .sensorTime && restoredSensor.meetsTimingCriteria,
+            "Sensor timing policy and its counters survive persistence")
+        expect(fullNight.summary.timingBasis == nil && mappingStep.summary.timingBasis == nil
+            && !mappingStep.summary.meetsTimingCriteria, "Old results retain the old acceptance policy")
+        SyntheticRecorder.shared.configure(output: .startExclusive)
+        let sensorExclusive = await read(recorder, duration: 28800, timingBasis: .sensorTime)
+        expect(sensorExclusive.summary.meetsTimingCriteria && sensorExclusive.summary.sensorOrderFailures == 0,
+            "Open-start endpoint semantics preserve eight-hour sensor timing")
+        for output in [SyntheticRecorder.Output.sensorRepeat, .sensorGap, .clockJump] {
+            SyntheticRecorder.shared.configure(output: output)
+            let faultyNight = await read(recorder, duration: 28800, timingBasis: .sensorTime)
+            try faultyNight.summary.validate()
+            expect(!faultyNight.summary.meetsTimingCriteria, "Real sensor order, gaps and clock alignment faults cannot qualify")
+            switch output {
+            case .sensorRepeat: expect(faultyNight.summary.sensorOrderFailures! > 0, "Repeated sensor timestamps remain failures")
+            case .sensorGap: expect(faultyNight.summary.maximumGap > 2, "Missing samples remain measurable gaps")
+            case .clockJump: expect(faultyNight.summary.clockDiscontinuity, "Existing wall-to-sensor alignment limit is retained")
+            default: fatalError("Unexpected fault fixture")
+            }
+        }
+        var missingPolicyFields = sensorNight.summary
+        missingPolicyFields.sensorOrderFailures = nil
+        expect(!missingPolicyFields.meetsTimingCriteria, "An incomplete sensor policy cannot qualify")
+        try invalid(missingPolicyFields, "Incomplete sensor-policy counters accepted")
         var largeSummary = fullNight.summary
         for row in 1...20 {
             largeSummary.receive(date: largeSummary.last!, uptime: largeSummary.lastUptime! + 0.02,

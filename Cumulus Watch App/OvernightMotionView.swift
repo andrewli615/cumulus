@@ -282,6 +282,14 @@ private struct OvernightTrialView: View {
                         Text("Trial clock/reboot uncertainty: timing is inconclusive.").font(.caption2).foregroundStyle(.orange)
                     }
                     if let summary = trial.fullSummary {
+                        Text(summary.clockLabel).font(.caption)
+                        if summary.timingBasis == .sensorTime {
+                            ExperimentMetric(label: "Sensor order failures", value: String(summary.sensorOrderFailures ?? 0))
+                            ExperimentMetric(label: "Wall mapping difference", value: summary.maximumWallMappingDifference.map { String(format: "%.6g s", $0) } ?? "Unknown")
+                            ExperimentMetric(label: "Outside query interval", value: String(summary.outsideQuery ?? 0))
+                            Text("Relative buckets, rate and gaps use sensor time. Raw wall-date changes remain recorded; mapping disagreement over one second still blocks timing qualification.").font(.caption)
+                        }
+
                         ForEach(summary.timingFailures, id: \.self) { failure in
                             Label(failure, systemImage: "exclamationmark.circle").font(.caption2).foregroundStyle(.orange)
                         }
@@ -292,7 +300,7 @@ private struct OvernightTrialView: View {
                         ExperimentMetric(label: "Last sample", value: date(summary.last))
                         ExperimentMetric(label: "Largest gap", value: seconds(summary.maximumGap))
                         ExperimentMetric(label: "Leading / trailing", value: "\(seconds(summary.leadingGap)) / \(seconds(summary.trailingGap))")
-                        ExperimentMetric(label: "Invalid / order anomalies", value: "\(summary.invalid) / \(summary.outOfOrder)")
+                        ExperimentMetric(label: summary.timingBasis == .sensorTime ? "Invalid / raw order comparisons" : "Invalid / order anomalies", value: "\(summary.invalid) / \(summary.outOfOrder)")
                         if summary.outOfOrder > 0 {
                             NavigationLink("Inspect order anomalies") {
                                 OvernightOrderAnomaliesView(summary: summary)

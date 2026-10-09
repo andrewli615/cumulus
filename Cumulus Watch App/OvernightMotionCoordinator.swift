@@ -94,7 +94,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         let preparedUptime = clockTime(.continuous)
         let battery = batteryLevel()
         let trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: clockTime(.continuous),
-                                         configuration: settings, battery: battery, elapsedClock: .continuous)
+                                         configuration: settings, battery: battery, elapsedClock: .continuous, measurementBasis: .sensorTime)
         archive.append(trial)
         archive.trials[archive.trials.count - 1].record("Recorder available: \(access.available); authorization: \(access.authorization)")
         archive.trials[archive.trials.count - 1].record(mode == .comparison ? "Comparison started; no recording request" : "Request prepared; provisional window saved")
@@ -231,7 +231,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         isRetrieving = true
         progress = "Starting retrieval"
         mutateLatest { $0.record("\(pilotProbe ? "Pilot block" : "Full window") retrieval requested; available \(access.available); access \(access.authorization)") }
-        recorder.retrieve(start: start, end: end, cancellation: flag, progress: { [weak self] done, total in
+        recorder.retrieve(start: start, end: end, cancellation: flag, timingBasis: trial.measurementBasis, progress: { [weak self] done, total in
             Task { @MainActor in
                 guard let self, self.retrievalID == id else { return }
                 self.progress = "Retrieved chunk \(done) of \(total)"
@@ -317,6 +317,8 @@ final class OvernightMotionCoordinator: ObservableObject {
             "Requested start (Unix seconds)": String(trial.start.timeIntervalSince1970),
             "Requested end (Unix seconds)": String(trial.end.timeIntervalSince1970)]
         if let summary = trial.fullSummary {
+            metrics["Measurement timing"] = summary.clockLabel
+            metrics["Sensor order failures"] = summary.sensorOrderFailures.map(String.init) ?? "Not separately recorded"
             metrics["Samples"] = String(summary.count)
             metrics["Qualifying buckets"] = "\(summary.qualifyingBuckets)/\(summary.buckets.count)"
             metrics["Observed Hz"] = summary.observedRate.map { String($0) } ?? "Unknown"
