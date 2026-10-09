@@ -4,7 +4,7 @@
 
 The accelerated first release is a calm, Watch-only **one-time fixed alarm**. Set a time, review its full date, schedule it, edit/cancel it, and stop an active alert. Show Scheduled only from WatchKit session evidence; saved intent after relaunch stays Unverified until a session arrives. Research screens and saved tests remain available under Research.
 
-This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Implementation and integrated physical tests are pending.
+This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Build 16 implements the initial alarm screen, separate hour/minute choice lists, full date/time-zone confirmation, edit/cancel/stop and a local 40-event history. Existing experiments remain under Research. Integrated physical tests are pending.
 
 ## Future smart-waking experience
 
@@ -64,3 +64,7 @@ Learning exercise: open the two `ExperimentStyle.swift` previews and explain why
 ## First design exercise
 
 Sketch three target states: **unset**, **armed**, and **needs attention**. For each, write the one thing someone must understand within a few seconds and the observed evidence needed to show it. Explain why saving a wake time alone cannot produce the armed state.
+
+## Fixed-alarm UI verification — October 9
+
+Build 16 passes signing-free Debug Watch and Watch Simulator builds and alarm/shared-session checks. An isolated 40 mm simulator renders synthetic home, setup, unverified and history states at normal (`.large`) and larger (`.xxxLarge`) text. The first screenshots revealed an oversized introduction and a wrapping history navigation title; these were shortened before final verification. The primary Set alarm action is visible on the initial home viewport at both sizes. Separate native hour/minute lists preserve large selection targets. Screenshots check initial rendering only: interactive choice/return, date confirmation after scrolling, Crown scrolling, VoiceOver and physical layout remain unverified. No physical Watch was installed, launched or scheduled for this verification.

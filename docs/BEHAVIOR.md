@@ -8,7 +8,7 @@ The owner approved a reduced Watch-only version on October 9. One absolute fire 
 
 Editing must invalidate the old session and wait for confirmed non-error cancellation before scheduling its replacement. Failed cancellation blocks replacement; a replacement scheduling failure means the old alarm is no longer set. Relaunch never automatically re-arms. Recovered running sessions request haptics only once per alarm record; the API request is distinct from perception. Persist alarm configuration and the latest 40 lifecycle events separately from research data; collect no sensors or HealthKit data.
 
-Smart-waking requirements below are deferred, not satisfied. The fixed alarm has no early decision or independent automatic latest-wake fallback; keep an independent alarm. Implementation and device validation remain pending.
+Smart-waking requirements below are deferred, not satisfied. The fixed alarm has no early decision or independent automatic latest-wake fallback; keep an independent alarm. Build 16 implements this flow. Device validation remains pending. A passed fire date is rejected rather than silently shifted to another day at submission; skipped local times resolve forward preserving minutes and repeated times select the first occurrence. The full resolved date is shown before scheduling.
 
 ## Future smart-waking target actions
 

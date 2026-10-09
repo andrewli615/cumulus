@@ -40,6 +40,7 @@
 		A00000000000000000000022 /* SimulatorPreviewScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000022 /* SimulatorPreviewScreen.swift */; };
 		A00000000000000000000023 /* AlarmRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000023 /* AlarmRecord.swift */; };
 		A00000000000000000000024 /* AlarmCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000024 /* AlarmCoordinator.swift */; };
+		A00000000000000000000025 /* AlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* AlarmView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +80,7 @@
 		B00000000000000000000022 /* SimulatorPreviewScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorPreviewScreen.swift; sourceTree = "<group>"; };
 		B00000000000000000000023 /* AlarmRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRecord.swift; sourceTree = "<group>"; };
 		B00000000000000000000024 /* AlarmCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmCoordinator.swift; sourceTree = "<group>"; };
+		B00000000000000000000025 /* AlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +129,7 @@
 			isa = PBXGroup;
 			children = (
 				B00000000000000000000001 /* CumulusApp.swift */,
+				B00000000000000000000025 /* AlarmView.swift */,
 				B00000000000000000000024 /* AlarmCoordinator.swift */,
 				B00000000000000000000023 /* AlarmRecord.swift */,
 				B00000000000000000000013 /* ExperimentStyle.swift */,
@@ -311,6 +314,7 @@
 				A00000000000000000000011 /* SleepStageReader.swift in Sources */,
 				A00000000000000000000012 /* SleepHistoryView.swift in Sources */,
 				A00000000000000000000001 /* CumulusApp.swift in Sources */,
+				A00000000000000000000025 /* AlarmView.swift in Sources */,
 				A00000000000000000000024 /* AlarmCoordinator.swift in Sources */,
 				A00000000000000000000023 /* AlarmRecord.swift in Sources */,
 				A00000000000000000000013 /* ExperimentStyle.swift in Sources */,
@@ -365,7 +369,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -394,7 +398,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -46,15 +46,15 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         }
     }
 
-    func schedule(at fireDate: Date) {
+    @discardableResult func schedule(at fireDate: Date) -> Bool {
         guard WKApplication.shared().applicationState == .active else {
-            errorMessage = "Open Cumulus to schedule the alarm."; return
+            errorMessage = "Open Cumulus to schedule the alarm."; return false
         }
         guard AlarmTime.isValid(fireDate, now: now()) else {
-            errorMessage = "Choose a future time within the next 36 hours."; return
+            errorMessage = "Choose a future time within the next 36 hours."; return false
         }
         guard canSchedule, owner.claim(.alarm) else {
-            errorMessage = "Finish the existing alarm or research session first."; return
+            errorMessage = "Finish the existing alarm or research session first."; return false
         }
         let history = events
         record = AlarmRecord(id: UUID(), fireDate: fireDate, createdAt: now(), events: history)
@@ -69,22 +69,24 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
             record?.phase = .failed
             status = "Needs attention"
             owner.release(.alarm)
-            return
+            return false
         }
         let newSession = WKExtendedRuntimeSession()
         session = newSession
         newSession.delegate = self
         newSession.start(at: fireDate)
         refreshState()
+        return true
     }
 
-    func edit(to fireDate: Date) {
+    @discardableResult func edit(to fireDate: Date) -> Bool {
         guard canEdit, AlarmTime.isValid(fireDate, now: now()),
               WKApplication.shared().applicationState == .active else {
-            errorMessage = "The alarm cannot be edited now. Choose a future time within 36 hours."; return
+            errorMessage = "The alarm cannot be edited now. Choose a future time within 36 hours."; return false
         }
         replacement = fireDate
         invalidate(stopping: false)
+        return true
     }
     func cancel() { replacement = nil; invalidate(stopping: false) }
     func stop() { replacement = nil; invalidate(stopping: true) }

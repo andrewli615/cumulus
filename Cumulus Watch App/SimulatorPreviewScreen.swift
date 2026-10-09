@@ -5,6 +5,7 @@ struct SimulatorPreviewScreen: View {
     let screen: String
     @StateObject private var archive: TestArchiveStore
     @StateObject private var owner: ExperimentSessionOwner
+    @StateObject private var alarm: AlarmCoordinator
     @State private var previewMode: OvernightMotionTrial.Mode = .pilot
     @State private var previewConfiguration = OvernightMotionTrial.Configuration()
     private let trial: OvernightMotionTrial
@@ -26,7 +27,17 @@ struct SimulatorPreviewScreen: View {
         let store = TestArchiveStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("CumulusUIFixtures"),
                                      build: "Synthetic UI fixture", os: "Simulated")
         _archive = StateObject(wrappedValue: store)
-        _owner = StateObject(wrappedValue: ExperimentSessionOwner(defaults: UserDefaults(suiteName: "CumulusUIFixtures")!))
+        let fixtureOwner = ExperimentSessionOwner(defaults: UserDefaults(suiteName: "CumulusUIFixtures.\(UUID())")!)
+        _owner = StateObject(wrappedValue: fixtureOwner)
+        let alarmStore = AlarmFileStore(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("alarm.json"))
+        if screen == "alarm-unverified" || screen == "alarm-history" {
+            var saved = AlarmRecord(id: UUID(), fireDate: Date().addingTimeInterval(3600), createdAt: .now)
+            saved.phase = screen == "alarm-unverified" ? .scheduled : .cancelled
+            saved.record("Synthetic schedule request; no physical alarm", at: .now)
+            if screen == "alarm-history" { saved.record("Synthetic cancellation confirmed", at: .now) }
+            do { try alarmStore.save(saved) } catch { assertionFailure("Could not save synthetic alarm fixture") }
+        }
+        _alarm = StateObject(wrappedValue: AlarmCoordinator(owner: fixtureOwner, store: alarmStore))
         var trial = OvernightMotionTrial(mode: .pilot, start: Date().addingTimeInterval(-610),
             uptime: ProcessInfo.processInfo.systemUptime - 610, configuration: .init(), battery: nil)
         trial.phase = .requested
@@ -40,6 +51,10 @@ struct SimulatorPreviewScreen: View {
     var body: some View {
         NavigationStack {
             switch screen {
+            case "alarm-home", "alarm-unverified":
+                AlarmHomeView(coordinator: alarm, owner: owner) { Text("Synthetic research destination") }
+            case "alarm-setup": AlarmTimeSelectionView(coordinator: alarm, editing: false)
+            case "alarm-history": AlarmHistoryView(coordinator: alarm)
             case "trial-selector":
                 ExperimentPage {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }

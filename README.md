@@ -1,6 +1,6 @@
 # Cumulus
 
-Cumulus is moving toward a **Watch-only, one-time fixed alarm** first: set/review/edit/cancel/stop and truthful relaunch recovery. Implementation is planned; physical product validation remains pending. The longer-term goal is an explainable smart wake decision, not a sleep-stage claim. Keep an independent alarm for real wake requirements.
+Cumulus is moving toward a **Watch-only, one-time fixed alarm** first: set/review/edit/cancel/stop and truthful relaunch recovery. The fixed-alarm lifecycle and initial product UI are implemented; physical product validation remains pending. The longer-term goal is an explainable smart wake decision, not a sleep-stage claim. Keep an independent alarm for real wake requirements.
 
 The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9) defers overnight motion, further cardiac timing and classifier research as fixed-alarm release blockers. Existing experiment results remain preserved, including build 14's retained-window timing pass and its unqualified pilot. See [the experience](docs/EXPERIENCE.md) and [behavior requirements](docs/BEHAVIOR.md).
 
@@ -17,7 +17,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** implement the fixed-alarm lifecycle and initial product screen, then test short and overnight delivery. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
+**Next:** install build **0.1 (16)** without deleting app data, then test the integrated fixed alarm with an independent backup. Short delivery, edit/cancel/recovery, two overnight deliveries, battery and physical accessibility are pending. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 

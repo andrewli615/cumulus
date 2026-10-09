@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ExperimentChooserView: View {
+    @ObservedObject var alarm: AlarmCoordinator
     @ObservedObject var coordinator: ScheduledAlertCoordinator
     @ObservedObject var background: BackgroundMotionCoordinator
     @ObservedObject var overnight: OvernightMotionCoordinator
@@ -9,73 +10,71 @@ struct ExperimentChooserView: View {
     let clearCompletedData: () -> Void
 
     var body: some View {
-        NavigationStack {
-            ExperimentPage {
-                VStack(alignment: .leading, spacing: 4) {
-                    ExperimentPageHeading {
-                        Text("Explore your\nWatch data.")
-                            .font(.title2.bold())
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
-                    }
-                    Text("Six small experiments.")
-                        .font(.caption).foregroundStyle(.secondary)
+        ExperimentPage {
+            VStack(alignment: .leading, spacing: 4) {
+                ExperimentPageHeading {
+                    Text("Explore your\nWatch data.")
+                        .font(.title2.bold())
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
                 }
-                if owner.current != .none {
-                    ExperimentCard {
-                        ExperimentHeading(title: "Session status", symbol: "clock")
-                        Text(owner.current == .unresolved ? "Session ownership unresolved" : (owner.current == .alert ? coordinator.status : owner.current == .overnightMotion ? overnight.status : background.status))
-                            .font(.caption)
-                        Text("Finish the active trial before opening motion or health history.")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                }
-                NavigationLink {
-                    ContentView(testArchive: testArchive)
-                } label: {
-                    ExperimentDestination(title: "Motion probe", subtitle: "Movement & heart records", symbol: "waveform.path.ecg")
-                }
-                .disabled(owner.current != .none)
-                NavigationLink {
-                    ScheduledAlertView(coordinator: coordinator)
-                } label: {
-                    ExperimentDestination(title: "Scheduled alert", subtitle: "Test a future haptic", symbol: "alarm")
-                }
-                NavigationLink {
-                    BackgroundMotionView(coordinator: background, owner: owner)
-                } label: {
-                    ExperimentDestination(title: "Background motion", subtitle: "A 60-second sensor trial", symbol: "waveform.path")
-                }
-                NavigationLink {
-                    SleepHistoryView(testArchive: testArchive)
-                } label: {
-                    ExperimentDestination(title: "Sleep history", subtitle: "Explore stored intervals", symbol: "moon.zzz.fill")
-                }
-                .disabled(owner.current != .none)
-                NavigationLink {
-                    CardiacHistoryView(testArchive: testArchive, sessionOwner: owner)
-                } label: {
-                    ExperimentDestination(title: "Cardiac history", subtitle: "Heart records & coverage", symbol: "heart.text.square")
-                }
-                .disabled(owner.current != .none)
-                NavigationLink {
-                    OvernightMotionView(coordinator: overnight, owner: owner)
-                } label: {
-                    ExperimentDestination(title: "Overnight motion", subtitle: "Fixed recording · later retrieval", symbol: "moon.stars")
-                }
-                NavigationLink {
-                    TestArchiveView(archive: testArchive, owner: owner, clearCompletedData: clearCompletedData)
-                } label: {
-                    ExperimentDestination(title: "Saved tests", subtitle: "Local diagnostic reports", symbol: "tray.full")
-                }
-                if let reason = testArchive.newReportBlockReason { Text(reason).font(.caption).foregroundStyle(.orange) }
-                if let message = testArchive.errorMessage { Text(message).font(.caption).foregroundStyle(.orange) }
-                Text("Research in progress. Keep an independent alarm.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                Text("Six small experiments.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .navigationTitle("Cumulus")
+            if owner.current != .none {
+                ExperimentCard {
+                    ExperimentHeading(title: "Session status", symbol: "clock")
+                    Text(owner.current == .unresolved ? "Session ownership unresolved" : (owner.current == .alarm ? alarm.status : owner.current == .alert ? coordinator.status : owner.current == .overnightMotion ? overnight.status : background.status))
+                        .font(.caption)
+                    Text("Finish the alarm or active trial before opening motion or health history.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            NavigationLink {
+                ContentView(testArchive: testArchive)
+            } label: {
+                ExperimentDestination(title: "Motion probe", subtitle: "Movement & heart records", symbol: "waveform.path.ecg")
+            }
+            .disabled(owner.current != .none)
+            NavigationLink {
+                ScheduledAlertView(coordinator: coordinator)
+            } label: {
+                ExperimentDestination(title: "Scheduled alert", subtitle: "Test a future haptic", symbol: "alarm")
+            }
+            NavigationLink {
+                BackgroundMotionView(coordinator: background, owner: owner)
+            } label: {
+                ExperimentDestination(title: "Background motion", subtitle: "A 60-second sensor trial", symbol: "waveform.path")
+            }
+            NavigationLink {
+                SleepHistoryView(testArchive: testArchive)
+            } label: {
+                ExperimentDestination(title: "Sleep history", subtitle: "Explore stored intervals", symbol: "moon.zzz.fill")
+            }
+            .disabled(owner.current != .none)
+            NavigationLink {
+                CardiacHistoryView(testArchive: testArchive, sessionOwner: owner)
+            } label: {
+                ExperimentDestination(title: "Cardiac history", subtitle: "Heart records & coverage", symbol: "heart.text.square")
+            }
+            .disabled(owner.current != .none)
+            NavigationLink {
+                OvernightMotionView(coordinator: overnight, owner: owner)
+            } label: {
+                ExperimentDestination(title: "Overnight motion", subtitle: "Fixed recording · later retrieval", symbol: "moon.stars")
+            }
+            NavigationLink {
+                TestArchiveView(archive: testArchive, owner: owner, clearCompletedData: clearCompletedData)
+            } label: {
+                ExperimentDestination(title: "Saved tests", subtitle: "Local diagnostic reports", symbol: "tray.full")
+            }
+            if let reason = testArchive.newReportBlockReason { Text(reason).font(.caption).foregroundStyle(.orange) }
+            if let message = testArchive.errorMessage { Text(message).font(.caption).foregroundStyle(.orange) }
+            Text("Research in progress. Keep an independent alarm.")
+                .font(.caption2).foregroundStyle(.secondary)
         }
+        .buttonStyle(.plain)
+        .navigationTitle("Research")
         .fontDesign(.serif)
     }
 }

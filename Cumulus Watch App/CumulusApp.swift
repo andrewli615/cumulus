@@ -10,16 +10,22 @@ struct CumulusApp: App {
             if let screen = ProcessInfo.processInfo.environment["CUMULUS_UI_PREVIEW"] {
                 SimulatorPreviewScreen(screen: screen)
             } else {
-                chooser
+                home
             }
             #else
-            chooser
+            home
             #endif
         }
     }
 
+    private var home: some View {
+        NavigationStack {
+            AlarmHomeView(coordinator: appDelegate.alarmCoordinator, owner: appDelegate.sessionOwner) { chooser }
+        }.fontDesign(.serif)
+    }
+
     private var chooser: some View {
-        ExperimentChooserView(coordinator: appDelegate.alertCoordinator,
+        ExperimentChooserView(alarm: appDelegate.alarmCoordinator, coordinator: appDelegate.alertCoordinator,
                               background: appDelegate.backgroundCoordinator,
                               overnight: appDelegate.overnightCoordinator,
                               owner: appDelegate.sessionOwner,
