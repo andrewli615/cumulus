@@ -1,6 +1,6 @@
 # Experiment 006: Overnight motion feasibility
 
-Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The completed eight-hour comparison records 10% → 85% battery, charging, an interruption, and clock/reboot uncertainty; its battery result is inconclusive. Overnight feasibility remains unresolved.
+Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The completed eight-hour comparison records 10% → 85% battery, charging, an interruption, and clock/reboot uncertainty; its battery result is inconclusive. A new October 8 owner-reported pilot block met sample-quality criteria, but full-window reads continued showing order anomalies through minute 30. That pilot has not qualified; investigate ordering before another recording. Overnight feasibility remains unresolved.
 
 ## Question and prediction
 
@@ -173,15 +173,25 @@ The subsequent timing/UI fixes passed the same four suites and both signing-free
 
 ## Owner-reported pilot — October 8, partial observations
 
-The owner reported a new pilot in progress. These observations are owner-reported; its saved reports have not been independently retrieved or inspected.
+The owner reported a new pilot and follow-up reads through minute 30. These observations are owner-reported; its saved reports have not been independently retrieved or inspected.
 
 - The fixed pilot block returned **3,000 samples** and displayed **criteria met**. The owner reported no API error, cancellation, or clock uncertainty for that block read.
 - A full-window read displayed **Sample order anomalies** at approximately minute 21 of the trial. The owner subsequently reported **5 recorded anomalies**. The exact retrieval attempt associated with that total and its category breakdown were not captured.
 - The owner reported that the **minute-25 full-window read also failed**. The failure details and anomaly count for that attempt were not supplied; do not assume the earlier count of five applies to it.
+- At **minute 30**, the owner reported that the **same sample anomalies remained**. The exact count, category breakdown, and sample locations for this read were not supplied; do not assign the earlier count of five to it.
 - The block's successful query-completion time relative to minute 14 remains unknown. Its sample-quality result alone does not establish the timely-visibility criterion.
-- Current-trial build, watchOS, model, settings, battery, exact request/retrieval dates, full-window sample count/rate/gaps, and enumeration status have not been supplied. The planned minute-30 (end + 10-minute) retry remains unreported.
+- Current-trial build, watchOS, model, settings, battery, exact request/retrieval dates, full-window sample count/rate/gaps, and enumeration status have not been supplied.
 
-The reported five-anomaly read fails the unchanged zero-order-anomaly software check; the cause is unresolved. The UI counts expected chunk overlap separately, but that does not identify the cause of these five anomalies or independently validate its classification on the Watch. Full pilot qualification is not established after the reported minute-25 failure. Preserve this report before a later read replaces the latest detailed summary; do not infer a successful overnight or alarm result.
+The reported five-anomaly read fails the unchanged zero-order-anomaly software check; the cause is unresolved. The UI counts expected chunk overlap separately, but that does not identify the cause of these five anomalies or independently validate its classification on the Watch. Full pilot qualification is not established after the reported minute-25 failure and persistent minute-30 anomalies. Preserve the current Saved tests report. Investigate this evidence before another recording or overnight trial; do not infer a successful overnight or alarm result. Compact read observations remain in history, but a later full-window read replaces the latest detailed summary.
+
+### October 8 code and source review
+
+- **Observed implementation:** the full twenty-minute window uses two ten-minute queries, while the one-minute pilot block uses one query. The serial worker enumerates each list in its returned order. The summary requires both measurement date and sensor timestamp to increase relative to the last accepted sample; it recognizes a boundary duplicate only when both times repeat and the date exactly equals the next chunk's start. Rejected samples do not advance the accepted timestamp pair.
+- **Documented platform behavior:** Apple's [online retrieval reference](https://developer.apple.com/documentation/coremotion/cmsensorrecorder/accelerometerdata%28from%3Ato%3A%29) describes both endpoints as inclusive. The installed Xcode 27 `CMSensorRecorder.h` comment instead specifies `(fromDate, toDate]`. This source discrepancy does not establish a runtime defect or justify broadening accepted overlap. The reviewed [sensor-list reference](https://developer.apple.com/documentation/coremotion/cmsensordatalist) describes enumeration without an explicit chronological-order guarantee. A recorded sample's [identifier](https://developer.apple.com/documentation/coremotion/cmrecordedaccelerometerdata/identifier) identifies its batch, so it must not be treated as a unique per-sample key.
+- **Hypothesis, not a result:** chunk transition handling or within-list timing behavior could account for a full-window failure despite a usable short block. The owner reports do not locate the anomalies, so neither explanation is established. Repeated failed reads alone cannot distinguish app classification from returned sample behavior.
+- **Software check:** `./scripts/check-overnight-motion.sh` passed on October 8. Its recorder double simulates a uniform stream with inclusive endpoints; it checks app logic under those inputs, not physical enumeration order. No app code, stored data, or criteria changed during this review.
+
+The next investigation should inspect the preserved report's existing anomaly categories and bucket locations against query boundaries. If those summaries cannot distinguish the cause, add bounded per-query ordering diagnostics before a new pilot. Preserve failures and test both documented endpoint interpretations; do not sort away anomalies or widen tolerances to obtain a pass.
 
 ## Learning exercise
 
