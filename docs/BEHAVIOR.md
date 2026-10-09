@@ -2,7 +2,15 @@
 
 These are requirements for the personal Watch-only MVP, not implemented alarm behavior. The initial scope is one next-occurrence alarm with a latest wake time and an earlier wake window. The six current screens remain experiments. [Input qualification](experiments/006-overnight-motion.md) precedes selecting a decision method or building the final wake flow.
 
-## Target actions
+## Fixed-alarm first release
+
+The owner approved a reduced Watch-only version on October 9. One absolute fire date within the next 36 hours is scheduled while the app is active. The initial screen shows a next-occurrence time selector and full date confirmation. States are Not set, Scheduling requested, Scheduled (observed `.scheduled` only), Unverified after relaunch, Haptic requested, Cancellation requested, Cancelled, Stopped, Ended or Needs attention. Scheduled does not guarantee delivery.
+
+Editing must invalidate the old session and wait for confirmed non-error cancellation before scheduling its replacement. Failed cancellation blocks replacement; a replacement scheduling failure means the old alarm is no longer set. Relaunch never automatically re-arms. Recovered running sessions request haptics only once per alarm record; the API request is distinct from perception. Persist alarm configuration and the latest 40 lifecycle events separately from research data; collect no sensors or HealthKit data.
+
+Smart-waking requirements below are deferred, not satisfied. The fixed alarm has no early decision or independent automatic latest-wake fallback; keep an independent alarm. Implementation and device validation remain pending.
+
+## Future smart-waking target actions
 
 - Set and review the next latest wake time and earlier window in a few clear steps.
 - Edit or cancel with a visible result. A saved edit is not confirmation that an old request was cancelled or a replacement was armed.

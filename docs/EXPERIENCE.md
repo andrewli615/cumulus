@@ -1,6 +1,14 @@
 # The experience
 
-## One sentence
+## First release — fixed alarm
+
+The accelerated first release is a calm, Watch-only **one-time fixed alarm**. Set a time, review its full date, schedule it, edit/cancel it, and stop an active alert. Show Scheduled only from WatchKit session evidence; saved intent after relaunch stays Unverified until a session arrives. Research screens and saved tests remain available under Research.
+
+This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Implementation and integrated physical tests are pending.
+
+## Future smart-waking experience
+
+### One sentence
 
 Cumulus aims to be a calm personal Watch alarm that, after a sufficient sleep opportunity, may choose an earlier wake opportunity from validated, timely data and otherwise follows a separately tested latest-wake fallback. Its intended benefit is less sleep inertia, not a particular sleep-stage label.
 
