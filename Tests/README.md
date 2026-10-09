@@ -61,3 +61,5 @@ Build 14's worker uses one full-window query within the existing eight-hour limi
 ## Fixed alarm
 
 `./scripts/check-alarm.sh` compiles the production record/coordinator against deterministic WatchKit doubles. It checks future/36-hour bounds, midnight/DST, duplicate exclusion, cancel-before-edit confirmation, replacement rejection, once-recorded haptics, stale callbacks, relaunch, resumed cancellation, expiry, persistence failure, atomic file round trips/deletion and the 40-event limit. The background suite additionally checks shared ownership and app-delegate routing. Doubles are software evidence only; physical delivery, perception, battery and accessibility remain separate.
+
+The archive retrieval suite also verifies `--alarm-only` parsing/offsets and the explicitly labeled Foundation reference epoch. Default research export behavior is unchanged. See Experiment 008 for device acceptance; none of these checks establish haptic perception.

@@ -70,3 +70,7 @@ Retain the signal name, unit, source, measurement timestamp, receipt timestamp, 
 For motion, use its monotonic timestamp for sample intervals and explicitly map clock domains before comparing with wall-clock HealthKit dates. Record the mapping per run; do not subtract device-uptime values directly from calendar dates.
 
 The live screen must show data age. Missing, stale, unavailable, and stopped are not valid zero measurements. Keep HealthKit data and raw device logs outside Git; commit only synthetic examples and nonpersonal procedure changes.
+
+## Fixed-alarm MVP scope — October 9
+
+Build 16 uses the existing Watch-only scheduled-session/haptic path for one fixed alarm, with independent configuration/history, shared ownership and delegate recovery. It collects no sensors or HealthKit records. Research gates for smart waking, including Experiment 006, are paused as fixed-alarm blockers rather than declared passed. The alarm's short and overnight delivery, perception, battery and physical usability remain untested in the integrated build; follow [Experiment 008](experiments/008-fixed-alarm.md). There is no independent automatic fallback or guaranteed-wake claim.

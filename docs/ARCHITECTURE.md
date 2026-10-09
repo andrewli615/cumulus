@@ -1,6 +1,12 @@
 # Current architecture and open decisions
 
-Cumulus uses one native watch-only SwiftUI target. Six experiments share a chooser; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
+Cumulus uses one native watch-only SwiftUI target. The fixed-alarm home links to six experiments through Research; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
+
+## Fixed alarm
+
+`AlarmRecord.swift` owns the current alarm configuration and latest 40 lifecycle events across alarm IDs. `AlarmFileStore` validates, atomically saves and reads a bounded 64 KB JSON file at Application Support/Cumulus/Alarm/record.json, independently of experiment defaults and Saved tests. Its dates use Foundation's default 2001 reference epoch. `AlarmCoordinator.swift` owns the scheduled WatchKit session, haptic request, cancel-before-replacement and identity-checked callbacks. `AlarmView.swift` presents truthful state, native selection lists, date confirmation and completed-history clearing. No sensor/HealthKit query is started by this path.
+
+`ExperimentSessionOwner` adds `.alarm`; reconciliation detects competing alarm/research reservations. The app delegate attaches a recovered alarm session to the alarm coordinator. Saved intent alone is Unverified. Completed alarm clearing is blocked while a reservation is unknown/active; clearing research reports never deletes alarm history. The optional `--alarm-only` private retrieval tool reads the separate file without starting the app; copied files survive app deletion. Disk write and a WatchKit call cannot be made atomic, so crash-boundary outcomes remain a physical-test limitation rather than an exactly-once delivery guarantee.
 
 ## Ownership and data flow
 

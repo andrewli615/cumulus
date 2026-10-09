@@ -6,7 +6,7 @@ Status: sleep-history and cardiac-history readers implemented. The owner reports
 
 ## Current priority — fixed alarm
 
-On October 9, the owner selected a Watch-only fixed-alarm MVP before smart waking. Overnight motion qualification, cardiac timing follow-ups and offline model benchmarking are paused as release blockers; they remain required before adopting sensor-based decisions. Experiment 006 remains unresolved with its criteria unchanged. Build the product lifecycle/UI now, then test actual short and overnight alarm delivery, recovery, cancellation and battery under the [fixed-alarm criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). No sensors run in this alarm mode; sleep-stage accuracy and waking benefit are not claimed.
+On October 9, the owner selected a Watch-only fixed-alarm MVP before smart waking. Overnight motion qualification, cardiac timing follow-ups and offline model benchmarking are paused as release blockers; they remain required before adopting sensor-based decisions. Experiment 006 remains unresolved with its criteria unchanged. Build 16 implements the product lifecycle/UI. Next test actual short and overnight alarm delivery, recovery, cancellation and battery using [Experiment 008](experiments/008-fixed-alarm.md) and the [fixed-alarm criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). No sensors run in this alarm mode; sleep-stage accuracy and waking benefit are not claimed.
 
 ## Product question
 

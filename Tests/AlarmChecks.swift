@@ -123,6 +123,43 @@ import Foundation
         expiring.end(.expired)
         await settle()
         expect(writeFailure.status == "Ended" && owner.current == .none, "Expiry cleanup releases ownership")
+        let freshStore = MemoryAlarmStore()
+        let fresh = AlarmCoordinator(owner: owner, store: freshStore, now: { now })
+        fresh.schedule(at: date)
+        let pending = AlarmCoordinator(owner: owner, store: freshStore, now: { now })
+        let running = WKExtendedRuntimeSession(); running.state = .running
+        pending.attach(running)
+        pending.refreshState()
+        expect(running.haptics == 1, "Recovered running session without prior request alerts once")
+        pending.stop(); running.end(.none)
+        await settle()
+        pending.schedule(at: date)
+        let inactiveEdit = WKExtendedRuntimeSession.latest!
+        pending.edit(to: changed)
+        WKApplication.shared().applicationState = .background
+        inactiveEdit.end(.none)
+        await settle()
+        expect(WKExtendedRuntimeSession.latest === inactiveEdit && pending.errorMessage?.contains("Replacement not set") == true,
+               "Inactive replacement is refused after confirmed old cancellation")
+        WKApplication.shared().applicationState = .active
+        var movingClock = now
+        let delayed = AlarmCoordinator(owner: owner, store: freshStore, now: { movingClock })
+        delayed.schedule(at: date)
+        let lateEdit = WKExtendedRuntimeSession.latest!
+        delayed.edit(to: changed)
+        movingClock = changed.addingTimeInterval(1)
+        lateEdit.end(.none)
+        await settle()
+        expect(WKExtendedRuntimeSession.latest === lateEdit && delayed.errorMessage?.contains("Replacement not set") == true,
+               "Expired replacement is refused rather than rolled to another day")
+        let foreignDefaults = UserDefaults(suiteName: "Cumulus.ForeignAlarm.\(UUID())")!
+        let foreignOwner = ExperimentSessionOwner(defaults: foreignDefaults)
+        let foreign = AlarmCoordinator(owner: foreignOwner, store: MemoryAlarmStore())
+        let foreignSession = WKExtendedRuntimeSession(); foreignSession.state = .running
+        foreign.attach(foreignSession)
+        foreign.refreshState()
+        expect(foreignSession.haptics == 0 && foreignOwner.current == .unresolved && foreign.isUnverified,
+               "Unknown configuration never fabricates an alarm or haptic")
         for index in 0..<100 { store.value?.record("Synthetic \(index)", at: now) }
         expect(store.value?.events.count == 40, "History bound")
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -133,9 +170,11 @@ import Foundation
         expect(loaded?.events.count == 40, "Atomic file round trip")
         try Data("invalid".utf8).write(to: fileStore.url)
         do { _ = try fileStore.load(); preconditionFailure("Corrupt data accepted") } catch {}
+        let unrelated = directory.appendingPathComponent("research-sentinel.txt")
+        try Data("Preserve research data".utf8).write(to: unrelated)
         try fileStore.clear()
         let cleared = try fileStore.load()
-        expect(cleared == nil, "Deletion removes only alarm record")
+        expect(cleared == nil && FileManager.default.fileExists(atPath: unrelated.path), "Deletion removes only alarm record")
         print("PASS: alarm bounds/DST, scheduling/edit/cancel/stop, recovery, late callbacks, expiry, storage and history")
     }
 }

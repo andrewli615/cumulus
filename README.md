@@ -17,7 +17,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** install build **0.1 (16)** without deleting app data, then test the integrated fixed alarm with an independent backup. Short delivery, edit/cancel/recovery, two overnight deliveries, battery and physical accessibility are pending. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
+**Next:** install build **0.1 (16)** without deleting app data, then follow [Experiment 008](docs/experiments/008-fixed-alarm.md) with an independent backup. Short delivery, edit/cancel/recovery, two overnight deliveries, battery and physical accessibility are pending. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 
@@ -35,13 +35,15 @@ python3 scripts/retrieve-test-archive.py --output /tmp/cumulus-private-test-repo
 
 This read-only tool copies the app's archive and decodes its diagnostic snapshots into `evaluation.json`. It does not start recording or read HealthKit. The output is private, can include sensitive timing/count metadata, and must remain outside Git. App deletion does not delete exported copies. It cannot infer unknown conditions or confirm a perceived alert.
 
+For the separate fixed-alarm lifecycle history, use `--alarm-only` with a new private output directory. The file uses Foundation reference dates (seconds since 2001), explicitly labeled in its output; research report dates use Unix seconds. See [the alarm trial procedure](docs/experiments/008-fixed-alarm.md#private-evaluation). Alarm history and research Saved tests are cleared separately; neither removes private exported copies.
+
 ## Open in Xcode
 
 1. Open `Cumulus.xcodeproj` and select the **Cumulus Watch App** scheme. Local verification uses Xcode 27; the minimum deployment target is watchOS 26.6. The SDK and minimum supported OS are separate settings.
 2. Select a Watch simulator or paired physical Watch. For device installation, choose your development team in Signing & Capabilities and a unique bundle identifier; provisioning must support HealthKit.
-3. Choose an experiment from the app's chooser. Motion probe uses **Start monitoring**; Sleep history uses **Read / Refresh**. HealthKit results may be empty or old; neither screen requests continuous optical sensing.
-4. Schedule alert and background trials while the app is active, following their linked procedures. **Session scheduled** is an observed software state; **Haptic requested** records an API call, not proof of perception. Cancel or stop with the app active. Do not reinstall or clear app data while a trial is pending.
-5. Overnight motion uses one fixed-duration system request. It has no stop-recording API; **Cancel retrieval** stops reading only. Retrieve in the foreground and inspect timing, visibility, and battery separately.
+3. The app opens on **Alarm**. Select **Set alarm**, review the full date/time and schedule while active. Follow Experiment 008 with an independent backup. **Scheduled** is an observed session state; **Haptic requested** records an API call, not proof of perception. Cancel, edit or stop with the app active. Do not delete or clear app data while a request is pending.
+4. Existing experiments are under **Research**. Motion probe uses **Start monitoring**; Sleep history uses **Read / Refresh**. HealthKit results may be empty or old; neither screen requests continuous optical sensing. Follow each experiment's procedure when resuming research.
+5. Overnight motion research is paused. Its fixed-duration system request has no stop-recording API; **Cancel retrieval** stops reading only. Its timing, visibility and battery evidence remain separate from fixed-alarm acceptance.
 
 Overnight **Request timing** separates preparation, recorder-call entry/return, sample-window end, and the conservative reservation end. The screen refreshes time-gated read controls and lists failed timing criteria. Old saved trials load with their original dates and unknown recorder-call timing. A reboot after completed observations preserves that evidence; a later read with uncertain clock timing cannot claim new visibility.
 
