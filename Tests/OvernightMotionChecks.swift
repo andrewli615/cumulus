@@ -99,10 +99,11 @@ import Foundation
                "New order counters survive persistence")
         var legacyOrderJSON = try JSONSerialization.jsonObject(with: encodedOrder) as! [String: Any]
         legacyOrderJSON.removeValue(forKey: "orderAnomalyCounts")
+        legacyOrderJSON.removeValue(forKey: "orderDiagnostics")
         let legacyOrder = try JSONDecoder().decode(OvernightMotionSummary.self,
             from: JSONSerialization.data(withJSONObject: legacyOrderJSON))
         try legacyOrder.validate()
-        expect(legacyOrder.orderAnomalyCounts == nil && legacyOrder.outOfOrder == 4
+        expect(legacyOrder.orderAnomalyCounts == nil && legacyOrder.orderDiagnostics == nil && legacyOrder.outOfOrder == 4
             && !legacyOrder.meetsTimingCriteria && legacyOrder.timingFailures.contains("Sample order anomalies"),
                "Older summaries preserve their failure without inventing a breakdown")
         var invalidCounts = orderTypes
@@ -115,17 +116,110 @@ import Foundation
         invalidCounts.orderAnomalyCounts!.dateOnly = Int.max
         try invalid(invalidCounts, "Unbounded order subtype accepted")
 
+        var detailed = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(1200))
+        detailed.receive(date: origin.addingTimeInterval(10), uptime: 1010, axesFinite: true, chunkStart: origin)
+        detailed.receive(date: origin.addingTimeInterval(10), uptime: 1010.02, axesFinite: true, chunkStart: origin,
+            position: .init(queryIndex: 1, sampleIndex: 2, previousAcceptedQueryIndex: 1))
+        detailed.receive(date: origin.addingTimeInterval(9.98), uptime: 1010.04, axesFinite: true, chunkStart: origin,
+            position: .init(queryIndex: 1, sampleIndex: 3, previousAcceptedQueryIndex: 1))
+        detailed.receive(date: origin.addingTimeInterval(11), uptime: 1010, axesFinite: true, chunkStart: origin)
+        detailed.receive(date: origin.addingTimeInterval(12), uptime: 1009, axesFinite: true, chunkStart: origin.addingTimeInterval(600),
+            position: .init(queryIndex: 2, sampleIndex: 1, previousAcceptedQueryIndex: 1))
+        let detail = detailed.orderDiagnostics!
+        expect(detail.repeatedDates == 1 && detail.backwardDates == 1 && detail.repeatedSensorTimes == 1
+            && detail.backwardSensorTimes == 1 && detail.withinQuery == 2 && detail.acrossQueries == 1
+            && detail.unknownPosition == 1, "Repeats, reversals and query comparisons remain distinct")
+        expect(detail.examples[0].dateDelta == 0 && abs(detail.examples[1].dateDelta + 0.02) < 0.000001
+            && abs(detail.examples[1].sensorDelta - 0.04) < 0.000001,
+            "Rejected rows compare with the last accepted sample, not the previous rejected row")
+        expect(detailed.count == 1 && detailed.outOfOrder == 4 && detailed.last == origin.addingTimeInterval(10),
+            "Diagnostics do not change acceptance or advance accepted time")
+        try detailed.validate()
+        let detailRoundTrip = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONEncoder().encode(detailed))
+        try detailRoundTrip.validate()
+        expect(detailRoundTrip.orderDiagnostics?.examples[3].position?.sampleIndex == 1, "Query examples survive persistence")
+        var previousBuildJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(detailed)) as! [String: Any]
+        previousBuildJSON.removeValue(forKey: "orderDiagnostics")
+        let previousBuildSummary = try JSONDecoder().decode(OvernightMotionSummary.self,
+            from: JSONSerialization.data(withJSONObject: previousBuildJSON))
+        try previousBuildSummary.validate()
+        expect(previousBuildSummary.orderDiagnostics == nil && previousBuildSummary.orderAnomalyCounts?.dateOnly == 2,
+            "Build-6 summaries retain counters without invented timing differences")
+        for _ in 0..<100 {
+            detailed.receive(date: origin.addingTimeInterval(10), uptime: 1010.02, axesFinite: true, chunkStart: origin)
+        }
+        try detailed.validate()
+        expect(detailed.orderDiagnostics?.examples.count == 12 && detailed.orderDiagnostics?.total == 104
+            && detailed.orderDiagnostics?.repeatedDates == 101, "Example cap preserves totals beyond truncation")
+        var badDetail = detailed
+        badDetail.orderDiagnostics!.examples.append(detail.examples[0])
+        try invalid(badDetail, "Too many examples accepted")
+        badDetail = detailed
+        badDetail.orderDiagnostics!.backwardDates = -1
+        try invalid(badDetail, "Negative diagnostic count accepted")
+        badDetail = detailed
+        badDetail.orderDiagnostics!.examples[0] = .init(relativeSeconds: 10, dateDelta: .nan, sensorDelta: 0.02, position: nil)
+        try invalid(badDetail, "Nonfinite diagnostic delta accepted")
+        badDetail = detailed
+        badDetail.orderDiagnostics!.examples[0] = .init(relativeSeconds: 10, dateDelta: 0, sensorDelta: 0.02,
+            position: .init(queryIndex: 3, sampleIndex: 2, previousAcceptedQueryIndex: 1))
+        try invalid(badDetail, "Query outside retrieval window accepted")
+
         let recorder = OvernightMotionRecorder()
         SyntheticRecorder.shared.configure()
         let result = await read(recorder)
         expect(result.summary.count == 60_000 && result.summary.boundaryDuplicates == 1 && result.summary.meetsTimingCriteria, "Actual worker deduplicates inclusive chunk boundaries")
         expect(SyntheticRecorder.shared.queryCount == 2 && SyntheticRecorder.shared.maximumQuery <= 600, "Ten-minute queries")
+        expect(result.summary.orderDiagnostics?.total == 0, "Expected inclusive-boundary overlap stays out of diagnostic failures")
+        SyntheticRecorder.shared.configure(output: .startExclusive)
+        let startExclusive = await read(recorder)
+        expect(startExclusive.summary.count == 59_999 && startExclusive.summary.boundaryDuplicates == 0
+            && startExclusive.summary.meetsTimingCriteria, "Open-start SDK endpoint interpretation preserves timing criteria")
+        SyntheticRecorder.shared.configure(output: .dateAnomalies)
+        let dateFailures = await read(recorder)
+        try dateFailures.summary.validate()
+        expect(dateFailures.summary.orderDiagnostics?.repeatedDates == 2 && dateFailures.summary.orderDiagnostics?.backwardDates == 2
+            && dateFailures.summary.orderDiagnostics?.withinQuery == 4 && dateFailures.summary.orderDiagnostics?.acrossQueries == 0,
+            "Actual worker supplies positions for within-query date-only failures")
+        expect(dateFailures.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 21
+            && dateFailures.summary.orderDiagnostics?.examples[2].position?.queryIndex == 2,
+            "Worker records one-based typed sample rows in each query")
+        SyntheticRecorder.shared.configure(output: .transitionAnomaly)
+        let transition = await read(recorder)
+        try transition.summary.validate()
+        expect(transition.summary.orderDiagnostics?.acrossQueries == 1
+            && transition.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 1,
+            "First row comparing with an earlier query is distinguishable from within-query failure")
         SyntheticRecorder.shared.configure()
         let fullNight = await read(recorder, duration: 28800)
         try fullNight.summary.validate()
         expect(fullNight.summary.count == 1_440_000 && fullNight.summary.buckets.count == 960
             && fullNight.summary.boundaryDuplicates == 47 && fullNight.summary.meetsTimingCriteria,
             "Eight-hour stream stays bounded and keeps cross-chunk timing")
+        var largeSummary = fullNight.summary
+        for row in 1...20 {
+            largeSummary.receive(date: largeSummary.last!, uptime: largeSummary.lastUptime! + 0.02,
+                axesFinite: true, chunkStart: origin.addingTimeInterval(28200),
+                position: .init(queryIndex: 48, sampleIndex: 30000 + row, previousAcceptedQueryIndex: 48))
+        }
+        try largeSummary.validate()
+        var largeTrial = OvernightMotionTrial(mode: .overnight, start: origin, uptime: 1000, configuration: .init(), battery: nil)
+        largeTrial.phase = .elapsed
+        largeTrial.requestCount = 1
+        largeTrial.fullSummary = largeSummary
+        var largeRead = OvernightMotionTrial.Observation(pilotProbe: false, requestedAt: largeTrial.end,
+            completedAt: largeTrial.end, count: largeSummary.count, useful: false,
+            first: largeSummary.first, last: largeSummary.last, nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
+        largeRead.orderDiagnostics = largeSummary.orderDiagnostics
+        largeTrial.observations = Array(repeating: largeRead, count: 40)
+        try OvernightMotionArchive(trials: [largeTrial]).validate()
+        let largePayload = try TestReport.encodeDiagnostics(largeTrial)
+        expect(largePayload.count <= 350_000, "960 buckets and 40 reads with capped examples fit the existing archive payload limit")
+        let largeDecoder = JSONDecoder()
+        largeDecoder.dateDecodingStrategy = .secondsSince1970
+        let restoredLargeTrial = try largeDecoder.decode(OvernightMotionTrial.self, from: largePayload)
+        try OvernightMotionArchive(trials: [restoredLargeTrial]).validate()
+        expect(restoredLargeTrial.observations.last?.orderDiagnostics?.total == 20, "Per-read examples survive archived payload decoding")
         SyntheticRecorder.shared.configure(output: .missing)
         let missing = await read(recorder)
         expect(missing.summary.nilChunks == 2 && missing.error == nil, "Nil results do not invent API errors")
@@ -317,10 +411,19 @@ import Foundation
         retrieval.retrieve(pilotProbe: false)
         await settle(retrieval)
         expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.firstUsefulReadAt != nil, "Actual coordinator stores bounded full summary")
+        expect(retrieval.latest?.observations.last?.orderDiagnostics?.total == 0, "Completed reads retain their own diagnostics")
         let firstRead = retrieval.latest!.firstUsefulReadAt
+        SyntheticRecorder.shared.configure(output: .dateAnomalies)
+        retrieval.retrieve(pilotProbe: false)
+        await settle(retrieval)
+        expect(retrieval.latest?.observations.last?.orderDiagnostics?.backwardDates == 2,
+            "Coordinator retains nonzero ordering detail for each failed read")
+        SyntheticRecorder.shared.configure()
         retrieval.retrieve(pilotProbe: false)
         await settle(retrieval)
         expect(retrieval.latest?.fullSummary?.count == 60_000 && retrieval.latest?.firstUsefulReadAt == firstRead, "Refresh replaces summary and preserves first availability observation")
+        expect(retrieval.latest?.observations.dropLast().last?.orderDiagnostics?.total == 4,
+            "Refreshing the latest summary preserves the previous read's diagnostic evidence")
         SyntheticRecorder.shared.configure(output: .slow)
         retrieval.retrieve(pilotProbe: false)
         retrieval.applicationStateChanged("background")

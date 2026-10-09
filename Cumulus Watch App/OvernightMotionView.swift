@@ -346,6 +346,11 @@ private struct OvernightTrialView: View {
                         if read.clockDiscontinuity == true {
                             Text("Retrieval clock uncertain; this attempt cannot establish visibility.").font(.caption2).foregroundStyle(.orange)
                         }
+                        if let diagnostics = read.orderDiagnostics {
+                            NavigationLink("Inspect this read's ordering") {
+                                OvernightOrderAnomaliesView(diagnostics: diagnostics)
+                            }.font(.caption)
+                        }
                     }
                 }
                 ExperimentCard {
@@ -360,21 +365,60 @@ private struct OvernightTrialView: View {
     }
 }
 
-private struct OvernightOrderAnomaliesView: View {
-    let summary: OvernightMotionSummary
+struct OvernightOrderAnomaliesView: View {
+    let total: Int
+    let counts: OvernightMotionSummary.OrderAnomalyCounts?
+    let diagnostics: OvernightMotionSummary.OrderDiagnostics?
+
+    init(summary: OvernightMotionSummary) {
+        total = summary.outOfOrder
+        counts = summary.orderAnomalyCounts
+        diagnostics = summary.orderDiagnostics
+    }
+    init(diagnostics: OvernightMotionSummary.OrderDiagnostics) {
+        total = diagnostics.total
+        counts = nil
+        self.diagnostics = diagnostics
+    }
     var body: some View {
         ExperimentPage {
             ExperimentCard {
                 ExperimentHeading(title: "Order anomalies", symbol: "list.bullet")
-                ExperimentMetric(label: "Recorded total", value: String(summary.outOfOrder))
-                if let counts = summary.orderAnomalyCounts {
+                ExperimentMetric(label: "Recorded total", value: String(total))
+                if let counts {
                     ExperimentMetric(label: "Repeated time pair", value: String(counts.exactTimeRepeats))
                     ExperimentMetric(label: "Date only", value: String(counts.dateOnly))
                     ExperimentMetric(label: "Sensor time only", value: String(counts.sensorTimeOnly))
                     ExperimentMetric(label: "Both time fields", value: String(counts.bothTimes))
                     Text("Compared with the last accepted sample. Counts identify times that did not increase, not their cause. Expected chunk overlap is separate.").font(.caption2)
-                } else {
+                } else if diagnostics == nil {
                     Text("Breakdown unavailable for this older summary. The recorded total is unchanged.").font(.caption2)
+                }
+                if let diagnostics {
+                    ExperimentMetric(label: "Repeated dates", value: String(diagnostics.repeatedDates))
+                    ExperimentMetric(label: "Backward dates", value: String(diagnostics.backwardDates))
+                    ExperimentMetric(label: "Repeated sensor times", value: String(diagnostics.repeatedSensorTimes))
+                    ExperimentMetric(label: "Backward sensor times", value: String(diagnostics.backwardSensorTimes))
+                    ExperimentMetric(label: "Within query", value: String(diagnostics.withinQuery))
+                    ExperimentMetric(label: "Across queries", value: String(diagnostics.acrossQueries))
+                    ExperimentMetric(label: "Position unknown", value: String(diagnostics.unknownPosition))
+                    Text("Each timing difference compares with the last accepted sample. Query and row numbers start at 1. These diagnostics explain a failed comparison, not its cause.").font(.caption)
+                    Text("First \(diagnostics.examples.count) examples of \(total) failures; totals include failures beyond the 12-example limit.").font(.caption)
+                } else {
+                    Text("Timing differences and query positions were not recorded by this older build.").font(.caption)
+                }
+            }
+            if let diagnostics {
+                ForEach(Array(diagnostics.examples.enumerated()), id: \.offset) { index, example in
+                    ExperimentCard {
+                        Text("Failure \(index + 1)").font(.headline)
+                        ExperimentMetric(label: "From window start", value: String(format: "%.2f s", example.relativeSeconds))
+                        ExperimentMetric(label: "Date difference", value: String(format: "%+.6g s", example.dateDelta))
+                        ExperimentMetric(label: "Sensor difference", value: String(format: "%+.6g s", example.sensorDelta))
+                        if let position = example.position {
+                            Text("Query \(position.queryIndex), sample row \(position.sampleIndex). Last accepted sample: query \(position.previousAcceptedQueryIndex).").font(.caption)
+                        } else { Text("Query position unknown.").font(.caption) }
+                    }
                 }
             }
         }.navigationTitle("Order anomalies")

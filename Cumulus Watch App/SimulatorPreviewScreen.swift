@@ -7,6 +7,16 @@ struct SimulatorPreviewScreen: View {
     @StateObject private var owner: ExperimentSessionOwner
     @State private var previewMode: OvernightMotionTrial.Mode = .pilot
     private let trial: OvernightMotionTrial
+    private var orderSummary: OvernightMotionSummary {
+        var summary = OvernightMotionSummary(start: trial.start, end: trial.start.addingTimeInterval(1200))
+        summary.receive(date: trial.start.addingTimeInterval(1), uptime: 1000, axesFinite: true, chunkStart: trial.start)
+        for index in 0..<14 {
+            summary.receive(date: trial.start.addingTimeInterval(index.isMultiple(of: 2) ? 1 : 0.99),
+                uptime: 1000.02 + Double(index) * 0.02, axesFinite: true, chunkStart: trial.start,
+                position: .init(queryIndex: 1, sampleIndex: index + 2, previousAcceptedQueryIndex: 1))
+        }
+        return summary
+    }
 
     init(screen: String) {
         self.screen = screen
@@ -34,6 +44,7 @@ struct SimulatorPreviewScreen: View {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }
                 }.navigationTitle("Recording")
             case "trial-choices": OvernightTrialChoiceView(mode: $previewMode)
+            case "order": OvernightOrderAnomaliesView(summary: orderSummary)
             case "archive": TestArchiveView(archive: archive, owner: owner, clearCompletedData: {})
             case "report":
                 if let report = archive.reports.first { TestReportView(report: report, archive: archive) }

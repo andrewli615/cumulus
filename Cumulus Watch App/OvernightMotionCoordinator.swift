@@ -248,6 +248,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                     nilChunks: result.summary.nilChunks, emptyChunks: result.summary.emptyChunks, cancelled: cancelled,
                     error: result.error.map { String($0.prefix(400)) })
                 observation.clockDiscontinuity = readClockUncertain
+                observation.orderDiagnostics = result.summary.orderDiagnostics
                 self.mutateLatest { current in
                     current.observations.append(observation)
                     current.observations = Array(current.observations.suffix(40))

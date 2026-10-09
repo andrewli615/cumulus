@@ -36,6 +36,10 @@ Platform doubles test app logic, not real WatchKit or HealthKit behavior. Run si
 
 Physical procedures and evidence belong in [the experiment notes](../docs/experiments/README.md). Keep their original failures, retests, and evidence limits intact.
 
+Build-8 overnight checks distinguish date/sensor equality from reversal, compare with the last accepted sample, and exercise within-query and cross-query positions through the actual worker. Fixtures cover inclusive endpoints and the SDK's open-start interpretation without changing acceptance. Tests check the twelve-example cap, totals after truncation, malformed metadata, build-6/older decoding, per-read retention after summary replacement, and a 960-bucket/40-read payload against the existing 350,000-byte ceiling. These checks do not resolve the physical date-only anomaly cause.
+
+`CUMULUS_UI_PREVIEW=order` selects a synthetic ordering screen with fourteen failures and twelve retained examples. It uses the existing normal/larger-text override and does not start recording or read physical data.
+
 Build-6 visual checks used `SimulatorPreviewScreen` in an isolated 40 mm Watch simulator. `CUMULUS_UI_PREVIEW` selects `guide`, `archive`, `report`, or `timing`; `CUMULUS_UI_TEXT=larger` forces `.xxxLarge` instead of `.large`. These Debug Simulator-only fixtures use synthetic summaries and do not automatically query HealthKit or start recording. Initial-view screenshots are outside Git; they do not verify scrolling, VoiceOver, deletion or physical sensor behavior. The isolated simulator was removed after verification.
 
 Build-7 trial previews use `CUMULUS_UI_PREVIEW=trial-selector` or `trial-choices`; `CUMULUS_UI_TRIAL=pilot`, `overnight`, or `comparison` seeds the selected mode without recording. The existing `CUMULUS_UI_TEXT=larger` override checks wrapping at `.xxxLarge`. Native Crown/touch navigation and VoiceOver require separate interaction checks.

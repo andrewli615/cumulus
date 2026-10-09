@@ -65,6 +65,7 @@ final class OvernightMotionRecorder: @unchecked Sendable {
             var cursor = start
             var chunks = 0
             var enumerated = 0
+            var previousAcceptedQueryIndex: Int?
             let safetyLimit = Int(duration * 100) + 1000
             while cursor < end {
                 if cancellation.isCancelled { break }
@@ -82,9 +83,15 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                                 continue
                             }
                             seen += 1
+                            let previousCount = summary.count
+                            let position = previousAcceptedQueryIndex.map {
+                                OvernightMotionSummary.QueryPosition(queryIndex: chunks + 1, sampleIndex: seen,
+                                    previousAcceptedQueryIndex: $0)
+                            }
                             summary.receive(date: sample.startDate, uptime: sample.timestamp,
                                 axesFinite: sample.acceleration.x.isFinite && sample.acceleration.y.isFinite && sample.acceleration.z.isFinite,
-                                chunkStart: cursor)
+                                chunkStart: cursor, position: position)
+                            if summary.count > previousCount { previousAcceptedQueryIndex = chunks + 1 }
                         }
                         if seen == 0 { summary.emptyChunks += 1 }
                     } else { summary.nilChunks += 1 }
