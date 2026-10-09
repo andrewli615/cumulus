@@ -8,7 +8,7 @@ Commit each verified milestone separately: (1) align plans; (2) separate alarm r
 
 Acceptance: short delivery, edit and cancellation trials plus two overnight deliveries with the debugger detached and intended Sleep Focus/haptic settings. Each overnight haptic request must occur within 60 seconds after the requested time, an alert must be perceived, and no unexplained duplicate may occur. Record start/end battery in those same nights: no charging, at most 25 percentage points lost and at least 20% remaining. These are project criteria, not Apple guarantees. Physical normal/larger text, scrolling, VoiceOver and relaunch behavior also need checks. Keep an independent alarm.
 
-Experiment 006 is **paused**, not passed; its fresh pilot, comparison and recording nights are deferred. Further cardiac inspection and offline classifier benchmarking are deferred until sensor-based behavior is requested. Preserve all earlier evidence and criteria. Fixed-alarm functionality and physical acceptance are pending at this planning milestone.
+Experiment 006 is **paused**, not passed; its fresh pilot, comparison and recording nights are deferred. Further cardiac inspection and offline classifier benchmarking are deferred until sensor-based behavior is requested. Preserve all earlier evidence and criteria. Milestone 1 is committed. Milestone 2 adds separate alarm storage/coordinator and relaunch ownership with synthetic checks; the product screen and integrated physical acceptance remain pending.
 
 ## Future smart-waking path
 

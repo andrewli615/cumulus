@@ -5,6 +5,7 @@ import WatchKit
 final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     let testArchive: TestArchiveStore
     let sessionOwner: ExperimentSessionOwner
+    let alarmCoordinator: AlarmCoordinator
     let alertCoordinator: ScheduledAlertCoordinator
     let backgroundCoordinator: BackgroundMotionCoordinator
 
@@ -19,22 +20,23 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
         #endif
     }
 
-    init(testArchive: TestArchiveStore, defaults: UserDefaults = .standard) {
+    init(testArchive: TestArchiveStore, defaults: UserDefaults = .standard, alarmStore: any AlarmStorage = AlarmFileStore()) {
         self.testArchive = testArchive
         let owner = ExperimentSessionOwner(defaults: defaults)
         sessionOwner = owner
+        alarmCoordinator = AlarmCoordinator(owner: owner, store: alarmStore)
         alertCoordinator = ScheduledAlertCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         backgroundCoordinator = BackgroundMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         overnightCoordinator = OvernightMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         super.init()
         owner.reconcile(alertPending: alertCoordinator.blocksMotionProbe,
                         motionPending: backgroundCoordinator.hasUnresolvedSession,
-                        overnightPending: overnightCoordinator.hasReservation)
-        if alertCoordinator.storageError != nil || backgroundCoordinator.storageError != nil || overnightCoordinator.storageError != nil { owner.markUnresolved() }
+                        overnightPending: overnightCoordinator.hasReservation, alarmPending: alarmCoordinator.hasReservation)
+        if alarmCoordinator.isUnverified && alarmCoordinator.errorMessage != nil || alertCoordinator.storageError != nil || backgroundCoordinator.storageError != nil || overnightCoordinator.storageError != nil { owner.markUnresolved() }
     }
 
     func clearCompletedTestData() {
-        guard sessionOwner.current == .none, !alertCoordinator.blocksMotionProbe,
+        guard sessionOwner.current == .none, !alarmCoordinator.hasReservation, !alertCoordinator.blocksMotionProbe,
               alertCoordinator.storageError == nil, !backgroundCoordinator.hasUnresolvedSession,
               !overnightCoordinator.hasReservation, !overnightCoordinator.isRetrieving,
               !overnightCoordinator.isRequestingAccess, overnightCoordinator.storageError == nil else { return }
@@ -46,6 +48,7 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
 
     func handle(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
         switch sessionOwner.current {
+        case .alarm: alarmCoordinator.attach(extendedRuntimeSession)
         case .alert: alertCoordinator.attachRelaunchedSession(extendedRuntimeSession)
         case .backgroundMotion: backgroundCoordinator.attach(extendedRuntimeSession, verifiedOwner: true)
         case .overnightMotion:
@@ -56,6 +59,7 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     }
 
     func applicationDidBecomeActive() {
+        alarmCoordinator.refreshState()
         alertCoordinator.refreshState()
         backgroundCoordinator.applicationStateChanged("active")
         overnightCoordinator.applicationStateChanged("active")

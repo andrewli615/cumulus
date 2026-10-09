@@ -261,6 +261,23 @@ struct CMAccelerometerData: Sendable { let timestamp: TimeInterval }
         blockedOvernight.start(.comparison, configuration: .init())
         expect(freshOwner.current == .none && blockedMotion.archive.trials.isEmpty && blockedOvernight.archive.trials.isEmpty,
                "Blocked requests do not reserve ownership or start a trial")
+        let alarmDefaults = UserDefaults(suiteName: "Cumulus.AlarmDelegate.\(UUID())")!
+        let alarmURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("record.json")
+        defer { try? FileManager.default.removeItem(at: alarmURL.deletingLastPathComponent()) }
+        let app = WatchAppDelegate(testArchive: testArchive, defaults: alarmDefaults, alarmStore: AlarmFileStore(url: alarmURL))
+        app.alarmCoordinator.schedule(at: Date().addingTimeInterval(180))
+        let alarmSession = WKExtendedRuntimeSession.latest!
+        expect(app.sessionOwner.current == .alarm && !app.alertCoordinator.canSchedule && !app.backgroundCoordinator.canSchedule,
+               "Personal alarm excludes research sessions")
+        let relaunched = WatchAppDelegate(testArchive: testArchive, defaults: alarmDefaults, alarmStore: AlarmFileStore(url: alarmURL))
+        expect(relaunched.alarmCoordinator.isUnverified && relaunched.sessionOwner.current == .alarm, "Alarm ownership reconciles on relaunch")
+        alarmSession.state = .running
+        relaunched.handle(alarmSession)
+        expect(alarmSession.haptics == 1 && relaunched.alarmCoordinator.canStop, "App delegate routes running alarm")
+        relaunched.alarmCoordinator.stop()
+        alarmSession.end(.none)
+        await settle()
+        expect(relaunched.sessionOwner.current == .none, "Personal alarm releases shared owner after stop")
         print("PASS: sample boundaries, freshness, bounds, clocks, ownership, cancellation, error/expiry/manual-stop cleanup, stale callbacks and relaunch interruption")
     }
 }
