@@ -1,6 +1,6 @@
 # Experiment 006: Overnight motion feasibility
 
-Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The completed eight-hour comparison records 10% → 85% battery, charging, an interruption, and clock/reboot uncertainty; its battery result is inconclusive. A new October 8 owner-reported pilot block met sample-quality criteria, but full-window reads continued showing order anomalies through minute 30. That pilot has not qualified; investigate ordering before another recording. Overnight feasibility remains unresolved.
+Status: implemented and software-verified on 2026-10-06. The reported pilot produced 59,586 samples, but its 5.42-second leading gap exceeds the 5-second criterion. Saved diagnostics inspected on October 6 also record 11 order anomalies, differing from the owner's earlier report of none. Timely visibility remains unknown, and the earlier request timing cannot separate preparation from recorder startup. The completed eight-hour comparison records 10% → 85% battery, charging, an interruption, and clock/reboot uncertainty; its battery result is inconclusive. The October 8 saved pilot inspected read-only has 59,757 samples, timely block visibility, and five date-only order anomalies as its sole full-window timing failure. Its original build is 0.1 (6), watchOS 26.6. That pilot has not qualified; investigate ordering before another recording. Overnight feasibility remains unresolved.
 
 ## Question and prediction
 
@@ -173,7 +173,7 @@ The subsequent timing/UI fixes passed the same four suites and both signing-free
 
 ## Owner-reported pilot — October 8, partial observations
 
-The owner reported a new pilot and follow-up reads through minute 30. These observations are owner-reported; its saved reports have not been independently retrieved or inspected.
+The owner reported a new pilot and follow-up reads through minute 30. These observations were owner-reported before retrieval; the subsequent read-only inspection below resolves some unknowns without rewriting the original reports.
 
 - The fixed pilot block returned **3,000 samples** and displayed **criteria met**. The owner reported no API error, cancellation, or clock uncertainty for that block read.
 - A full-window read displayed **Sample order anomalies** at approximately minute 21 of the trial. The owner subsequently reported **5 recorded anomalies**. The exact retrieval attempt associated with that total and its category breakdown were not captured.
@@ -192,6 +192,28 @@ The reported five-anomaly read fails the unchanged zero-order-anomaly software c
 - **Software check:** `./scripts/check-overnight-motion.sh` passed on October 8. Its recorder double simulates a uniform stream with inclusive endpoints; it checks app logic under those inputs, not physical enumeration order. No app code, stored data, or criteria changed during this review.
 
 The next investigation should inspect the preserved report's existing anomaly categories and bucket locations against query boundaries. If those summaries cannot distinguish the cause, add bounded per-query ordering diagnostics before a new pilot. Preserve failures and test both documented endpoint interpretations; do not sort away anomalies or widen tolerances to obtain a pass.
+
+## Saved pilot inspection — October 8
+
+At the owner's request, read-only Xcode device tools copied five saved reports from the connected Series 8 into a new private directory outside Git. All five reports decoded; the current app model validated all three overnight trial snapshots. The app was not launched, updated, or attached to a debugger, and no recording or sensor query was requested. These are inspected software diagnostics, not independent observations of wearing or sleeping.
+
+| Check | Inspected latest pilot result |
+| --- | --- |
+| Original trial / capture version | Both **0.1 (6)**; saved watchOS **26.6**. Connected device metadata reports Series 8; the trial's manually entered model remains Unknown. |
+| Accepted full-window samples | **59,757**; **39/40** thirty-second buckets have at least 1,350 samples. |
+| Observed rate and largest gap | **49.9513 Hz**; **0.07859 s** largest accepted-sample gap. |
+| Leading / trailing gaps | **0.07682 s / 3.63764 s**; both meet the unchanged five-second limit. |
+| Ordering breakdown | **5 date-only**, zero exact time repeats, zero sensor-time-only, zero both-field failures. Expected boundary duplicates: **0**. |
+| Anomaly bucket locations | **1** in 0:30–1:00; **2** in 6:30–7:00; **2** in 10:30–11:00, relative to the trial start. |
+| Other full-window diagnostics | Invalid samples, nil/empty chunks, unexpected objects, and outside-window samples: **0**. Enumeration not aborted; no sample-clock discontinuity flagged. |
+| Fixed 9–10-minute block | Both stored block reads contain **2,965 samples** and are marked useful. First useful completion is **154.07 s after the block end**, within the four-minute visibility criterion. Latest block remains useful. |
+| Retrieval history | **19** compact observations: two block reads and seventeen full-window reads. All stored full reads have 59,757 samples and are marked not useful; none records an API error, cancellation, or clock uncertainty. Latest full completion is at **29.494 minutes** after the trial start, consistent with the approximate minute-30 owner report. Earlier full reads do not retain their own anomaly breakdowns. |
+
+The current app model reports **Sample order anomalies** as the sole full-window timing failure and `pilotQualified == false`. This pilot improves on the original leading-gap and late-probe failures but does not pass the unchanged zero-order-anomaly criterion. Most setup conditions, including wear, charging, interruptions, power mode, Focus, sleep tracking, and debugger detachment, remain Unknown. The earlier owner-reported 3,000-sample block count is preserved separately; both saved block observations contain 2,965, and the discrepancy is unresolved.
+
+**Interpretation:** date-only failures mean the measurement date did not strictly increase while the sensor timestamp did advance relative to the last accepted sample. The counts do not distinguish equal dates from backward dates or record the size of the failure. Their bucket locations do not support a simple duplicate exactly at the ten-minute query boundary as the sole explanation. A false clock-discontinuity flag does not establish that all timestamps were correct.
+
+**Next diagnostic milestone:** retain the private export and add bounded query-position and relative timestamp-delta summaries that distinguish equality from reversal and show whether an anomaly is inside a query or at its transition. Do not store raw acceleration, individual HealthKit records, or raw device logs in Git. Do not change sample acceptance, sort away failures, or relax the trial criteria based on these counts alone. Qualifying eight-hour trials remain gated on a passing pilot for their running build.
 
 ## Learning exercise
 
