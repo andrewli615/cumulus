@@ -73,6 +73,10 @@ def read_alarm(path):
     dates = [record["fireDate"], record["createdAt"]]
     if record.get("hapticRequestedAt") is not None:
         dates.append(record["hapticRequestedAt"])
+    if record.get("replacementFireDate") is not None:
+        if record["phase"] != "cancellationRequested":
+            raise ValueError("Replacement lacks pending cancellation")
+        dates.append(record["replacementFireDate"])
     events = record.get("events")
     if not isinstance(events, list) or len(events) > 40:
         raise ValueError("Invalid alarm history bound")

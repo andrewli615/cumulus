@@ -42,6 +42,15 @@ class RetrievalChecks(unittest.TestCase):
             self.assertIn("2001-01-01", result["dateEncoding"])
             self.assertEqual(result["hapticRequests"][0]["offsetSeconds"], 0.25)
             self.assertTrue(result["hapticRequests"][0]["requestWithin60Seconds"])
+            record["replacementFireDate"] = 300
+            record["phase"] = "cancellationRequested"
+            path.write_text(json.dumps(record))
+            self.assertEqual(archive.read_alarm(path)["record"]["replacementFireDate"], 300)
+            record["phase"] = "stopped"
+            path.write_text(json.dumps(record))
+            with self.assertRaises(ValueError):
+                archive.read_alarm(path)
+            del record["replacementFireDate"]
             record["events"] *= 41
             path.write_text(json.dumps(record))
             with self.assertRaises(ValueError):

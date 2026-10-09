@@ -24,6 +24,7 @@ struct AlarmRecord: Codable {
     let createdAt: Date
     var phase: Phase = .requesting
     var hapticRequestedAt: Date?
+    var replacementFireDate: Date?
     var events: [Event] = []
 
     mutating func record(_ message: String, at date: Date) {
@@ -32,12 +33,13 @@ struct AlarmRecord: Codable {
         events = Array(events.suffix(40))
     }
     func validate() throws {
-        let dates = [fireDate, createdAt] + [hapticRequestedAt].compactMap { $0 }
+        let dates = [fireDate, createdAt] + [hapticRequestedAt, replacementFireDate].compactMap { $0 }
             + events.flatMap { [$0.fireDate, $0.date] }
         guard dates.allSatisfy({ $0.timeIntervalSince1970.isFinite }),
               events.count <= 40, Set(events.map(\.id)).count == events.count,
               events.allSatisfy({ $0.message.count <= 500 }),
-              phase != .hapticRequested || hapticRequestedAt != nil else { throw AlarmStorageError.invalid }
+              phase != .hapticRequested || hapticRequestedAt != nil,
+              replacementFireDate == nil || phase == .cancellationRequested else { throw AlarmStorageError.invalid }
     }
 }
 

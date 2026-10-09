@@ -37,6 +37,9 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
                 isUnverified = record.phase.pending
                 didRequestHaptic = record.hapticRequestedAt != nil
                 status = isUnverified ? "Unverified after relaunch" : completedStatus(record.phase)
+                if record.replacementFireDate != nil {
+                    errorMessage = "Replacement not set after relaunch. The previous alarm cancellation is unconfirmed."
+                }
             }
         } catch {
             storageFailed = true
@@ -84,18 +87,23 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
               WKApplication.shared().applicationState == .active else {
             errorMessage = "The alarm cannot be edited now. Choose a future time within 36 hours."; return false
         }
-        replacement = fireDate
-        invalidate(stopping: false)
-        return true
+        return invalidate(stopping: false, replacingWith: fireDate)
     }
-    func cancel() { replacement = nil; invalidate(stopping: false) }
-    func stop() { replacement = nil; invalidate(stopping: true) }
+    func cancel() { _ = invalidate(stopping: false) }
+    func stop() { _ = invalidate(stopping: true) }
 
-    private func invalidate(stopping: Bool) {
+    private func invalidate(stopping: Bool, replacingWith fireDate: Date? = nil) -> Bool {
         guard WKApplication.shared().applicationState == .active, let session,
-              stopping ? canStop : canCancel else { return }
+              !pendingInvalidation, stopping ? canStop : canCancel else { return false }
+        guard session.state == (stopping ? .running : .scheduled) else {
+            refreshState()
+            errorMessage = "Session changed before the action. Review its current status."
+            return false
+        }
+        replacement = fireDate
         pendingInvalidation = true
         record?.phase = stopping ? .stopRequested : .cancellationRequested
+        record?.replacementFireDate = fireDate
         status = stopping ? "Stop requested" : "Cancellation requested"
         canCancel = false
         canStop = false
@@ -103,6 +111,7 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         _ = persist()
         // A storage failure must not prevent stopping an attached live session.
         session.invalidate()
+        return true
     }
 
     func attach(_ delivered: WKExtendedRuntimeSession) {
@@ -199,6 +208,8 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
             guard let self, let session = self.session, ObjectIdentifier(session) == identity else { return }
             let previousPhase = self.record?.phase
             let replacement = self.replacement
+            let interruptedReplacement = replacement == nil && self.record?.replacementFireDate != nil
+            self.record?.replacementFireDate = nil
             self.session = nil
             self.replacement = nil
             self.pendingInvalidation = false
@@ -214,6 +225,14 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
             self.status = self.completedStatus(self.record?.phase ?? .failed)
             self.append("Session invalidated (reason \(reasonCode))", at: date)
             if let details { self.errorMessage = details; self.append("Error: \(details)", at: date) }
+            else if reasonCode == WKExtendedRuntimeSessionInvalidationReason.error.rawValue {
+                self.errorMessage = "WatchKit ended the session with an error but supplied no details. The alarm is not active."
+                self.append("Error: WatchKit supplied no details", at: date)
+            }
+            if interruptedReplacement {
+                self.errorMessage = "Replacement not set after relaunch. The previous session ended; review and schedule again."
+                self.append("Interrupted edit: replacement not set", at: date)
+            }
             self.owner.release(.alarm)
             let saved = self.persist()
             if let replacement {

@@ -8,6 +8,8 @@ Cumulus uses one native watch-only SwiftUI target. The fixed-alarm home links to
 
 `ExperimentSessionOwner` adds `.alarm`; reconciliation detects competing alarm/research reservations. The app delegate attaches a recovered alarm session to the alarm coordinator. Saved intent alone is Unverified. Completed alarm clearing is blocked while a reservation is unknown/active; clearing research reports never deletes alarm history. The optional `--alarm-only` private retrieval tool reads the separate file without starting the app; copied files survive app deletion. Disk write and a WatchKit call cannot be made atomic, so crash-boundary outcomes remain a physical-test limitation rather than an exactly-once delivery guarantee.
 
+Build 17 preserves the pending replacement date during an edit. A recovered interrupted edit reports that the replacement is not set and resumes cancellation of the old session when permitted; it never re-arms the replacement automatically. Confirmed invalidation clears that metadata. Older records without the optional field remain readable. Actions check actual session state as well as UI flags.
+
 ## Ownership and data flow
 
 | Boundary | Current implementation |

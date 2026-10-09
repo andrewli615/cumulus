@@ -104,6 +104,42 @@ import Foundation
         expect(pendingRecovery.status == "Cancelled", "Recovered cancellation confirms result")
         // Ignore the abandoned test instance; it represents the terminated process.
         expect(sixth.invalidations == 1, "Original cancellation issued once")
+        pendingRecovery.schedule(at: date)
+        pendingRecovery.edit(to: changed)
+        let interruptedEdit = AlarmCoordinator(owner: owner, store: store, now: { now })
+        expect(store.value?.replacementFireDate == changed && interruptedEdit.errorMessage != nil,
+               "Pending replacement survives persistence and is reported on relaunch")
+        let interruptedSession = WKExtendedRuntimeSession(); interruptedSession.state = .scheduled
+        interruptedEdit.attach(interruptedSession)
+        interruptedSession.end(.none)
+        await settle()
+        expect(WKExtendedRuntimeSession.latest === interruptedSession && interruptedEdit.canSchedule,
+               "Interrupted edit does not automatically re-arm after recovery")
+        expect(interruptedEdit.errorMessage?.contains("Replacement not set") == true,
+               "Interrupted edit reports the lost replacement explicitly")
+        expect(store.value?.replacementFireDate == nil, "Completed recovery clears pending replacement")
+        interruptedEdit.schedule(at: date)
+        let noDetails = WKExtendedRuntimeSession.latest!
+        noDetails.end(.error)
+        await settle()
+        expect(interruptedEdit.record?.phase == .failed && interruptedEdit.errorMessage?.contains("no details") == true,
+               "Platform error without details still has an actionable explanation")
+        interruptedEdit.schedule(at: date)
+        let staleState = WKExtendedRuntimeSession.latest!
+        staleState.state = .invalid
+        expect(!interruptedEdit.edit(to: changed) && staleState.invalidations == 0,
+               "Stale UI actions cannot invalidate an already ended session")
+        staleState.end(.none)
+        await settle()
+        interruptedEdit.schedule(at: date)
+        let writeDuringCancel = WKExtendedRuntimeSession.latest!
+        store.fails = true
+        interruptedEdit.cancel()
+        expect(writeDuringCancel.invalidations == 1, "Storage failure cannot prevent cancellation")
+        store.fails = false
+        writeDuringCancel.end(.none)
+        await settle()
+        expect(interruptedEdit.status == "Cancelled" && interruptedEdit.canSchedule, "Cancellation persists after storage recovers")
         store.fails = true
         let corrupt = AlarmCoordinator(owner: owner, store: store)
         expect(corrupt.hasReservation && corrupt.isUnverified, "Unreadable storage blocks scheduling")
@@ -168,6 +204,17 @@ import Foundation
         try fileStore.save(store.value!)
         let loaded = try fileStore.load()
         expect(loaded?.events.count == 40, "Atomic file round trip")
+        var savedEdit = store.value!
+        savedEdit.phase = .cancellationRequested
+        savedEdit.replacementFireDate = changed
+        try fileStore.save(savedEdit)
+        let loadedEdit = try fileStore.load()
+        expect(loadedEdit?.replacementFireDate == changed, "Pending replacement survives file round trip")
+        var legacy = try JSONSerialization.jsonObject(with: Data(contentsOf: fileStore.url)) as! [String: Any]
+        legacy.removeValue(forKey: "replacementFireDate")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: fileStore.url)
+        let loadedLegacy = try fileStore.load()
+        expect(loadedLegacy?.replacementFireDate == nil, "Older records without pending replacement remain readable")
         try Data("invalid".utf8).write(to: fileStore.url)
         do { _ = try fileStore.load(); preconditionFailure("Corrupt data accepted") } catch {}
         let unrelated = directory.appendingPathComponent("research-sentinel.txt")
