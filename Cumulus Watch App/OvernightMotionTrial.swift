@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 struct OvernightMotionSummary: Codable, Sendable {
     struct QueryPosition: Codable, Sendable {
@@ -254,6 +255,24 @@ struct OvernightMotionSummary: Codable, Sendable {
 }
 
 struct OvernightMotionTrial: Codable, Identifiable, Sendable {
+    enum ElapsedClock: String, Codable, Sendable {
+        case continuous
+    }
+    struct ClockMismatch: Codable, Sendable {
+        let observedAt: Date
+        let wallElapsed: TimeInterval
+        let clockElapsed: TimeInterval
+        var difference: TimeInterval { wallElapsed - clockElapsed }
+    }
+    // Keep the stored clock basis: old awake-time values cannot be converted after the fact.
+    static func elapsedTime(for clock: ElapsedClock?) -> TimeInterval {
+        if clock == .continuous {
+            return Double(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)) / 1_000_000_000
+        }
+        return ProcessInfo.processInfo.systemUptime
+    }
+    var clockLabel: String { elapsedClock == .continuous ? "Continuous (includes device sleep)" : "Legacy awake time" }
+
     enum Mode: String, Codable, CaseIterable, Identifiable, Sendable {
         case pilot, overnight, comparison
         var id: String { rawValue }
@@ -312,6 +331,8 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     var start: Date
     var end: Date
     var startUptime: TimeInterval
+    var elapsedClock: ElapsedClock?
+    var firstClockMismatch: ClockMismatch?
     var recorderCall: RecorderCall?
     var configuration: Configuration
     var phase: Phase
@@ -331,12 +352,13 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     var events: [Event] = []
     var eventsTruncated = false
 
-    init(mode: Mode, start: Date, uptime: TimeInterval, configuration: Configuration, battery: Double?) {
+    init(mode: Mode, start: Date, uptime: TimeInterval, configuration: Configuration, battery: Double?, elapsedClock: ElapsedClock? = nil) {
         id = UUID()
         self.mode = mode
         self.start = start
         end = start.addingTimeInterval(mode.duration)
         startUptime = uptime
+        self.elapsedClock = elapsedClock
         self.configuration = configuration
         phase = mode == .comparison ? .comparison : .prepared
         batteryStart = Battery(date: start, level: battery)
@@ -355,7 +377,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     }
     func clockIsContinuous(now: Date, uptime: TimeInterval) -> Bool {
         let elapsed = uptime - startUptime
-        return elapsed >= 0 && abs(now.timeIntervalSince(start) - elapsed) <= 5
+        return uptime.isFinite && elapsed >= 0 && abs(now.timeIntervalSince(start) - elapsed) <= 5
     }
     var batteryDrop: Double? {
         guard let begin = batteryStart.level, let finish = batteryReturn?.level else { return nil }
@@ -418,6 +440,14 @@ struct OvernightMotionArchive: Codable, Sendable {
                   trial.events.allSatisfy({ $0.date.timeIntervalSince1970.isFinite && $0.message.count <= 400 }),
                   [trial.batteryStart.level, trial.batteryReturn?.level].compactMap({ $0 }).allSatisfy({ $0.isFinite && (0...1).contains($0) })
                   else { throw OvernightArchiveError.invalid }
+            if let mismatch = trial.firstClockMismatch {
+                guard trial.clockDiscontinuity, mismatch.observedAt.timeIntervalSince1970.isFinite,
+                      mismatch.wallElapsed.isFinite, mismatch.clockElapsed.isFinite,
+                      mismatch.difference.isFinite,
+                      mismatch.clockElapsed < 0 || abs(mismatch.difference) > 5 else {
+                    throw OvernightArchiveError.invalid
+                }
+            }
             if let call = trial.recorderCall {
                 guard trial.mode != .comparison, trial.requestCount == 1,
                       call.preparedAt.timeIntervalSince1970.isFinite, call.returnedAt.timeIntervalSince1970.isFinite,

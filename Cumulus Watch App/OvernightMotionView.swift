@@ -315,6 +315,16 @@ private struct OvernightTrialView: View {
                 }
                 ExperimentCard {
                     ExperimentHeading(title: "Request timing", symbol: "clock")
+                    ExperimentMetric(label: "Elapsed clock", value: trial.clockLabel)
+                    if let mismatch = trial.firstClockMismatch {
+                        ExperimentMetric(label: "First clock mismatch", value: date(mismatch.observedAt))
+                        ExperimentMetric(label: "Wall elapsed", value: seconds(mismatch.wallElapsed))
+                        ExperimentMetric(label: "Clock elapsed", value: seconds(mismatch.clockElapsed))
+                        ExperimentMetric(label: "Wall minus clock", value: String(format: "%+.2f s", mismatch.difference))
+                    } else if trial.clockDiscontinuity {
+                        Text("Mismatch measurements were not saved for this trial.").font(.caption2)
+                    }
+
                     ExperimentMetric(label: "Window start", value: date(trial.start))
                     ExperimentMetric(label: "Window end", value: date(trial.end))
                     if let call = trial.recorderCall {

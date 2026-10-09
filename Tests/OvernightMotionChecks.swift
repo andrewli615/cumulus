@@ -46,6 +46,77 @@ import Foundation
         guided.clockDiscontinuity = true
         expect(PilotGuide(trial: guided, now: origin).target == nil, "Clock uncertainty removes countdown")
         let good = uniform()
+        // Device sleep advances wall time and the continuous clock, but not legacy awake time.
+        var sleepTrial = OvernightMotionTrial(mode: .pilot, start: origin, uptime: 1000,
+            configuration: .init(), battery: nil, elapsedClock: .continuous)
+        expect(sleepTrial.clockIsContinuous(now: origin.addingTimeInterval(600), uptime: 1600),
+               "Continuous elapsed time includes simulated device sleep")
+        expect(!sleepTrial.clockIsContinuous(now: origin.addingTimeInterval(600), uptime: 1020),
+               "Awake-only elapsed time would falsely flag device sleep")
+        expect(!sleepTrial.clockIsContinuous(now: origin.addingTimeInterval(600), uptime: 1590)
+            && !sleepTrial.clockIsContinuous(now: origin.addingTimeInterval(600), uptime: 50),
+            "Wall-clock changes and a reset elapsed clock remain uncertain")
+        expect(!sleepTrial.clockIsContinuous(now: origin, uptime: .nan), "Nonfinite elapsed clocks cannot qualify")
+        let sleepData = try JSONEncoder().encode(sleepTrial)
+        let decodedSleep = try JSONDecoder().decode(OvernightMotionTrial.self, from: sleepData)
+        expect(decodedSleep.elapsedClock == .continuous,
+               "Clock basis survives persistence")
+        let legacyData = try JSONEncoder().encode(guided)
+        let legacyTrial = try JSONDecoder().decode(OvernightMotionTrial.self, from: legacyData)
+        expect(legacyTrial.elapsedClock == nil && legacyTrial.firstClockMismatch == nil,
+               "Legacy archives retain awake-time basis and unavailable mismatch diagnostics")
+        sleepTrial.clockDiscontinuity = true
+        sleepTrial.firstClockMismatch = .init(observedAt: origin.addingTimeInterval(600), wallElapsed: 600, clockElapsed: 590)
+        try OvernightMotionArchive(trials: [sleepTrial]).validate()
+        sleepTrial.firstClockMismatch = .init(observedAt: origin, wallElapsed: 600, clockElapsed: 600)
+        invalid(OvernightMotionArchive(trials: [sleepTrial]), "A non-mismatch cannot be saved as clock uncertainty")
+
+        let clockSuite = "cumulus.continuous-clock." + UUID().uuidString
+        let clockDefaults = UserDefaults(suiteName: clockSuite)!
+        defer { clockDefaults.removePersistentDomain(forName: clockSuite) }
+        var continuousNow = 1000.0
+        let awakeNow = 1000.0
+        let clockOwner = ExperimentSessionOwner(defaults: clockDefaults)
+        SyntheticRecorder.shared.configure()
+        let clockCoordinator = OvernightMotionCoordinator(owner: clockOwner, defaults: clockDefaults,
+            clockTime: { basis in basis == .continuous ? continuousNow : awakeNow })
+        clockCoordinator.start(.pilot, configuration: .init())
+        let clockStart = clockCoordinator.latest!.start
+        expect(clockCoordinator.latest?.elapsedClock == .continuous, "New requests explicitly save continuous-clock basis")
+        continuousNow += 600
+        clockCoordinator.refreshClock(now: clockStart.addingTimeInterval(600))
+        expect(clockCoordinator.latest?.clockDiscontinuity == false && clockCoordinator.hasReservation,
+               "Coordinator uses continuous time when awake time stalls during sleep")
+        clockCoordinator.refreshClock(now: clockStart.addingTimeInterval(610))
+        let mismatch = clockCoordinator.latest!.firstClockMismatch!
+        expect(mismatch.wallElapsed == 610 && mismatch.clockElapsed == 600 && mismatch.difference == 10,
+               "First mismatch records both elapsed measurements")
+        continuousNow += 100
+        clockCoordinator.refreshClock(now: clockStart.addingTimeInterval(720))
+        expect(clockCoordinator.latest?.firstClockMismatch?.wallElapsed == 610,
+               "Later mismatches cannot overwrite the first mismatch evidence")
+        let clockRecovered = OvernightMotionCoordinator(owner: clockOwner, defaults: clockDefaults,
+            clockTime: { _ in continuousNow })
+        expect(clockRecovered.latest?.elapsedClock == .continuous && clockRecovered.latest?.clockDiscontinuity == true
+            && clockRecovered.latest?.firstClockMismatch?.difference == 10,
+            "Relaunch preserves clock basis and uncertainty without rearming")
+        clockOwner.release(.overnightMotion)
+        var sleepCompleted = OvernightMotionTrial(mode: .pilot, start: Date().addingTimeInterval(-1500),
+            uptime: continuousNow - 1500, configuration: .init(), battery: nil, elapsedClock: .continuous)
+        sleepCompleted.phase = .requested
+        sleepCompleted.requestCount = 1
+        clockDefaults.set(try JSONEncoder().encode(OvernightMotionArchive(trials: [sleepCompleted])), forKey: "overnightMotion.v1")
+        let afterSleep = OvernightMotionCoordinator(owner: clockOwner, defaults: clockDefaults,
+            clockTime: { basis in basis == .continuous ? continuousNow : awakeNow })
+        expect(afterSleep.latest?.phase == .elapsed && afterSleep.latest?.clockDiscontinuity == false,
+               "Recovered continuous-clock window can expire despite stalled awake time")
+        afterSleep.retrieve(pilotProbe: false)
+        await settle(afterSleep)
+        expect(afterSleep.latest?.observations.last?.useful == true
+            && afterSleep.latest?.observations.last?.clockDiscontinuity == false,
+            "Both retrieval clock checks use the persisted continuous basis")
+        SyntheticRecorder.shared.configure()
+
         try good.validate()
         expect(good.count == 60_000 && good.buckets.count == 40 && good.buckets.allSatisfy { $0.count == 1500 }, "Exact bucket boundaries at 50 Hz")
         expect(good.meetsTimingCriteria, "Uniform pilot passes timing criteria")

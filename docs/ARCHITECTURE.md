@@ -35,7 +35,7 @@ Overnight requests save a provisional window before calling the recorder. On ret
 | Alert diagnostics | Requested date, lifecycle bookkeeping, and latest 40 timestamped events in local UserDefaults. |
 | Background diagnostics | Latest five trial summaries, twelve five-second buckets and at most 40 events per trial, plus lifecycle bookkeeping in local UserDefaults. No raw vectors. |
 | Cardiac records | In-memory snapshots only, with per-type limits and clearing on exit/background. |
-| Overnight diagnostics | Three trials, up to 960 thirty-second buckets, 40 events and 40 read observations per trial. Build 8 adds aggregate ordering counters and up to twelve relative timing/query-position examples per read and latest summary; pilot evidence contains only trial ID/OS/build. Raw vectors are discarded; system-managed retention is separate. |
+| Overnight diagnostics | Three trials, up to 960 thirty-second buckets, 40 events and 40 read observations per trial. Build 8 adds aggregate ordering counters and up to twelve relative timing/query-position examples per read and latest summary; pilot evidence contains only trial ID/OS/build. Build 9 persists the new continuous elapsed-clock basis and at most one first-mismatch pair of elapsed measurements; missing basis retains legacy awake-time semantics. Raw vectors are discarded; system-managed retention is separate. |
 | Saved test reports | One JSON file per run in Application Support/Cumulus/TestArchive, at most 200 reports or 32 MB. Full bounded alert/background/overnight diagnostic snapshots and health-query/foreground counts and statuses; no individual HealthKit records or raw vectors. |
 | Shared session owner | Local UserDefaults routing state; reconciled with coordinator evidence on launch. |
 

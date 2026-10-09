@@ -11,6 +11,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     @Published private(set) var isRetrieving = false
     @Published private(set) var isRequestingAccess = false
     @Published private(set) var progress = ""
+    private let clockTime: (OvernightMotionTrial.ElapsedClock?) -> TimeInterval
     private let recorder: OvernightMotionRecorder
     private let owner: ExperimentSessionOwner
     private let defaults: UserDefaults
@@ -28,7 +29,9 @@ final class OvernightMotionCoordinator: ObservableObject {
     }
 
     init(owner: ExperimentSessionOwner, defaults: UserDefaults = .standard,
-         recorder: OvernightMotionRecorder = OvernightMotionRecorder(), testArchive: TestArchiveStore? = nil) {
+         recorder: OvernightMotionRecorder = OvernightMotionRecorder(), testArchive: TestArchiveStore? = nil,
+         clockTime: @escaping (OvernightMotionTrial.ElapsedClock?) -> TimeInterval = OvernightMotionTrial.elapsedTime) {
+        self.clockTime = clockTime
         self.owner = owner
         self.defaults = defaults
         self.testArchive = testArchive
@@ -88,20 +91,20 @@ final class OvernightMotionCoordinator: ObservableObject {
         settings.appBuild = build
         settings.timeZone = TimeZone.current.identifier
         let preparedAt = Date()
-        let preparedUptime = ProcessInfo.processInfo.systemUptime
+        let preparedUptime = clockTime(.continuous)
         let battery = batteryLevel()
-        let trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: ProcessInfo.processInfo.systemUptime,
-                                         configuration: settings, battery: battery)
+        let trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: clockTime(.continuous),
+                                         configuration: settings, battery: battery, elapsedClock: .continuous)
         archive.append(trial)
         archive.trials[archive.trials.count - 1].record("Recorder available: \(access.available); authorization: \(access.authorization)")
         archive.trials[archive.trials.count - 1].record(mode == .comparison ? "Comparison started; no recording request" : "Request prepared; provisional window saved")
         guard persist() else { owner.markUnresolved(); return }
         if mode != .comparison {
             let startedAt = Date()
-            let startedUptime = ProcessInfo.processInfo.systemUptime
+            let startedUptime = clockTime(.continuous)
             recorder.record(duration: mode.duration)
             let returnedAt = Date()
-            let returnedUptime = ProcessInfo.processInfo.systemUptime
+            let returnedUptime = clockTime(.continuous)
             mutateLatest { trial in
                 trial.start = startedAt
                 trial.end = startedAt.addingTimeInterval(mode.duration)
@@ -120,13 +123,16 @@ final class OvernightMotionCoordinator: ObservableObject {
         }
     }
 
-    func refreshClock(now: Date = Date(), uptime: TimeInterval = ProcessInfo.processInfo.systemUptime) {
+    func refreshClock(now: Date = Date(), uptime: TimeInterval? = nil) {
         guard let trial = latest, storageError == nil else { return }
         guard !trial.hasCompletedObservation else { return }
+        let uptime = uptime ?? clockTime(trial.elapsedClock)
         if !trial.clockIsContinuous(now: now, uptime: uptime) {
             if !trial.clockDiscontinuity {
                 mutateLatest { trial in
                     trial.clockDiscontinuity = true
+                    trial.firstClockMismatch = .init(observedAt: now, wallElapsed: now.timeIntervalSince(trial.start),
+                                                     clockElapsed: uptime - trial.startUptime)
                     if trial.reservesWindow { trial.phase = .uncertain }
                     trial.record("Clock/reboot discontinuity; original window retained", at: now)
                 }
@@ -217,7 +223,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         guard Date().timeIntervalSince(start) < 259200 else { status = "Window exceeds three-day retention; evidence inconclusive"; return }
         recordReturn()
         let requestedAt = Date()
-        let requestClockContinuous = trial.clockIsContinuous(now: requestedAt, uptime: ProcessInfo.processInfo.systemUptime)
+        let requestClockContinuous = trial.clockIsContinuous(now: requestedAt, uptime: clockTime(trial.elapsedClock))
         let id = UUID()
         retrievalID = id
         let flag = OvernightRetrievalCancellation()
@@ -239,7 +245,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                 self.refreshClock()
                 let cancelled = result.cancelled || flag.isCancelled || WKApplication.shared().applicationState != .active
                 let readClockUncertain = !requestClockContinuous
-                    || !trial.clockIsContinuous(now: Date(), uptime: ProcessInfo.processInfo.systemUptime)
+                    || !trial.clockIsContinuous(now: Date(), uptime: self.clockTime(trial.elapsedClock))
                 let preserveCompletedEvidence = readClockUncertain && trial.hasCompletedObservation
                 let useful = !cancelled && !readClockUncertain && result.error == nil
                     && result.summary.meetsTimingCriteria && self.latest?.clockDiscontinuity == false
@@ -305,7 +311,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         var metrics = ["Mode": trial.mode.title, "Phase": trial.phase.rawValue,
             "Original build": trial.configuration.appBuild, "Original watchOS": trial.configuration.watchOS,
             "Charging": trial.configuration.charging, "Interruption": trial.configuration.interruption,
-            "Clock discontinuity": String(trial.clockDiscontinuity), "Pilot software criteria": String(trial.pilotQualified),
+            "Elapsed clock": trial.clockLabel, "Clock discontinuity": String(trial.clockDiscontinuity), "Pilot software criteria": String(trial.pilotQualified),
             "Visibility": trial.morningVisibility, "Events truncated": String(trial.eventsTruncated),
             "Requested start (Unix seconds)": String(trial.start.timeIntervalSince1970),
             "Requested end (Unix seconds)": String(trial.end.timeIntervalSince1970)]

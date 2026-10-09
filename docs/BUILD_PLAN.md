@@ -6,6 +6,8 @@ The intended first release is **Watch-only and for personal use**: a latest wake
 
 For each requested chunk, explain the behavior, data flow, technical risk, and one alternative, then implement and verify it without pausing for routine approval. Keep changes small and revisable; inspect the diff and relevant checks. Commit each coherent chunk after its checks pass, write a concise message, and report it. Do not push unless asked. Completing one chunk does not authorize unrelated later work.
 
+Current milestone: Experiment 006 timing investigation. The fresh build-8 pilot reproduces four backward-date comparisons and trial clock uncertainty. Build 9 corrects the use of awake-only elapsed time with a persisted continuous clock and first-mismatch diagnostics; old evidence remains unchanged. Software checks pass, but a physical build-9 pilot is needed to verify the clock correction. Sample-order failures remain unresolved and still block eight-hour qualification. Follow [the current procedure](experiments/006-overnight-motion.md#build-9-sleep-aware-elapsed-clock-correction); do not proceed to model or wake-flow implementation from these results.
+
 | Chunk | Deliverable | Exit question |
 | --- | --- | --- |
 | 1. Data experiment specification | Live-data procedure and documented access limits | Do we agree what to measure and what counts as fresh data? |
