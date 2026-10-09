@@ -7,11 +7,18 @@ struct OvernightMotionSummary: Codable, Sendable {
         let sampleIndex: Int
         let previousAcceptedQueryIndex: Int
     }
+    struct InputComparison: Codable, Sendable {
+        let dateDelta: TimeInterval
+        let sensorDelta: TimeInterval
+        let batchChanged: Bool
+        let gettersStable: Bool
+    }
     struct OrderExample: Codable, Sendable {
         let relativeSeconds: TimeInterval
         let dateDelta: TimeInterval
         let sensorDelta: TimeInterval
         let position: QueryPosition?
+        var inputComparison: InputComparison?
     }
     struct OrderDiagnostics: Codable, Sendable {
         static let exampleLimit = 12
@@ -26,7 +33,7 @@ struct OvernightMotionSummary: Codable, Sendable {
         var total: Int { withinQuery + acrossQueries + unknownPosition }
 
         mutating func record(relativeSeconds: TimeInterval, dateDelta: TimeInterval,
-                             sensorDelta: TimeInterval, position: QueryPosition?) {
+                             sensorDelta: TimeInterval, position: QueryPosition?, inputComparison: InputComparison? = nil) {
             if dateDelta == 0 { repeatedDates += 1 }
             else if dateDelta < 0 { backwardDates += 1 }
             if sensorDelta == 0 { repeatedSensorTimes += 1 }
@@ -37,7 +44,7 @@ struct OvernightMotionSummary: Codable, Sendable {
             } else { unknownPosition += 1 }
             if examples.count < Self.exampleLimit {
                 examples.append(OrderExample(relativeSeconds: relativeSeconds, dateDelta: dateDelta,
-                    sensorDelta: sensorDelta, position: position))
+                    sensorDelta: sensorDelta, position: position, inputComparison: inputComparison))
             }
         }
 
@@ -56,6 +63,9 @@ struct OvernightMotionSummary: Codable, Sendable {
                       example.dateDelta.isFinite, abs(example.dateDelta) <= duration,
                       example.sensorDelta.isFinite, example.dateDelta <= 0 || example.sensorDelta <= 0 else {
                     throw OvernightArchiveError.invalid
+                }
+                if let input = example.inputComparison {
+                    guard input.dateDelta.isFinite, input.sensorDelta.isFinite else { throw OvernightArchiveError.invalid }
                 }
                 if let position = example.position {
                     guard (1...Int(ceil(duration / 600))).contains(position.queryIndex), (1...3_000_000).contains(position.sampleIndex),
@@ -123,7 +133,7 @@ struct OvernightMotionSummary: Codable, Sendable {
     }
 
     mutating func receive(date: Date, uptime: TimeInterval, axesFinite: Bool, chunkStart: Date,
-                          position: QueryPosition? = nil) {
+                          position: QueryPosition? = nil, inputComparison: InputComparison? = nil) {
         guard date.timeIntervalSince1970.isFinite, uptime.isFinite, uptime >= 0, axesFinite else {
             invalid += 1
             if date.timeIntervalSince1970.isFinite, date >= start, date < end, !buckets.isEmpty {
@@ -140,7 +150,7 @@ struct OvernightMotionSummary: Codable, Sendable {
             outOfOrder += 1
             if var diagnostics = orderDiagnostics {
                 diagnostics.record(relativeSeconds: date.timeIntervalSince(start), dateDelta: date.timeIntervalSince(last),
-                    sensorDelta: uptime - lastUptime, position: position)
+                    sensorDelta: uptime - lastUptime, position: position, inputComparison: inputComparison)
                 orderDiagnostics = diagnostics
             }
             if var counts = orderAnomalyCounts {
@@ -296,6 +306,23 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         var charging = "Unknown"
         var interruption = "Unknown"
     }
+    struct TimingAssessment: Codable, Sendable {
+        let qualifyingBuckets: Int
+        let bucketCount: Int
+        let bucketCounts: [Int]?
+        let maximumGap: TimeInterval
+        let observedRate: Double?
+        let failures: [String]
+
+        init(summary: OvernightMotionSummary, pilotProbe: Bool) {
+            qualifyingBuckets = summary.qualifyingBuckets
+            bucketCount = summary.buckets.count
+            bucketCounts = pilotProbe ? summary.buckets.map(\.count) : nil
+            maximumGap = summary.maximumGap
+            observedRate = summary.observedRate
+            failures = summary.timingFailures
+        }
+    }
     struct Observation: Codable, Sendable {
         let pilotProbe: Bool
         let requestedAt: Date
@@ -310,6 +337,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         let error: String?
         var clockDiscontinuity: Bool?
         var orderDiagnostics: OvernightMotionSummary.OrderDiagnostics?
+        var timingAssessment: TimingAssessment?
     }
     struct Event: Codable, Identifiable, Sendable {
         let id: UUID
@@ -469,6 +497,24 @@ struct OvernightMotionArchive: Codable, Sendable {
                       (0...3_000_000).contains(observation.count), (0...48).contains(observation.nilChunks),
                       (0...48).contains(observation.emptyChunks), (observation.error?.count ?? 0) <= 400 else {
                     throw OvernightArchiveError.invalid
+                }
+                if let assessment = observation.timingAssessment {
+                    let expectedBuckets = Int(ceil((observation.pilotProbe ? 60 : trial.mode.duration) / 30))
+                    guard assessment.bucketCount == expectedBuckets,
+                          (0...expectedBuckets).contains(assessment.qualifyingBuckets),
+                          assessment.maximumGap.isFinite, assessment.maximumGap >= 0,
+                          assessment.observedRate.map({ $0.isFinite && $0 > 0 }) ?? true,
+                          assessment.failures.count <= 16, Set(assessment.failures).count == assessment.failures.count,
+                          assessment.failures.allSatisfy({ !$0.isEmpty && $0.count <= 100 }),
+                          !observation.useful || assessment.failures.isEmpty else { throw OvernightArchiveError.invalid }
+                    if let counts = assessment.bucketCounts {
+                        guard observation.pilotProbe, counts.count == expectedBuckets,
+                              counts.allSatisfy({ (0...3_000_000).contains($0) }),
+                              counts.reduce(0, +) == observation.count,
+                              counts.filter({ $0 >= 1350 }).count == assessment.qualifyingBuckets else {
+                            throw OvernightArchiveError.invalid
+                        }
+                    }
                 }
                 if let diagnostics = observation.orderDiagnostics {
                     try diagnostics.validate(duration: observation.pilotProbe ? 60 : trial.mode.duration)

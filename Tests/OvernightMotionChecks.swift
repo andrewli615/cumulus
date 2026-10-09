@@ -166,6 +166,8 @@ import Foundation
         let encodedOrder = try JSONEncoder().encode(orderTypes)
         let decodedOrder = try JSONDecoder().decode(OvernightMotionSummary.self, from: encodedOrder)
         try decodedOrder.validate()
+        expect(decodedOrder.orderDiagnostics?.examples.allSatisfy({ $0.inputComparison == nil }) == true,
+               "Older examples preserve missing adjacent input diagnostics")
         expect(decodedOrder.orderAnomalyCounts?.exactTimeRepeats == 1 && decodedOrder.orderAnomalyCounts?.total == 4,
                "New order counters survive persistence")
         var legacyOrderJSON = try JSONSerialization.jsonObject(with: encodedOrder) as! [String: Any]
@@ -255,6 +257,55 @@ import Foundation
         expect(dateFailures.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 21
             && dateFailures.summary.orderDiagnostics?.examples[2].position?.queryIndex == 2,
             "Worker records one-based typed sample rows in each query")
+        let adjacent = dateFailures.summary.orderDiagnostics!.examples[1].inputComparison!
+        expect(adjacent.dateDelta < 0 && adjacent.sensorDelta > 0 && adjacent.gettersStable,
+               "The worker records backwards wall time directly from API rows with advancing sensor time")
+        SyntheticRecorder.shared.configure(output: .wallDateStep)
+        let mappingStep = await read(recorder, duration: 60)
+        try mappingStep.summary.validate()
+        let stepExamples = mappingStep.summary.orderDiagnostics!.examples
+        expect(stepExamples.count >= 2 && !mappingStep.summary.meetsTimingCriteria,
+               "One backward wall-date step can cause multiple last-accepted failures without qualifying")
+        expect(stepExamples[0].inputComparison?.batchChanged == true
+            && stepExamples[0].inputComparison!.dateDelta < 0,
+            "First failure identifies a backward returned date at a synthetic batch transition")
+        expect(stepExamples[1].inputComparison?.batchChanged == false
+            && stepExamples[1].inputComparison!.dateDelta > 0
+            && stepExamples[1].dateDelta <= 0,
+            "A subsequent rejected row can advance versus returned input but remain behind last accepted date")
+        let assessment = OvernightMotionTrial.TimingAssessment(summary: mappingStep.summary, pilotProbe: true)
+        expect(assessment.failures.contains("Sample order anomalies") && assessment.bucketCounts?.count == 2,
+               "Fixed-block assessments preserve the actual failed criterion and both bucket counts")
+        var sparseBlock = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(60))
+        for row in 0..<2800 {
+            sparseBlock.receive(date: origin.addingTimeInterval(Double(row) / 50), uptime: 1000 + Double(row) / 50,
+                axesFinite: true, chunkStart: origin)
+        }
+        let sparseAssessment = OvernightMotionTrial.TimingAssessment(summary: sparseBlock, pilotProbe: true)
+        expect(sparseAssessment.bucketCounts == [1500, 1300]
+            && sparseAssessment.failures == ["Bucket coverage below 95%"],
+            "A 2800-sample block can fail coverage; count alone does not identify the failure")
+        var assessedTrial = OvernightMotionTrial(mode: .pilot, start: origin.addingTimeInterval(-540), uptime: 1000,
+            configuration: .init(), battery: nil)
+        var assessedRead = OvernightMotionTrial.Observation(pilotProbe: true, requestedAt: origin.addingTimeInterval(180),
+            completedAt: origin.addingTimeInterval(181), count: sparseBlock.count, useful: false,
+            first: sparseBlock.first, last: sparseBlock.last, nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
+        assessedRead.timingAssessment = sparseAssessment
+        assessedTrial.observations = [assessedRead]
+        try OvernightMotionArchive(trials: [assessedTrial]).validate()
+        let assessedData = try JSONEncoder().encode(assessedTrial)
+        let restoredAssessment = try JSONDecoder().decode(OvernightMotionTrial.self, from: assessedData)
+        expect(restoredAssessment.observations[0].timingAssessment?.bucketCounts == [1500, 1300]
+            && restoredAssessment.observations[0].timingAssessment?.failures == ["Bucket coverage below 95%"],
+            "Specific pilot failure reasons survive persistence")
+        assessedTrial.observations[0] = .init(pilotProbe: true, requestedAt: origin, completedAt: origin,
+            count: 0, useful: false, first: nil, last: nil, nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil,
+            timingAssessment: sparseAssessment)
+        invalid(OvernightMotionArchive(trials: [assessedTrial]), "Inconsistent pilot bucket counts accepted")
+        var malformedInput = mappingStep.summary
+        malformedInput.orderDiagnostics!.examples[0].inputComparison = .init(dateDelta: .nan, sensorDelta: 0.02,
+            batchChanged: true, gettersStable: true)
+        try invalid(malformedInput, "Nonfinite adjacent input diagnostics accepted")
         SyntheticRecorder.shared.configure(output: .transitionAnomaly)
         let transition = await read(recorder)
         try transition.summary.validate()
@@ -271,7 +322,8 @@ import Foundation
         for row in 1...20 {
             largeSummary.receive(date: largeSummary.last!, uptime: largeSummary.lastUptime! + 0.02,
                 axesFinite: true, chunkStart: origin.addingTimeInterval(28200),
-                position: .init(queryIndex: 48, sampleIndex: 30000 + row, previousAcceptedQueryIndex: 48))
+                position: .init(queryIndex: 48, sampleIndex: 30000 + row, previousAcceptedQueryIndex: 48),
+                inputComparison: .init(dateDelta: -0.06, sensorDelta: 0.02, batchChanged: true, gettersStable: true))
         }
         try largeSummary.validate()
         var largeTrial = OvernightMotionTrial(mode: .overnight, start: origin, uptime: 1000, configuration: .init(), battery: nil)
@@ -282,6 +334,7 @@ import Foundation
             completedAt: largeTrial.end, count: largeSummary.count, useful: false,
             first: largeSummary.first, last: largeSummary.last, nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
         largeRead.orderDiagnostics = largeSummary.orderDiagnostics
+        largeRead.timingAssessment = .init(summary: largeSummary, pilotProbe: false)
         largeTrial.observations = Array(repeating: largeRead, count: 40)
         try OvernightMotionArchive(trials: [largeTrial]).validate()
         let largePayload = try TestReport.encodeDiagnostics(largeTrial)
@@ -472,6 +525,8 @@ import Foundation
         let firstUncertainRead = OvernightMotionCoordinator(owner: owner, defaults: defaults)
         firstUncertainRead.retrieve(pilotProbe: false)
         await settle(firstUncertainRead)
+        expect(firstUncertainRead.latest?.observations.last?.timingAssessment?.failures.isEmpty == true,
+               "Clock-uncertain read preserves an independent sample-quality assessment")
         expect(firstUncertainRead.latest?.fullSummary?.count == 60_000
             && firstUncertainRead.latest?.clockDiscontinuity == true
             && firstUncertainRead.latest?.firstUsefulReadAt == nil,

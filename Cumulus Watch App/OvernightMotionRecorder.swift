@@ -73,6 +73,7 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                 autoreleasepool {
                     if let list = recorder.accelerometerData(from: cursor, to: chunkEnd) {
                         var seen = 0
+                        var previousInput: (date: Date, uptime: TimeInterval, batch: UInt64)?
                         var iterator = NSFastEnumerationIterator(list)
                         while let object = iterator.next() {
                             if cancellation.isCancelled { break }
@@ -80,17 +81,32 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                             if enumerated > safetyLimit { summary.aborted = true; break }
                             guard let sample = object as? CMRecordedAccelerometerData else {
                                 summary.unexpectedObjects += 1
+                                previousInput = nil
                                 continue
                             }
                             seen += 1
+                            // Copy the API values before the accumulator filters or rejects a row.
+                            let date = sample.startDate
+                            let uptime = sample.timestamp
+                            let batch = sample.identifier
+                            let axes = sample.acceleration
+                            let finite = date.timeIntervalSince1970.isFinite && uptime.isFinite && uptime >= 0
+                            let failsOrder = summary.last.map { date <= $0 } == true
+                                || summary.lastUptime.map { uptime <= $0 } == true
+                            let input = finite && failsOrder ? previousInput.map {
+                                OvernightMotionSummary.InputComparison(dateDelta: date.timeIntervalSince($0.date),
+                                    sensorDelta: uptime - $0.uptime, batchChanged: batch != $0.batch,
+                                    gettersStable: sample.startDate == date && sample.timestamp == uptime)
+                            } : nil
+                            defer { previousInput = finite ? (date, uptime, batch) : nil }
                             let previousCount = summary.count
                             let position = previousAcceptedQueryIndex.map {
                                 OvernightMotionSummary.QueryPosition(queryIndex: chunks + 1, sampleIndex: seen,
                                     previousAcceptedQueryIndex: $0)
                             }
-                            summary.receive(date: sample.startDate, uptime: sample.timestamp,
-                                axesFinite: sample.acceleration.x.isFinite && sample.acceleration.y.isFinite && sample.acceleration.z.isFinite,
-                                chunkStart: cursor, position: position)
+                            summary.receive(date: date, uptime: uptime,
+                                axesFinite: axes.x.isFinite && axes.y.isFinite && axes.z.isFinite,
+                                chunkStart: cursor, position: position, inputComparison: input)
                             if summary.count > previousCount { previousAcceptedQueryIndex = chunks + 1 }
                         }
                         if seen == 0 { summary.emptyChunks += 1 }

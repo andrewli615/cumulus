@@ -123,6 +123,16 @@ struct OvernightMotionView: View {
                         Text(trial.morningVisibility).font(.caption2).foregroundStyle(.secondary)
                         if let probe = trial.latestProbe {
                             ExperimentMetric(label: "Latest pilot block", value: "\(probe.count) samples · \(probe.useful ? "criteria met" : "incomplete")")
+                            if let assessment = probe.timingAssessment {
+                                ForEach(assessment.failures, id: \.self) { failure in
+                                    Text(failure).font(.caption).foregroundStyle(.orange)
+                                }
+                                if let counts = assessment.bucketCounts {
+                                    Text("Thirty-second bucket counts: " + counts.map(String.init).joined(separator: ", ")).font(.caption)
+                                }
+                            } else if !probe.useful {
+                                Text("Specific timing failures were not saved by this older read.").font(.caption)
+                            }
                             if !probe.useful && trial.firstUsefulProbeAt != nil {
                                 Text("Earlier success retained; the latest block has not met criteria. Pilot not qualified.")
                                     .font(.caption2).foregroundStyle(.orange)
@@ -353,6 +363,11 @@ private struct OvernightTrialView: View {
                     ExperimentHeading(title: "Retrieval attempts", symbol: "arrow.down.circle")
                     ForEach(Array(trial.observations.enumerated()), id: \.offset) { _, read in
                         Text("\(read.pilotProbe ? "Pilot block" : "Full window")\n\(date(read.requestedAt)) → \(date(read.completedAt))\n\(read.count) samples · \(read.useful ? "useful" : "incomplete") · nil \(read.nilChunks) · empty \(read.emptyChunks)\nFirst \(date(read.first))\nLast \(date(read.last))\n\(read.cancelled ? "Cancelled" : read.error ?? "No API error reported")").font(.caption2)
+                        if let assessment = read.timingAssessment {
+                            ForEach(assessment.failures, id: \.self) { failure in
+                                Text(failure).font(.caption2).foregroundStyle(.orange)
+                            }
+                        }
                         if read.clockDiscontinuity == true {
                             Text("Retrieval clock uncertain; this attempt cannot establish visibility.").font(.caption2).foregroundStyle(.orange)
                         }
@@ -425,6 +440,13 @@ struct OvernightOrderAnomaliesView: View {
                         ExperimentMetric(label: "From window start", value: String(format: "%.2f s", example.relativeSeconds))
                         ExperimentMetric(label: "Date difference", value: String(format: "%+.6g s", example.dateDelta))
                         ExperimentMetric(label: "Sensor difference", value: String(format: "%+.6g s", example.sensorDelta))
+                        if let input = example.inputComparison {
+                            ExperimentMetric(label: "Previous returned date Δ", value: String(format: "%+.6g s", input.dateDelta))
+                            ExperimentMetric(label: "Previous returned sensor Δ", value: String(format: "%+.6g s", input.sensorDelta))
+                            ExperimentMetric(label: "Recorder batch changed", value: input.batchChanged ? "Yes" : "No")
+                            ExperimentMetric(label: "Timestamp re-read stable", value: input.gettersStable ? "Yes" : "No")
+                            Text("Compared with the immediately preceding returned row within this query, including rejected rows. Batch IDs are not sample IDs and are not saved.").font(.caption)
+                        } else { Text("Adjacent input/batch diagnostics unavailable for this example.").font(.caption) }
                         if let position = example.position {
                             Text("Query \(position.queryIndex), sample row \(position.sampleIndex). Last accepted sample: query \(position.previousAcceptedQueryIndex).").font(.caption)
                         } else { Text("Query position unknown.").font(.caption) }

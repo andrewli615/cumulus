@@ -30,11 +30,12 @@ struct CMRecordedAccelerometerData: Sendable {
     let startDate: Date
     let timestamp: TimeInterval
     let acceleration: CMAcceleration
+    var identifier: UInt64 = 0
 }
 
 // These doubles exercise the real streaming worker, not hardware or Core Motion delivery.
 final class SyntheticRecorder: @unchecked Sendable {
-    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, transitionAnomaly, empty, missing, unexpected, excessive, slow }
+    enum Output: Sendable { case uniform, startExclusive, dateAnomalies, wallDateStep, transitionAnomaly, empty, missing, unexpected, excessive, slow }
     static let shared = SyntheticRecorder()
     private let lock = NSLock()
     private var available = true
@@ -75,13 +76,15 @@ final class SyntheticRecorder: @unchecked Sendable {
                 if index == 20 { measurementDate = start.addingTimeInterval(Double(index - 1) / rate) }
                 if index == 40 { measurementDate = start.addingTimeInterval(Double(index - 2) / rate) }
             }
+            if kind == .wallDateStep, index >= 100 { measurementDate = date.addingTimeInterval(-0.06) }
             if kind == .transitionAnomaly, queryIndex == 2, index == 0 {
                 measurementDate = date.addingTimeInterval(-1 / rate)
             }
             let sensorTime = kind == .transitionAnomaly && queryIndex == 2 && index == 0
                 ? date.timeIntervalSince1970 + 1 / rate : date.timeIntervalSince1970
             return CMRecordedAccelerometerData(startDate: measurementDate, timestamp: sensorTime,
-                acceleration: CMAcceleration(x: 0, y: 0, z: 1))
+                acceleration: CMAcceleration(x: 0, y: 0, z: 1),
+                identifier: UInt64(index / 100))
         }
     }
 }
