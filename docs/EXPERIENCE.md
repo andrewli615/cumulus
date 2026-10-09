@@ -4,7 +4,7 @@
 
 The accelerated first release is a calm, Watch-only **one-time fixed alarm**. Set a time, review its full date, schedule it, edit/cancel it, and stop an active alert. Show Scheduled only from WatchKit session evidence; saved intent after relaunch stays Unverified until a session arrives. Research screens and saved tests remain available under Research.
 
-This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Build 16 implements the initial alarm screen, separate hour/minute choice lists, full date/time-zone confirmation, edit/cancel/stop and a local 40-event history. Existing experiments remain under Research. Integrated physical tests are pending.
+This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Build 18 retains the initial alarm screen, separate hour/minute choice lists, full date/time-zone confirmation, edit/cancel/stop and a local 40-event history. Existing experiments remain under Research. Integrated physical tests are pending.
 
 ## Future smart-waking experience
 
@@ -45,9 +45,9 @@ These principles apply Apple's public advice for short, specialized Watch intera
 
 ## Visual direction
 
-Use a quiet night-sky palette: the existing black background and charcoal cards, with restrained sky-blue actions and a small cloud accent. Lavender can be a secondary decorative accent, never the only way to communicate status. Keep the system typography, readable labels, and clear full-width actions.
+Use a quiet night-sky palette: the existing black background and charcoal cards, with restrained sky-blue actions and a small cloud accent. Lavender can be a secondary decorative accent, never the only way to communicate status. Keep semantic system font sizes with the owner-selected serif design, readable labels, and clear full-width actions.
 
-Start with one compact cloud motif on the experiment chooser or a shared heading. Use a built-in SF Symbol for an in-app accent, verify it on the minimum supported watchOS version, and hide it from VoiceOver when decorative. Keep detailed records and trial diagnostics free of repeated decoration. If an app icon is designed later, create original artwork rather than using an SF Symbol as the icon or logo.
+Use one compact cloud motif on the experiment chooser and shared page heading. Render the current SVG as a template image, verify it on the minimum supported watchOS version, and hide it from VoiceOver when decorative. Keep detailed records and trial diagnostics free of repeated decoration. The current logo adapts an openly licensed SVG rather than using an SF Symbol as the app icon; its sources and notice are recorded below.
 
 This visual pass is presentation-only: it must not change sensor collection, permissions, alert sessions, or experiment results. Check the physical Watch at normal and larger text sizes, scrolling, and VoiceOver before adopting the treatment across the app.
 
@@ -68,3 +68,20 @@ Sketch three target states: **unset**, **armed**, and **needs attention**. For e
 ## Fixed-alarm UI verification — October 9
 
 Build 16 passes signing-free Debug Watch and Watch Simulator builds and alarm/shared-session checks. An isolated 40 mm simulator renders synthetic home, setup, unverified and history states at normal (`.large`) and larger (`.xxxLarge`) text. The first screenshots revealed an oversized introduction and a wrapping history navigation title; these were shortened before final verification. The primary Set alarm action is visible on the initial home viewport at both sizes. Separate native hour/minute lists preserve large selection targets. Screenshots check initial rendering only: interactive choice/return, date confirmation after scrolling, Crown scrolling, VoiceOver and physical layout remain unverified. No physical Watch was installed, launched or scheduled for this verification.
+
+## Cloud identity and visual pass — build 18, October 9
+
+The owner requested an SVG cloud identity with Apple's calm visual style as a reference. The mark adapts [Lucide's cloud](https://lucide.dev/icons/cloud) into a solid silhouette, paired with a restrained sky-blue gradient for the app icon. [Apple's app-icon guidance](https://developer.apple.com/design/human-interface-guidelines/app-icons) supports simple, recognizable shapes and a background that remains visible against the Watch display; [Watch button guidance](https://developer.apple.com/design/human-interface-guidelines/buttons) favors full-width primary actions. No Apple artwork or SF Symbol is used as the logo.
+
+Sources and file purposes:
+
+- [SVG icon master](../design/cumulus-app-icon.svg): editable full square background and cloud. Export at 1024×1024 without an alpha channel into `Assets.xcassets/AppIcon.appiconset/AppIcon.png`; let watchOS apply its mask. The current asset catalog uses this flattened export, not an Icon Composer layered icon. No simulated glass highlights or baked corner masks are added.
+- [In-app SVG](../Cumulus%20Watch%20App/Assets.xcassets/CumulusCloud.imageset/cloud.svg): template vector rendering for the matching blue heading accent, kept hidden from VoiceOver. The imageset preserves vector representation.
+- [Full upstream notice](../design/LUCIDE-LICENSE.txt): ISC license and source attribution, pinned to Lucide revision `70562c1ee1c4fdcf736fe97bc893fb8511927934`. SVG copies embed the ISC notice; `CloudArtworkLicense.txt` is copied into the app bundle. The cloud is not among the upstream Feather-derived icon list. There is no runtime icon-library dependency.
+- `ExperimentStyle.swift`: shared cloud styling with a compact, side-by-side home heading and vertical research headings. Detailed metrics and event rows remain plain.
+- `AlarmView.swift`: full-width native actions, wrapping status/time text and the compact home heading, preserving serif typography, charcoal cards, blue actions and existing action handlers.
+- The Xcode project includes the license resource and identifies this visual pass as build 18. Sensor, HealthKit, session ownership, scheduling and storage code are unchanged.
+
+Verification: signing-free Debug Watch and Watch Simulator builds and the alarm regression suite pass. SVG parsing, opaque 1024×1024 icon dimensions and the included license resource were checked. The initial larger-text screenshot revealed a cropped button edge; the compact home header resolves that without shrinking text. Final normal/larger (`.large`/`.xxxLarge`) initial-viewport screenshots are checked on an isolated 40 mm Watch simulator. Interactive scrolling, lower-screen controls, VoiceOver and physical Watch appearance remain unverified. No physical Watch was installed or launched for this pass, and no new delivery or research result follows.
+
+Learning exercise: compare the SVG source with its PNG app-icon export. Explain why the in-app mark remains vector, why watchOS masks the launcher icon, and why the decorative cloud is hidden from VoiceOver.

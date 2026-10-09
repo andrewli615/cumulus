@@ -13,7 +13,7 @@ Each note is the authoritative record of its procedure, observations, and limita
 | [007: Cardiac internal timing](007-cardiac-internal-timing.md) | Conditional inspector implemented | Offered only for an eligible record observed by a fresh read; physical availability/behavior untested. |
 | [008: Fixed-alarm acceptance](008-fixed-alarm.md) | Product flow implemented and software checked | Short/overnight delivery, battery, recovery, accessibility and physical clearing pending. |
 
-Next: run [008: Fixed-alarm acceptance](008-fixed-alarm.md) on build 17. Product code and software checks are complete; short delivery/edit/cancel/recovery, two overnight deliveries, battery, physical accessibility and independent history clearing remain pending. Experiment 006 is paused with original results/criteria preserved; it is not passed and its fresh pilot is deferred. Keep an independent alarm and raw exports outside Git.
+Next: run [008: Fixed-alarm acceptance](008-fixed-alarm.md) on build 18. Product code and software checks are complete; short delivery/edit/cancel/recovery, two overnight deliveries, battery, physical accessibility and independent history clearing remain pending. Experiment 006 is paused with original results/criteria preserved; it is not passed and its fresh pilot is deferred. Keep an independent alarm and raw exports outside Git.
 
 
 Template:

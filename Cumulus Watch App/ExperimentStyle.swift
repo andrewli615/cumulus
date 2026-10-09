@@ -45,17 +45,35 @@ struct ExperimentHeading: View {
 }
 
 struct ExperimentPageHeading<Content: View>: View {
+    var compact = false
     @ViewBuilder var content: Content
+    @ScaledMetric(relativeTo: .caption) private var cloudSize = 24.0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: "cloud.fill")
-                .font(.caption)
-                .foregroundStyle(.blue.opacity(0.65))
-                .accessibilityHidden(true)
-            content
+        Group {
+            if compact {
+                HStack(spacing: 8) {
+                    content
+                    Spacer(minLength: 4)
+                    cloud
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    cloud
+                    content
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var cloud: some View {
+        Image("CumulusCloud")
+            .resizable()
+            .scaledToFit()
+            .frame(width: cloudSize, height: cloudSize * 0.75)
+            .foregroundStyle(.blue.opacity(0.8))
+            .accessibilityHidden(true)
     }
 }
 

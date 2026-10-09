@@ -9,26 +9,43 @@ struct AlarmHomeView<Research: View>: View {
     var body: some View {
         ExperimentPage {
             ExperimentCard {
-                ExperimentPageHeading {
+                ExperimentPageHeading(compact: true) {
                     Text("Alarm")
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                 }
                 Text(coordinator.status).font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
                 if coordinator.canStop {
-                    Button("Stop alert") { coordinator.stop() }
+                    Button { coordinator.stop() } label: {
+                        Text("Stop alert").frame(maxWidth: .infinity, minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                         .buttonStyle(.borderedProminent).frame(minHeight: 44)
                         .disabled(scenePhase != .active)
                 } else if coordinator.canCancel {
-                    NavigationLink("Edit time") { AlarmTimeSelectionView(coordinator: coordinator, editing: true) }
+                    NavigationLink {
+                        AlarmTimeSelectionView(coordinator: coordinator, editing: true)
+                    } label: {
+                        Text("Edit time").frame(maxWidth: .infinity, minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                         .buttonStyle(.borderedProminent).frame(minHeight: 44)
                         .disabled(scenePhase != .active || !coordinator.canEdit)
-                    Button("Cancel alarm") { coordinator.cancel() }
+                    Button { coordinator.cancel() } label: {
+                        Text("Cancel alarm").frame(maxWidth: .infinity, minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                         .buttonStyle(.bordered).frame(minHeight: 44)
                         .disabled(scenePhase != .active)
                 } else if coordinator.canSchedule {
-                    NavigationLink("Set alarm") { AlarmTimeSelectionView(coordinator: coordinator, editing: false) }
+                    NavigationLink {
+                        AlarmTimeSelectionView(coordinator: coordinator, editing: false)
+                    } label: {
+                        Text("Set alarm").frame(maxWidth: .infinity, minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                         .buttonStyle(.borderedProminent).frame(minHeight: 44)
                         .disabled(scenePhase != .active)
                 }
@@ -37,7 +54,7 @@ struct AlarmHomeView<Research: View>: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Text(record.fireDate.formatted(date: .omitted, time: .shortened))
                         .font(.title2.weight(.semibold)).monospacedDigit()
-                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(record.fireDate.formatted(date: .complete, time: .omitted))
                         .font(.body).fixedSize(horizontal: false, vertical: true)
                     Text(record.fireDate.formatted(.dateTime.timeZone(.specificName(.short))))
@@ -61,9 +78,15 @@ struct AlarmHomeView<Research: View>: View {
             Text("Keep an independent alarm during testing. Scheduled and haptic requested do not confirm that you will wake.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            NavigationLink("Alarm history") { AlarmHistoryView(coordinator: coordinator) }
+            NavigationLink { AlarmHistoryView(coordinator: coordinator) } label: {
+                Text("Alarm history").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
                 .buttonStyle(.bordered).frame(minHeight: 44)
-            NavigationLink("Research", destination: research)
+            NavigationLink(destination: research) {
+                Text("Research").frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
                 .buttonStyle(.bordered).frame(minHeight: 44)
         }
         .navigationTitle("Cumulus")

@@ -1,6 +1,6 @@
 # Experiment 008: Fixed-alarm MVP acceptance
 
-Status: build **0.1 (17)** implemented and software-verified on October 9. **Physical trials pending.** No installation, alarm scheduling, haptic perception or battery outcome on the physical Watch is claimed by this milestone. Experiment 006 remains paused and unresolved; its results and criteria are unchanged.
+Status: build **0.1 (18)** implemented and software-verified on October 9. **Physical trials pending.** No installation, alarm scheduling, haptic perception or battery outcome on the physical Watch is claimed by this milestone. Experiment 006 remains paused and unresolved; its results and criteria are unchanged.
 
 ## Question and limits
 
@@ -12,7 +12,7 @@ Can the integrated, Watch-only fixed alarm schedule one absolute time, request a
 
 ## Prewritten physical procedure
 
-1. Preserve outstanding Research requests and saved reports. Finish any active/reserved Research session before scheduling an alarm. Install build 17 through Xcode without deleting Cumulus or clearing app data. Stop the Xcode run, then open Cumulus from the Watch icon. An app update does not qualify old alarm tests for the new build.
+1. Preserve outstanding Research requests and saved reports. Finish any active/reserved Research session before scheduling an alarm. Install build 18 through Xcode without deleting Cumulus or clearing app data. Stop the Xcode run, then open Cumulus from the Watch icon. An app update does not qualify old alarm tests for the new build.
 2. Record Watch model, watchOS, app build, local time zone, haptic/sound settings, Sleep Focus, Low Power Mode, wrist/unlocked state and any interruptions. Leave unrecorded details unknown. Use an independent backup distinguishable from Cumulus's alert; do not attribute the backup's alert to Cumulus.
 3. **Short delivery:** set an alarm at least three minutes ahead. Review the full date/time zone and tap Schedule alarm. Confirm Scheduled; leave via the Digital Crown. At the requested time, record perceived haptic and visible system alert separately. Stop via the system Stop button or Cumulus's Stop alert. Inspect Alarm history for schedule state, start callback, haptic request and invalidation. A running-state observation is not a missing start callback.
 4. **Edit:** schedule three minutes ahead, then change it to about six minutes ahead. Confirm the old time was cancelled before the replacement became Scheduled and that the home shows the replacement date. Leave the app. No Cumulus alert should occur at the old time or during the following minute; the replacement must request a haptic and produce a perceived alert. Stop it. If replacement fails, record that the old alarm ended and the new one is not set; do not treat saving the edit as success.
@@ -43,10 +43,10 @@ The read-only tool copies `Library/Application Support/Cumulus/Alarm/record.json
 
 ## Software checks and result
 
-- All seven suites pass: alarm, background motion/shared delegate, overnight motion, sleep history, cardiac history, cardiac timing, and saved archive. The Python retrieval checks cover the separate alarm record, fractional request offsets, date encoding, bounds and malformed input.
-- Signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both report build 17. Project parsing, whitespace and local documentation links pass.
+- All seven suites passed on build 17; build 18 repeats the alarm suite after the visual-only change: alarm, background motion/shared delegate, overnight motion, sleep history, cardiac history, cardiac timing, and saved archive. The Python retrieval checks cover the separate alarm record, fractional request offsets, date encoding, bounds and malformed input.
+- Signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both report build 18. Project parsing, whitespace and local documentation links pass.
 - Eight build-16 initial-viewport screenshots on an isolated 40 mm simulator cover synthetic home, setup, unverified and history at `.large` and `.xxxLarge`. An oversized heading and wrapping history title were corrected. Interactive selection/return, lower-page confirmation, scrolling, VoiceOver and physical layout remain unverified. Simulator rendering is not alarm evidence.
-- **Physical result: pending.** No integrated short/overnight trial, perceived alert, battery result or physical deletion check has been supplied for build 17.
+- **Physical result: pending.** No integrated short/overnight trial, perceived alert, battery result or physical deletion check has been supplied for build 18.
 
 Learning exercise: identify the evidence behind Saved, Scheduled, Haptic requested and Perceived alert. Explain why only the last requires an observation from the wearer.
 
@@ -56,4 +56,6 @@ A synthetic process-relaunch test reproduced a lost-edit explanation: the old al
 
 The coordinator also checks the session's current state before edit/cancel/stop, rather than trusting a stale UI flag; a session that already ended cannot receive another invalidation request. A WatchKit error without supplied error details now has a visible explanation and a saved event. Additional synthetic checks cover these paths and cancellation while storage is failing. The private evaluation tool validates pending replacement dates. All seven suites, four Python retrieval tests, signing-free Watch/Simulator Debug builds, project parsing and whitespace checks pass. No sensor or HealthKit behavior changed.
 
-Physical delivery, overnight battery, interactive UI/VoiceOver and process-relaunch behavior remain pending for build 17. No device alarm was requested during this review. Use the procedure above on the current build; earlier screenshots are layout evidence only.
+Physical delivery, overnight battery, interactive UI/VoiceOver and process-relaunch behavior remain pending for build 18. No device alarm was requested during this review. Use the procedure above on the current build; earlier screenshots are layout evidence only.
+
+Build 18 adds only the SVG cloud assets, license resource and visual layout changes documented in [the experience note](../EXPERIENCE.md#cloud-identity-and-visual-pass--build-18-october-9). Scheduling/recovery implementation is unchanged; physical acceptance must use the current installed build.
