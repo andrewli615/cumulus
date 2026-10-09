@@ -177,10 +177,11 @@ The owner reported a new pilot in progress. These observations are owner-reporte
 
 - The fixed pilot block returned **3,000 samples** and displayed **criteria met**. The owner reported no API error, cancellation, or clock uncertainty for that block read.
 - A full-window read displayed **Sample order anomalies** at approximately minute 21 of the trial. The owner subsequently reported **5 recorded anomalies**. The exact retrieval attempt associated with that total and its category breakdown were not captured.
+- The owner reported that the **minute-25 full-window read also failed**. The failure details and anomaly count for that attempt were not supplied; do not assume the earlier count of five applies to it.
 - The block's successful query-completion time relative to minute 14 remains unknown. Its sample-quality result alone does not establish the timely-visibility criterion.
-- Current-trial build, watchOS, model, settings, battery, exact request/retrieval dates, full-window sample count/rate/gaps, and enumeration status have not been supplied. Results of the planned end + 5 / end + 10-minute reads remain unreported.
+- Current-trial build, watchOS, model, settings, battery, exact request/retrieval dates, full-window sample count/rate/gaps, and enumeration status have not been supplied. The planned minute-30 (end + 10-minute) retry remains unreported.
 
-The reported full-window read fails the unchanged zero-order-anomaly software check; the cause is unresolved. The UI counts expected chunk overlap separately, but that does not identify the cause of these five anomalies or independently validate its classification on the Watch. Full pilot qualification is not established. Preserve this report before a later read replaces the latest detailed summary; do not infer a successful overnight or alarm result.
+The reported five-anomaly read fails the unchanged zero-order-anomaly software check; the cause is unresolved. The UI counts expected chunk overlap separately, but that does not identify the cause of these five anomalies or independently validate its classification on the Watch. Full pilot qualification is not established after the reported minute-25 failure. Preserve this report before a later read replaces the latest detailed summary; do not infer a successful overnight or alarm result.
 
 ## Learning exercise
 
