@@ -171,6 +171,17 @@ On 2026-10-06, `git diff --check`, all four synthetic suites, and signing-free D
 
 The subsequent timing/UI fixes passed the same four suites and both signing-free builds. Added regression cases cover slow battery preparation, slow recorder-call return, ownership held beyond the sample-window end, explicit display-time eligibility at minute ten, loading legacy in-progress trials without re-arming, clock uncertainty before first retrieval, completed evidence surviving a later reboot, and rejection of new visibility claims from a later clock-uncertain read. A synthetic 5.42 s leading gap still fails and displays its specific reason. Initial sandboxed builds could not launch Xcode's macro helpers; rerunning with compiler access succeeded. No corrected-build physical run or interactive UI check is recorded.
 
+## Owner-reported pilot — October 8, partial observations
+
+The owner reported a new pilot in progress. These observations are owner-reported; its saved reports have not been independently retrieved or inspected.
+
+- The fixed pilot block returned **3,000 samples** and displayed **criteria met**. The owner reported no API error, cancellation, or clock uncertainty for that block read.
+- A full-window read displayed **Sample order anomalies** at approximately minute 21 of the trial. The owner subsequently reported **5 recorded anomalies**. The exact retrieval attempt associated with that total and its category breakdown were not captured.
+- The block's successful query-completion time relative to minute 14 remains unknown. Its sample-quality result alone does not establish the timely-visibility criterion.
+- Current-trial build, watchOS, model, settings, battery, exact request/retrieval dates, full-window sample count/rate/gaps, and enumeration status have not been supplied. Results of the planned end + 5 / end + 10-minute reads remain unreported.
+
+The reported full-window read fails the unchanged zero-order-anomaly software check; the cause is unresolved. The UI counts expected chunk overlap separately, but that does not identify the cause of these five anomalies or independently validate its classification on the Watch. Full pilot qualification is not established. Preserve this report before a later read replaces the latest detailed summary; do not infer a successful overnight or alarm result.
+
 ## Learning exercise
 
 A sample measured at 02:00 first appears in a query at 02:03, after an empty query at 02:02:30. State the bounds on its observed delay. Then explain why finding the same sample at 08:00 cannot reconstruct those bounds or prove that a 02:01 alarm decision could have used it. In **Request timing**, distinguish preparation → recorder call → first sample; only the last interval estimates observed startup after the request.
