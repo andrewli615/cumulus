@@ -17,7 +17,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** install build **0.1 (18)** without deleting app data, then follow [Experiment 008](docs/experiments/008-fixed-alarm.md) with an independent backup. Short delivery, edit/cancel/recovery, two overnight deliveries, battery and physical accessibility are pending. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
+**Next:** install build **0.1 (19)** without deleting app data, then follow [Experiment 008](docs/experiments/008-fixed-alarm.md) with an independent backup. Short delivery, edit/cancel/recovery, two overnight deliveries, battery and physical accessibility are pending. Experiment 006 is paused, not passed; its original physical procedure remains available for later research.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 
@@ -37,7 +37,7 @@ This read-only tool copies the app's archive and decodes its diagnostic snapshot
 
 For the separate fixed-alarm lifecycle history, use `--alarm-only` with a new private output directory. The file uses Foundation reference dates (seconds since 2001), explicitly labeled in its output; research report dates use Unix seconds. See [the alarm trial procedure](docs/experiments/008-fixed-alarm.md#private-evaluation). Alarm history and research Saved tests are cleared separately; neither removes private exported copies.
 
-The cloud identity uses an editable [SVG master](design/cumulus-app-icon.svg) adapted from Lucide, with its license retained and bundled. See [visual sources and checks](docs/EXPERIENCE.md#cloud-identity-and-visual-pass--build-18-october-9).
+The cloud identity now wears a simple nightcap and uses an editable [SVG master](design/cumulus-app-icon.svg) adapted from Lucide, with its license retained and bundled. See [visual sources and checks](docs/EXPERIENCE.md#cloud-identity-and-visual-pass--build-18-october-9).
 
 ## Open in Xcode
 

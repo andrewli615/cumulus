@@ -69,10 +69,10 @@ struct ExperimentPageHeading<Content: View>: View {
 
     private var cloud: some View {
         Image("CumulusCloud")
+            .renderingMode(.original)
             .resizable()
             .scaledToFit()
             .frame(width: cloudSize, height: cloudSize * 0.75)
-            .foregroundStyle(.blue.opacity(0.8))
             .accessibilityHidden(true)
     }
 }

@@ -16,5 +16,10 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
   -->
-  <path fill="#FFFFFF" d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+  <path fill="#5AB0FF" d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+
+    <!-- Original Cumulus nightcap; the cloud retains its upstream notice. -->
+    <path fill="#ACB5FF" d="M3.8 7.3C4.9 3.4 7.7 1.4 11.2 1.8C14.1 2.1 16.4 3.8 17.2 5.7C15.7 4.9 13.8 4.6 12.4 5.2L13.5 6.5C10.3 4.2 6.4 4.4 3.8 7.3Z"/>
+    <path fill="none" stroke="#F0F4FF" stroke-width="1.5" stroke-linecap="round" d="M3.8 7.3C6.4 4.4 10.3 4.2 13.5 6.5"/>
+    <circle cx="17.2" cy="5.9" r="1.1" fill="#F0F4FF"/>
 </svg>
