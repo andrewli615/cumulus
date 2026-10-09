@@ -215,6 +215,16 @@ The current app model reports **Sample order anomalies** as the sole full-window
 
 **Next diagnostic milestone, implemented in build 8:** retain the private export and inspect bounded query-position and relative timestamp-delta summaries that distinguish equality from reversal and show whether a failed comparison spans queries. No raw acceleration, individual HealthKit records, or raw device logs are added to Git. Sample acceptance and trial criteria remain unchanged. Qualifying eight-hour trials remain gated on a passing pilot for their running build.
 
+## Build-8 retained-pilot read-back — October 8
+
+At the owner's request, read-only device tools privately retrieved five saved reports with zero unreadable files. Capture version is **0.1 (8)**; the inspected pilot remains an original **0.1 (6)** recording. No app launch, debugger attachment, installation or recording request was performed during retrieval.
+
+Two retained full-window reads include build-8 diagnostics and reproduce identical results: **59,757 accepted samples**, **five backward-date comparisons**, zero repeated dates, zero repeated/backward sensor timestamps, **five within-query** and zero across-query failures. All five examples are retained. Measurement dates move backward approximately **13.71–39.60 ms** relative to the last accepted sample, while sensor timestamps advance approximately **20.02–40.04 ms**. No API error, cancellation, nil/empty chunk or clock-discontinuity flag is recorded for these reads. Original request dates/count and first-useful block completion are unchanged from the preserved export.
+
+**Interpretation:** the failures are reproducible for this saved window, occur within queries, and are not classified as expected chunk overlap. Their physical/API cause is unresolved; these diagnostics do not justify sorting samples, discarding the date check or widening the criteria. The retained pilot still fails qualification.
+
+**Next decision:** another read of this same window is unlikely to add evidence. Run **one fresh build-8 twenty-minute diagnostic pilot** with the existing procedure and unchanged criteria to test whether backward-date failures recur in a new recording. Preserve the older reports, record setup conditions, obtain useful fixed-block completion by minute 14, and retrieve the full window at minute 25 with a minute-30 retry if needed. Evaluate the saved report privately before any eight-hour trial. A fresh run is a reproducibility test, not evidence that the issue has been fixed.
+
 ## Build 8: ordering diagnostic procedure
 
 Build **0.1 (8)** separates date repeats from backward dates and sensor-time repeats from backward sensor times. Each read keeps totals across all failures and the first **12** examples: offset from that read's window start, date and sensor-time differences from the last accepted sample, one-based query/sample-row numbers, and the last accepted sample's query. Comparisons within one query and across queries are counted separately. Expected overlap remains excluded by the original rule. Examples contain relative timing metadata, not acceleration values or absolute sample timestamps. Date and sensor counters may describe the same failure, so their sums need not equal the anomaly total. They describe failed comparisons, not their cause.
