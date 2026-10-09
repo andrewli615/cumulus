@@ -2,7 +2,7 @@
 
 ## One sentence
 
-Cumulus aims to be a calm personal Watch alarm that may choose an earlier wake opportunity from validated, timely data and otherwise follows a separately tested latest-wake fallback.
+Cumulus aims to be a calm personal Watch alarm that, after a sufficient sleep opportunity, may choose an earlier wake opportunity from validated, timely data and otherwise follows a separately tested latest-wake fallback. Its intended benefit is less sleep inertia, not a particular sleep-stage label.
 
 This is the product target. The current app has six research screens; it does not implement that alarm flow, a production wake rule, or its fallback. Overnight input qualification remains unresolved in [Experiment 006](experiments/006-overnight-motion.md).
 
@@ -18,7 +18,9 @@ The target interaction is defined; exact controls, the qualified input path, dec
 
 ## Product goal
 
-The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs, decision method, fallback, and alert behavior have evidence behind them. Sleep-stage classification is one possible research task, not a required solution. A phone companion, server, or cloud sync needs a demonstrated requirement.
+The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs, decision method, fallback, and alert behavior have evidence behind them. Meeting the night's required minimum sleep opportunity is an eligibility gate: cycle estimates or sensor signals must never move the alarm earlier by shortening it. A planned opportunity is not proof of time actually asleep; Cumulus must validate sleep-onset and sleep/wake estimates before claiming measured sleep duration. Sleep-stage classification is one possible research task, not a required solution. A phone companion, server, or cloud sync needs a demonstrated requirement.
+
+Evaluate the intended benefit through waking outcomes, such as repeated self-reports of grogginess and a brief, consistent post-wake performance measure. An estimated stage or cycle boundary is an intermediate prediction, not evidence that someone woke with less tiredness. Define the measurement protocol before comparing alarm strategies.
 
 Process locally by default and retain only what the chosen behavior needs. Define retention and deletion before adding persistent health-data storage. Final battery, privacy, clearing, accessibility, interruption, delivery, and waking-outcome criteria must be written before their validation trials; see [the MVP evidence gates](BUILD_PLAN.md#personal-mvp-exit-evidence).
 

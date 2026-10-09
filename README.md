@@ -2,7 +2,7 @@
 
 A watchOS smart-alarm research app for learning which Watch measurements can support an explainable wake decision. Six experiment screens are implemented, including fixed-duration overnight motion requests and later retrieval. Cumulus does not yet infer sleep stages; overnight feasibility remains unresolved after an owner-reported pilot. Keep an independent alarm for real wake requirements.
 
-The [personal Watch-only product goal](docs/EXPERIENCE.md) is a latest wake time plus an earlier wake window: use a validated decision when timely inputs suffice, otherwise follow a separately tested latest-wake fallback. Setup, editing, cancellation, recovery, and a concise account of requests/errors must remain truthful. That product flow and fallback are not implemented; see [the remaining MVP evidence](docs/BUILD_PLAN.md#personal-mvp-exit-evidence). Sleep-stage classification is a possible research task, not a prerequisite chosen in advance.
+The [personal Watch-only product goal](docs/EXPERIENCE.md) is a latest wake time plus an earlier wake window: after the minimum planned sleep opportunity, use a validated decision when timely inputs suffice, otherwise follow a separately tested latest-wake fallback. The planned opportunity is not proof of actual time asleep, and the intended benefit—less sleep inertia—must be measured after waking. Setup, editing, cancellation, recovery, and a concise account of requests/errors must remain truthful. That product flow and fallback are not implemented; see [the remaining MVP evidence](docs/BUILD_PLAN.md#personal-mvp-exit-evidence). Sleep-stage classification is a possible research task, not a prerequisite chosen in advance.
 
 ## Current experiments
 

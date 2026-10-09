@@ -33,7 +33,9 @@ The experiment also has cancellation, invalidation, error, and unverified-after-
 
 Select the research task from evidence: a wake opportunity, sleep/wake estimate, or stages may be appropriate. A larger stage model is not required merely because stage labels are readable. Define success criteria and compare the chosen method with a simple baseline on the same task before adopting it.
 
-An early decision can use only qualified inputs available by that decision time. Preserve measurement time, first observed availability, missingness, and uncertainty. Future samples, historical labels used as inputs, and whole-night context cannot support an earlier live decision. Stage agreement alone does not demonstrate better waking.
+The user's required minimum sleep opportunity is a hard eligibility gate for an earlier wake. A cycle estimate or sensor signal cannot authorize waking before that gate is met. A planned sleep opportunity does not prove actual time asleep; claim measured sleep duration only after sleep-onset and sleep/wake estimation are validated. Cycle alignment is a candidate timing prior, not a fixed 90-minute rule or a validated sleep-stage detector. Evaluate the product benefit using waking outcomes, not stage agreement alone.
+
+An early decision can use only qualified inputs available by that decision time. Preserve measurement time, first observed availability, missingness, and uncertainty. Future samples, historical labels used as inputs, and whole-night context cannot support an earlier live decision.
 
 Missing or stale data must leave a separately tested latest-wake path. An early haptic request alone must not be treated as proof that the wearer woke or that a fallback can safely be cancelled. Decide and test how early alerts, stopping, edits, and cancellation affect all pending requests before the final flow is considered ready.
 
