@@ -93,7 +93,7 @@ Preserve the reported pass without inventing counts, settings, or per-type avail
 - If neither appears in the observed window, do not add either reader solely because the API exists. Record the window and sources. Broader inspection needs a specific reason, such as a known source or night expected to contain series.
 - Earlier documentation deferred implementation while historical outcomes were unknown. Build 6 now provides a runtime-gated [focused inspector](007-cardiac-internal-timing.md): no query/action appears unless a fresh read observes an eligible record. The historical outcomes remain unknown, and physical behavior is untested.
 
-[Experiment 006](006-overnight-motion.md) has a recording screen and bounded timing/battery diagnostics. Its owner-reported pilot missed the leading-gap criterion and did not establish timely visibility; the inspected eight-hour comparison is inconclusive because charging/interruption and timing uncertainty prevent a valid battery baseline. Overnight feasibility is unresolved, independently of the reported cardiac procedure pass.
+[Experiment 006](006-overnight-motion.md) has a recording screen and bounded timing/battery diagnostics. The original pilot retains leading-gap and ordering failures with early visibility unknown. The inspected October 8 build-6 pilot meets early visibility but still has five date-only ordering failures; build 8 adds bounded diagnostic detail, with physical results unrecorded. The inspected eight-hour comparison is inconclusive because charging/interruption and timing uncertainty prevent a valid battery baseline. Overnight feasibility is unresolved, independently of the reported cardiac procedure pass.
 
 ## Learning exercise
 

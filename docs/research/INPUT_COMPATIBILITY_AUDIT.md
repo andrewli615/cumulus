@@ -2,6 +2,8 @@
 
 Reviewed: 2026-10-06. Scope: the candidates already listed in the [sleep research roadmap](../SLEEP_RESEARCH_ROADMAP.md), public paper text, dataset descriptions, licenses, and author code. No recordings, datasets, weights, or external code were downloaded to the repository or executed. This is a documentation milestone; benchmark implementation remains gated.
 
+Implementation/evidence status aligned: 2026-10-08. This update aligns the app and experiment gates; it does not re-review the October 6 paper, dataset, artifact or licensing findings.
+
 ## Recommendation
 
 **No listed stage model is currently demonstrated compatible with sufficiently available and timely Cumulus inputs.** Keep the first release Watch-only and personal, but do not add a stage classifier yet.
@@ -12,10 +14,10 @@ SLAMSS-IFS with BIDSleep is the closest **conditional offline** candidate becaus
 
 | Input | Current evidence | Consequence |
 | --- | --- | --- |
-| Wrist acceleration | Experiment 006's owner-reported pilot: 59,586 samples, 49.95 Hz, 39/40 qualifying buckets, largest gap 0.1 s, leading gap 5.42 s, trailing gap 1.58 s. Enumeration completed; no API error reported. | The leading gap exceeds the unchanged 5 s limit. Earlier preparation timing confounds attribution; preserve the failure and repeat with corrected timing. Early visibility and overnight battery/continuity remain unqualified. |
+| Wrist acceleration | The original pilot retains its failed 5.42 s leading gap and 11 saved order anomalies. The inspected October 8 build-6 pilot has 59,757 samples, 49.95 Hz, 39/40 qualifying buckets, timely block visibility and passing gap checks; five date-only ordering failures remain. | Preserve both outcomes. Build 8 provides bounded ordering diagnostics; re-read retained data first while available. No qualifying current-build pilot, matching battery baseline or two recording nights is established. Passing timing alone would not supply the discarded feature values. |
 | Motion feature values | The retrieval worker checks finite acceleration values, then keeps only timing/count/quality metadata. | Existing summaries cannot reconstruct magnitude, variability, or respiratory motion. A private feature/input pipeline would require a later reviewed milestone; no export is added here. |
 | Heart-rate quantities | Experiment 005 was reported passed; actual sampling density, overnight coverage, freshness, and grouped-record presence are unknown. | Do not assume a five-second heart-rate stream or infer continuity from record spans. |
-| Beat intervals | Heartbeat-series presence is unknown; individual beat timestamps and gap flags have not been queried. SDNN is a summary. | Defer internal-timing work. Neither sparse BPM nor an SDNN value supplies the beat sequence required by an IBI model. |
+| Beat intervals | Heartbeat-series presence is unknown; individual beat timestamps and gap flags have not been queried. SDNN is a summary. | Use the implemented runtime-gated Experiment 007 inspector only when a fresh read observes an eligible series; physical coverage and timing remain unestablished. Neither sparse BPM nor an SDNN value supplies the beat sequence required by an IBI model. |
 | Other channels | Cumulus has not demonstrated raw PPG, continuous ECG, epoch-level temperature, or a respiratory waveform. | Models requiring these channels are blocked. Apple sleep categories are historical comparison records, not model inputs or independent ground truth. |
 
 These are owner reports and code observations, not independently inspected physiological recordings. See [Experiment 005](../experiments/005-cardiac-data-coverage.md), [Experiment 006](../experiments/006-overnight-motion.md), and [the retrieval worker](../../Cumulus%20Watch%20App/OvernightMotionRecorder.swift). A late successful read does not measure publication delay.
@@ -88,8 +90,8 @@ Keep retrospective reproduction separate from causal replay. At decision time, e
 
 ## Next gates
 
-1. **Close the outstanding Experiment 006 trial:** preserve the current installation/history until its fixed window ends; capture mode, battery/charging/interruptions and retrieval result. Charging makes the battery comparison inconclusive, not a data-quality pass or failure.
-2. **Qualify physical inputs:** repeat the corrected pilot using unchanged timing/visibility criteria, then the comparison and two recording nights only if it qualifies. Confirm Experiment 005's actual cardiac type presence and coverage; no internal-timing reader while presence is unknown.
+1. **Investigate the preserved Experiment 006 failure:** the exploratory comparison is complete and inconclusive because it involved charging/interruption; the October 8 pilot still fails ordering. Install build 8 without clearing history and re-read the retained pilot first while available, then privately evaluate its bounded timing differences/query positions. Follow [the diagnostic procedure](../experiments/006-overnight-motion.md#build-8-ordering-diagnostic-procedure).
+2. **Qualify physical inputs:** run a fresh current-build pilot if needed using unchanged timing/visibility criteria, then the matching comparison and two recording nights only if it qualifies. Confirm Experiment 005's actual cardiac type presence and coverage; the existing conditional inspector must not query a type until a fresh read observes an eligible record.
 3. **Review compatibility and private data handling:** confirm sufficiently available inputs and whether they can support offline research, live decisions, or neither. Resolve preprocessing, start-token, artifact/license, label-alignment, and retention/export blockers. Current summaries alone are insufficient.
 4. **Authorize a bounded offline benchmark:** keep it outside the Watch target and use the preregistered split/metrics/causal checks above. If no candidate qualifies, record the mismatch and stop before implementing a classifier.
 5. **Only then consider the personal Watch MVP:** explicit data readiness/uncertainty, a separately verified fixed latest-wake fallback, alert-delivery trials, and repeated battery/accessibility/interruption and waking-benefit checks. Keep an independent alarm during development. No wake-deadline guarantee follows from this audit.
