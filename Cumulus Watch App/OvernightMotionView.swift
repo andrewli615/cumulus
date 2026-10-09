@@ -307,6 +307,7 @@ private struct OvernightTrialView: View {
                     }
                     if let summary = trial.fullSummary {
                         Text(summary.clockLabel).font(.caption)
+                        Text(summary.retrievalStrategy == .fullWindow ? "One query for the full window" : "Earlier retrieval strategy; preserved result").font(.caption)
                         if summary.timingBasis == .sensorTime {
                             ExperimentMetric(label: "Sensor order failures", value: String(summary.sensorOrderFailures ?? 0))
                             ExperimentMetric(label: "Wall mapping difference", value: summary.maximumWallMappingDifference.map { String(format: "%.6g s", $0) } ?? "Unknown")
@@ -398,6 +399,7 @@ private struct OvernightTrialView: View {
                 ExperimentCard {
                     ExperimentHeading(title: "Retrieval attempts", symbol: "arrow.down.circle")
                     ForEach(Array(trial.observations.enumerated()), id: \.offset) { _, read in
+                        if read.retrievalStrategy == .fullWindow { Text("Full-window query").font(.caption) }
                         Text("\(read.pilotProbe ? "Pilot block" : "Full window")\n\(date(read.requestedAt)) → \(date(read.completedAt))\n\(read.count) samples · \(read.useful ? "useful" : "incomplete") · nil \(read.nilChunks) · empty \(read.emptyChunks)\nFirst \(date(read.first))\nLast \(date(read.last))\n\(read.cancelled ? "Cancelled" : read.error ?? "No API error reported")").font(.caption2)
                         if let assessment = read.timingAssessment {
                             ForEach(assessment.failures, id: \.self) { failure in

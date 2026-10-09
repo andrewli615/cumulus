@@ -252,37 +252,38 @@ import Foundation
         let recorder = OvernightMotionRecorder()
         SyntheticRecorder.shared.configure()
         let result = await read(recorder)
-        expect(result.summary.count == 60_000 && result.summary.boundaryDuplicates == 1 && result.summary.meetsTimingCriteria, "Actual worker deduplicates inclusive chunk boundaries")
-        expect(SyntheticRecorder.shared.queryCount == 2 && SyntheticRecorder.shared.maximumQuery <= 600, "Ten-minute queries")
+        expect(result.summary.count == 60_000 && result.summary.boundaryDuplicates == 0 && result.summary.meetsTimingCriteria, "One query preserves inclusive-window samples without internal boundary overlap")
+        expect(SyntheticRecorder.shared.queryCount == 1 && SyntheticRecorder.shared.maximumQuery == 1200, "The supported pilot uses one full-window query")
         expect(result.summary.orderDiagnostics?.total == 0, "Expected inclusive-boundary overlap stays out of diagnostic failures")
         SyntheticRecorder.shared.configure(output: .boundarySensorGap)
         let boundaryGap = await read(recorder, timingBasis: .sensorTime)
         try boundaryGap.summary.validate()
         let sourceGap = boundaryGap.summary.largestGapDiagnostic!
         expect(!boundaryGap.summary.meetsTimingCriteria && sourceGap.measuredGap > 3
-            && sourceGap.position.previousAcceptedQueryIndex == 1 && sourceGap.position.queryIndex == 2
-            && sourceGap.skipped.count == 0, "A missing boundary interval is distinguishable from filtered returned rows")
+            && sourceGap.position.previousAcceptedQueryIndex == 1 && sourceGap.position.queryIndex == 1
+            && sourceGap.skipped.count == 0, "A genuine gap near a former query boundary remains detectable in one query")
         SyntheticRecorder.shared.configure(output: .boundaryFiltered)
         let filteredGap = await read(recorder, timingBasis: .sensorTime)
         try filteredGap.summary.validate()
         let filteredSource = filteredGap.summary.largestGapDiagnostic!
         expect(filteredGap.summary.count == boundaryGap.summary.count
             && filteredGap.summary.maximumGap == boundaryGap.summary.maximumGap
-            && filteredSource.skipped.count == 151 && filteredSource.skipped.outsideQuery == 151
-            && filteredSource.skipped.finiteSensorTimes == 151
+            && filteredSource.skipped.count == 150 && filteredSource.skipped.outsideQuery == 150
+            && filteredSource.skipped.finiteSensorTimes == 150
             && filteredSource.skipped.minimumSensorDelta! > 0
-            && filteredSource.skipped.maximumSensorDelta == filteredSource.sensorDelta,
+            && filteredSource.skipped.maximumSensorDelta! < filteredSource.sensorDelta,
             "Identical accepted gaps retain different evidence when query filtering excluded finite sensor rows")
         expect(!filteredGap.summary.meetsTimingCriteria && filteredGap.summary.timingFailures == ["Largest gap exceeds 2 s"],
             "Gap instrumentation cannot turn a query-filtering gap into a pass")
         let restoredGap = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONEncoder().encode(filteredGap.summary))
         try restoredGap.validate()
-        expect(restoredGap.largestGapDiagnostic?.skipped.count == 151, "Gap context survives persistence")
+        expect(restoredGap.largestGapDiagnostic?.skipped.count == 150, "Gap context survives persistence")
         var badGap = filteredGap.summary
         badGap.maximumGap += 0.001
         try invalid(badGap, "A gap diagnostic inconsistent with the measured maximum was accepted")
         var legacyGapJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(filteredGap.summary)) as! [String: Any]
         legacyGapJSON.removeValue(forKey: "largestGapDiagnostic")
+        legacyGapJSON.removeValue(forKey: "retrievalStrategy")
         let legacyGap = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONSerialization.data(withJSONObject: legacyGapJSON))
         try legacyGap.validate()
         expect(legacyGap.largestGapDiagnostic == nil && !legacyGap.meetsTimingCriteria,
@@ -294,6 +295,13 @@ import Foundation
         expect(skippedWithoutTime.count == 2 && skippedWithoutTime.finiteSensorTimes == 0
             && skippedWithoutTime.minimumSensorDelta == nil,
             "Unknown and invalid skipped timestamps do not invent a range; rows before the first accepted sample are separate")
+        SyntheticRecorder.shared.configure(output: .batchAligned)
+        let batchAligned = await read(recorder, timingBasis: .sensorTime)
+        try batchAligned.summary.validate()
+        expect(batchAligned.summary.count == 59_900 && batchAligned.summary.meetsTimingCriteria
+            && batchAligned.summary.maximumGap < 0.021 && batchAligned.summary.retrievalStrategy == .fullWindow,
+            "A query-dependent returned batch cutoff cannot create an internal gap in a full-window read")
+        expect(SyntheticRecorder.shared.queryCount == 1, "Batch alignment regression cannot silently reintroduce split queries")
         SyntheticRecorder.shared.configure(output: .startExclusive)
         let startExclusive = await read(recorder)
         expect(startExclusive.summary.count == 59_999 && startExclusive.summary.boundaryDuplicates == 0
@@ -305,7 +313,8 @@ import Foundation
             && dateFailures.summary.orderDiagnostics?.withinQuery == 4 && dateFailures.summary.orderDiagnostics?.acrossQueries == 0,
             "Actual worker supplies positions for within-query date-only failures")
         expect(dateFailures.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 21
-            && dateFailures.summary.orderDiagnostics?.examples[2].position?.queryIndex == 2,
+            && dateFailures.summary.orderDiagnostics?.examples[2].position?.queryIndex == 1
+            && dateFailures.summary.orderDiagnostics?.examples[2].position?.sampleIndex == 30021,
             "Worker records one-based typed sample rows in each query")
         let adjacent = dateFailures.summary.orderDiagnostics!.examples[1].inputComparison!
         expect(adjacent.dateDelta < 0 && adjacent.sensorDelta > 0 && adjacent.gettersStable,
@@ -359,14 +368,14 @@ import Foundation
         SyntheticRecorder.shared.configure(output: .transitionAnomaly)
         let transition = await read(recorder)
         try transition.summary.validate()
-        expect(transition.summary.orderDiagnostics?.acrossQueries == 1
-            && transition.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 1,
-            "First row comparing with an earlier query is distinguishable from within-query failure")
+        expect(transition.summary.orderDiagnostics?.withinQuery == 1
+            && transition.summary.orderDiagnostics?.examples[0].position?.sampleIndex == 30001,
+            "An anomaly at the former ten-minute boundary is now within the full query")
         SyntheticRecorder.shared.configure()
         let fullNight = await read(recorder, duration: 28800)
         try fullNight.summary.validate()
         expect(fullNight.summary.count == 1_440_000 && fullNight.summary.buckets.count == 960
-            && fullNight.summary.boundaryDuplicates == 47 && fullNight.summary.meetsTimingCriteria,
+            && fullNight.summary.boundaryDuplicates == 0 && fullNight.summary.meetsTimingCriteria,
             "Eight-hour stream stays bounded and keeps cross-chunk timing")
         // The same raw wall-date behavior must fail legacy trials and remain visible in new ones.
         SyntheticRecorder.shared.configure(output: .wallDateStep)
@@ -376,8 +385,8 @@ import Foundation
             && sensorNight.summary.outOfOrder > 0 && sensorNight.summary.buckets.count == 960
             && sensorNight.summary.maximumWallMappingDifference! > 0.05,
             "Eight-hour sensor timing tolerates a bounded wall mapping step while retaining raw failures")
-        expect(sensorNight.summary.outsideQuery! > 0 && SyntheticRecorder.shared.queryCount == 48,
-            "Each query owns a half-open interval and records returned out-of-query rows")
+        expect(sensorNight.summary.outsideQuery == 0 && SyntheticRecorder.shared.queryCount == 1 && SyntheticRecorder.shared.maximumQuery == 28800,
+            "One eight-hour query avoids excluding rows at former internal boundaries")
         let restoredSensor = try JSONDecoder().decode(OvernightMotionSummary.self, from: JSONEncoder().encode(sensorNight.summary))
         expect(restoredSensor.timingBasis == .sensorTime && restoredSensor.meetsTimingCriteria,
             "Sensor timing policy and its counters survive persistence")
@@ -415,6 +424,7 @@ import Foundation
             nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
         modernRead.orderDiagnostics = detailedSensorNight.summary.orderDiagnostics
         modernRead.largestGapDiagnostic = detailedSensorNight.summary.largestGapDiagnostic
+        modernRead.retrievalStrategy = detailedSensorNight.summary.retrievalStrategy
         modernRead.timingAssessment = .init(summary: detailedSensorNight.summary, pilotProbe: false)
         modernLargeTrial.observations = Array(repeating: modernRead, count: 40)
         try OvernightMotionArchive(trials: [modernLargeTrial]).validate()
@@ -426,6 +436,8 @@ import Foundation
         expect(!missingPolicyFields.meetsTimingCriteria, "An incomplete sensor policy cannot qualify")
         try invalid(missingPolicyFields, "Incomplete sensor-policy counters accepted")
         var largeSummary = fullNight.summary
+        // Construct historical multi-query metadata without a full-window strategy tag.
+        largeSummary.retrievalStrategy = nil
         for row in 1...20 {
             largeSummary.receive(date: largeSummary.last!, uptime: largeSummary.lastUptime! + 0.02,
                 axesFinite: true, chunkStart: origin.addingTimeInterval(28200),
@@ -453,13 +465,13 @@ import Foundation
         expect(restoredLargeTrial.observations.last?.orderDiagnostics?.total == 20, "Per-read examples survive archived payload decoding")
         SyntheticRecorder.shared.configure(output: .missing)
         let missing = await read(recorder)
-        expect(missing.summary.nilChunks == 2 && missing.error == nil, "Nil results do not invent API errors")
+        expect(missing.summary.nilChunks == 1 && missing.error == nil, "Nil results do not invent API errors")
         SyntheticRecorder.shared.configure(output: .empty)
         let empty = await read(recorder)
-        expect(empty.summary.emptyChunks == 2 && empty.summary.nilChunks == 0, "Empty differs from nil")
+        expect(empty.summary.emptyChunks == 1 && empty.summary.nilChunks == 0, "Empty differs from nil")
         SyntheticRecorder.shared.configure(output: .unexpected)
         let unexpected = await read(recorder)
-        expect(unexpected.summary.unexpectedObjects == 2, "Unexpected objects retained as diagnostics")
+        expect(unexpected.summary.unexpectedObjects == 1, "Unexpected objects retained as diagnostics")
         SyntheticRecorder.shared.configure(output: .excessive)
         let excessive = await read(recorder, duration: 60)
         expect(excessive.summary.aborted && excessive.error != nil && excessive.summary.count <= 7000, "Bound enumeration work")

@@ -57,88 +57,88 @@ final class OvernightMotionRecorder: @unchecked Sendable {
                   completion: @escaping @Sendable (OvernightRetrievalResult) -> Void) {
         queue.async { [self] in
             var summary = OvernightMotionSummary(start: start, end: end, timingBasis: timingBasis)
+            summary.retrievalStrategy = .fullWindow
             let duration = end.timeIntervalSince(start)
             guard duration > 0, duration <= 28800 else {
                 completion(OvernightRetrievalResult(summary: summary, completedAt: Date(), cancelled: false, error: "Invalid retrieval window"))
                 return
             }
-            let total = Int(ceil(duration / 600))
-            var cursor = start
-            var chunks = 0
+            // Every supported trial fits Apple's 12-hour query limit; avoid artificial internal boundaries.
             var enumerated = 0
             var previousAcceptedQueryIndex: Int?
             var previousAcceptedSampleIndex: Int?
             var previousAcceptedBatch: UInt64?
             var skipped = OvernightMotionSummary.SkippedRows()
             let safetyLimit = Int(duration * 100) + 1000
-            while cursor < end {
-                if cancellation.isCancelled { break }
-                let chunkEnd = min(end, cursor.addingTimeInterval(600))
+            if !cancellation.isCancelled {
                 autoreleasepool {
-                    if let list = recorder.accelerometerData(from: cursor, to: chunkEnd) {
+                    if let list = recorder.accelerometerData(from: start, to: end) {
                         var seen = 0
                         var previousInput: (date: Date, uptime: TimeInterval, batch: UInt64)?
                         var iterator = NSFastEnumerationIterator(list)
-                        while let object = iterator.next() {
-                            if cancellation.isCancelled { break }
-                            enumerated += 1
-                            if enumerated > safetyLimit { summary.aborted = true; break }
-                            guard let sample = object as? CMRecordedAccelerometerData else {
-                                summary.unexpectedObjects += 1
-                                skipped.record(uptime: nil, after: summary.lastUptime)
-                                previousInput = nil
-                                continue
-                            }
-                            seen += 1
-                            // Copy the API values before the accumulator filters or rejects a row.
-                            let date = sample.startDate
-                            let uptime = sample.timestamp
-                            if timingBasis == .sensorTime, date.timeIntervalSince1970.isFinite,
-                               date < cursor || date >= chunkEnd {
-                                summary.outsideQuery! += 1
-                                skipped.record(uptime: uptime, after: summary.lastUptime, outsideQuery: true)
-                                previousInput = nil
-                                continue
-                            }
-                            let batch = sample.identifier
-                            let axes = sample.acceleration
-                            let finite = date.timeIntervalSince1970.isFinite && uptime.isFinite && uptime >= 0
-                            let failsOrder = summary.last.map { date <= $0 } == true
-                                || summary.lastUptime.map { uptime <= $0 } == true
-                            let input = finite && failsOrder ? previousInput.map {
-                                OvernightMotionSummary.InputComparison(dateDelta: date.timeIntervalSince($0.date),
-                                    sensorDelta: uptime - $0.uptime, batchChanged: batch != $0.batch,
-                                    gettersStable: sample.startDate == date && sample.timestamp == uptime)
-                            } : nil
-                            defer { previousInput = finite ? (date, uptime, batch) : nil }
-                            let previousCount = summary.count
-                            let position = previousAcceptedQueryIndex.map {
-                                OvernightMotionSummary.QueryPosition(queryIndex: chunks + 1, sampleIndex: seen,
-                                    previousAcceptedQueryIndex: $0)
-                            }
-                            let gapContext = position.flatMap { position in
-                                previousAcceptedSampleIndex.map {
-                                    OvernightMotionSummary.GapContext(position: position, previousSampleIndex: $0,
-                                        batchChanged: previousAcceptedBatch != batch, skipped: skipped)
+                        var exhausted = false
+                        while !exhausted && !cancellation.isCancelled && !summary.aborted {
+                            // Release temporary objects without restarting the query or accumulator.
+                            autoreleasepool {
+                                for _ in 0..<512 {
+                                    guard !cancellation.isCancelled, let object = iterator.next() else { exhausted = true; break }
+                                    enumerated += 1
+                                    if enumerated > safetyLimit { summary.aborted = true; break }
+                                    guard let sample = object as? CMRecordedAccelerometerData else {
+                                        summary.unexpectedObjects += 1
+                                        skipped.record(uptime: nil, after: summary.lastUptime)
+                                        previousInput = nil
+                                        continue
+                                    }
+                                    seen += 1
+                                    // Copy the API values before the accumulator filters or rejects a row.
+                                    let date = sample.startDate
+                                    let uptime = sample.timestamp
+                                    if timingBasis == .sensorTime, date.timeIntervalSince1970.isFinite,
+                                       date < start || date >= end {
+                                        summary.outsideQuery! += 1
+                                        skipped.record(uptime: uptime, after: summary.lastUptime, outsideQuery: true)
+                                        previousInput = nil
+                                        continue
+                                    }
+                                    let batch = sample.identifier
+                                    let axes = sample.acceleration
+                                    let finite = date.timeIntervalSince1970.isFinite && uptime.isFinite && uptime >= 0
+                                    let failsOrder = summary.last.map { date <= $0 } == true
+                                        || summary.lastUptime.map { uptime <= $0 } == true
+                                    let input = finite && failsOrder ? previousInput.map {
+                                        OvernightMotionSummary.InputComparison(dateDelta: date.timeIntervalSince($0.date),
+                                            sensorDelta: uptime - $0.uptime, batchChanged: batch != $0.batch,
+                                            gettersStable: sample.startDate == date && sample.timestamp == uptime)
+                                    } : nil
+                                    defer { previousInput = finite ? (date, uptime, batch) : nil }
+                                    let previousCount = summary.count
+                                    let position = previousAcceptedQueryIndex.map {
+                                        OvernightMotionSummary.QueryPosition(queryIndex: 1, sampleIndex: seen,
+                                            previousAcceptedQueryIndex: $0)
+                                    }
+                                    let gapContext = position.flatMap { position in
+                                        previousAcceptedSampleIndex.map {
+                                            OvernightMotionSummary.GapContext(position: position, previousSampleIndex: $0,
+                                                batchChanged: previousAcceptedBatch != batch, skipped: skipped)
+                                        }
+                                    }
+                                    summary.receive(date: date, uptime: uptime,
+                                        axesFinite: axes.x.isFinite && axes.y.isFinite && axes.z.isFinite,
+                                        chunkStart: start, position: position, inputComparison: input, gapContext: gapContext)
+                                    if summary.count > previousCount {
+                                        previousAcceptedQueryIndex = 1
+                                        previousAcceptedSampleIndex = seen
+                                        previousAcceptedBatch = batch
+                                        skipped = .init()
+                                    } else { skipped.record(uptime: uptime, after: summary.lastUptime) }
                                 }
                             }
-                            summary.receive(date: date, uptime: uptime,
-                                axesFinite: axes.x.isFinite && axes.y.isFinite && axes.z.isFinite,
-                                chunkStart: cursor, position: position, inputComparison: input, gapContext: gapContext)
-                            if summary.count > previousCount {
-                                previousAcceptedQueryIndex = chunks + 1
-                                previousAcceptedSampleIndex = seen
-                                previousAcceptedBatch = batch
-                                skipped = .init()
-                            } else { skipped.record(uptime: uptime, after: summary.lastUptime) }
                         }
                         if seen == 0 { summary.emptyChunks += 1 }
                     } else { summary.nilChunks += 1 }
                 }
-                chunks += 1
-                progress(chunks, total)
-                if summary.aborted { break }
-                cursor = chunkEnd
+                progress(1, 1)
             }
             completion(OvernightRetrievalResult(summary: summary, completedAt: Date(), cancelled: cancellation.isCancelled,
                 error: summary.aborted ? "Enumeration safety limit reached; evidence incomplete" : nil))

@@ -267,7 +267,7 @@ final class OvernightMotionCoordinator: ObservableObject {
         recorder.retrieve(start: start, end: end, cancellation: flag, timingBasis: trial.measurementBasis, progress: { [weak self] done, total in
             Task { @MainActor in
                 guard let self, self.retrievalID == id else { return }
-                self.progress = "Retrieved chunk \(done) of \(total)"
+                self.progress = "Retrieved window \(done) of \(total)"
             }
         }, completion: { [weak self] result in
             Task { @MainActor in
@@ -289,6 +289,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                 observation.clockDiscontinuity = readClockUncertain
                 observation.orderDiagnostics = result.summary.orderDiagnostics
                 observation.largestGapDiagnostic = result.summary.largestGapDiagnostic
+                observation.retrievalStrategy = result.summary.retrievalStrategy
                 observation.timingAssessment = .init(summary: result.summary, pilotProbe: pilotProbe)
                 self.mutateLatest { current in
                     current.observations.append(observation)

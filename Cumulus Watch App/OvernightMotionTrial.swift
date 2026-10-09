@@ -3,6 +3,7 @@ import Darwin
 
 struct OvernightMotionSummary: Codable, Sendable {
     enum TimingBasis: String, Codable, Sendable { case sensorTime }
+    enum RetrievalStrategy: String, Codable, Sendable { case fullWindow }
     struct QueryPosition: Codable, Sendable {
         let queryIndex: Int
         let sampleIndex: Int
@@ -161,6 +162,7 @@ struct OvernightMotionSummary: Codable, Sendable {
     var maximumWallMappingDifference: TimeInterval?
     var outsideQuery: Int?
     var largestGapDiagnostic: GapDiagnostic?
+    var retrievalStrategy: RetrievalStrategy?
     let start: Date
     let end: Date
     var buckets: [Bucket]
@@ -357,6 +359,9 @@ struct OvernightMotionSummary: Codable, Sendable {
         if let diagnostic = largestGapDiagnostic {
             guard count >= 2 else { throw OvernightArchiveError.invalid }
             try diagnostic.validate(duration: end.timeIntervalSince(start), maximumGap: maximumGap)
+            if retrievalStrategy == .fullWindow {
+                guard diagnostic.position.queryIndex == 1, diagnostic.position.previousAcceptedQueryIndex == 1 else { throw OvernightArchiveError.invalid }
+            }
         }
         for bucket in buckets {
             let bucketStart = start.addingTimeInterval(Double(bucket.id) * 30)
@@ -468,6 +473,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         var orderDiagnostics: OvernightMotionSummary.OrderDiagnostics?
         var timingAssessment: TimingAssessment?
         var largestGapDiagnostic: OvernightMotionSummary.GapDiagnostic?
+        var retrievalStrategy: OvernightMotionSummary.RetrievalStrategy?
     }
     struct Event: Codable, Identifiable, Sendable {
         let id: UUID
@@ -666,6 +672,9 @@ struct OvernightMotionArchive: Codable, Sendable {
                 if let diagnostic = observation.largestGapDiagnostic {
                     guard observation.count >= 2, let assessment = observation.timingAssessment else { throw OvernightArchiveError.invalid }
                     try diagnostic.validate(duration: observation.pilotProbe ? 60 : trial.mode.duration, maximumGap: assessment.maximumGap)
+                    if observation.retrievalStrategy == .fullWindow {
+                        guard diagnostic.position.queryIndex == 1, diagnostic.position.previousAcceptedQueryIndex == 1 else { throw OvernightArchiveError.invalid }
+                    }
                 }
             }
             if let summary = trial.fullSummary {
