@@ -45,3 +45,5 @@ Build-6 visual checks used `SimulatorPreviewScreen` in an isolated 40 mm Watch s
 Build-7 trial previews use `CUMULUS_UI_PREVIEW=trial-selector` or `trial-choices`; `CUMULUS_UI_TRIAL=pilot`, `overnight`, or `comparison` seeds the selected mode without recording. The existing `CUMULUS_UI_TEXT=larger` override checks wrapping at `.xxxLarge`. Native Crown/touch navigation and VoiceOver require separate interaction checks.
 
 The overnight suite also exercises build 11’s versioned sensor-elapsed timing over eight hours (48 queries), with both endpoint interpretations, bounded wall-date steps, true sensor repeats, missing samples and large clock-mapping changes. Historical trials retain legacy wall-date timing. These are software checks, not physical sensor evidence.
+
+Build 12 checks eight-hour setup/battery preflight, fresh battery recheck at Start, matching baseline identity, uncertainty and duration rejection, relaunch without rearming, deadline guidance, missing/empty/unexpected results and cancellation. No synthetic outcome establishes physical overnight recording or battery cost.

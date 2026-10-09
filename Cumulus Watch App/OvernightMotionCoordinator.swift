@@ -11,6 +11,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     @Published private(set) var isRetrieving = false
     @Published private(set) var isRequestingAccess = false
     @Published private(set) var progress = ""
+    @Published private(set) var preflightBattery: Double?
     private let clockTime: (OvernightMotionTrial.ElapsedClock?) -> TimeInterval
     private let recorder: OvernightMotionRecorder
     private let owner: ExperimentSessionOwner
@@ -49,6 +50,7 @@ final class OvernightMotionCoordinator: ObservableObject {
                 owner.markUnresolved()
             }
         }
+        checkBattery()
         if hasReservation {
             mutateLatest { trial in
                 trial.recovered = true
@@ -60,10 +62,39 @@ final class OvernightMotionCoordinator: ObservableObject {
         }
     }
 
-    func canStart(_ mode: OvernightMotionTrial.Mode) -> Bool {
+    func canStart(_ mode: OvernightMotionTrial.Mode, configuration: OvernightMotionTrial.Configuration = .init()) -> Bool {
         storageError == nil && !hasReservation && !isRetrieving && !isRequestingAccess && testArchive?.canStartNewReport != false
             && owner.current == .none && WKApplication.shared().applicationState == .active
-            && (mode == .comparison || access.canRecord) && (mode != .overnight || pilotReady)
+            && (mode == .comparison || access.canRecord) && preflightReason(mode, configuration: configuration) == nil
+    }
+
+    private func preparedConfiguration(_ configuration: OvernightMotionTrial.Configuration) -> OvernightMotionTrial.Configuration {
+        var settings = configuration
+        settings.watchModel = String(settings.watchModel.prefix(128))
+        settings.otherApp = String(settings.otherApp.prefix(128))
+        settings.watchOS = WKInterfaceDevice.current().systemVersion
+        settings.appBuild = build
+        settings.timeZone = TimeZone.current.identifier
+        return settings
+    }
+
+    func checkBattery() {
+        guard WKApplication.shared().applicationState == .active, !isRetrieving else { return }
+        preflightBattery = batteryLevel()
+    }
+
+    func preflightReason(_ mode: OvernightMotionTrial.Mode, configuration: OvernightMotionTrial.Configuration) -> String? {
+        guard mode != .pilot else { return nil }
+        if mode == .overnight && !pilotReady { return "Pass the pilot on this OS and build first." }
+        let settings = preparedConfiguration(configuration)
+        if !settings.hasKnownWearSetup { return "Complete setup: model, wrist, power, Focus, tracking, other app and detached debugger." }
+        if !OvernightBatteryCriteria.canBegin(level: preflightBattery) {
+            return "Eight-hour trials need a known battery of at least \(Int((OvernightBatteryCriteria.minimumStartLevel * 100).rounded()))%. Check battery after charging, then run without charging."
+        }
+        if mode == .overnight && archive.comparableBaseline(configuration: settings) == nil {
+            return "Complete a matching eight-hour comparison with no charging, interruption or clock uncertainty first."
+        }
+        return nil
     }
 
     func requestAccess() {
@@ -83,18 +114,19 @@ final class OvernightMotionCoordinator: ObservableObject {
     func start(_ mode: OvernightMotionTrial.Mode, configuration: OvernightMotionTrial.Configuration) {
         refreshClock()
         access = recorder.access()
-        guard canStart(mode), owner.claim(.overnightMotion) else { status = "Request blocked; check access, pilot and session status"; return }
-        var settings = configuration
-        settings.watchModel = String(settings.watchModel.prefix(128))
-        settings.otherApp = String(settings.otherApp.prefix(128))
-        settings.watchOS = WKInterfaceDevice.current().systemVersion
-        settings.appBuild = build
-        settings.timeZone = TimeZone.current.identifier
         let preparedAt = Date()
         let preparedUptime = clockTime(.continuous)
-        let battery = batteryLevel()
-        let trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: clockTime(.continuous),
+        checkBattery()
+        if let reason = preflightReason(mode, configuration: configuration) { status = reason; return }
+        guard canStart(mode, configuration: configuration), owner.claim(.overnightMotion) else {
+            status = "Request blocked; check access, storage and session status"
+            return
+        }
+        let settings = preparedConfiguration(configuration)
+        let battery = preflightBattery
+        var trial = OvernightMotionTrial(mode: mode, start: Date(), uptime: clockTime(.continuous),
                                          configuration: settings, battery: battery, elapsedClock: .continuous, measurementBasis: .sensorTime)
+        if mode == .overnight { trial.batteryComparisonID = archive.comparableBaseline(configuration: settings)?.id }
         archive.append(trial)
         archive.trials[archive.trials.count - 1].record("Recorder available: \(access.available); authorization: \(access.authorization)")
         archive.trials[archive.trials.count - 1].record(mode == .comparison ? "Comparison started; no recording request" : "Request prepared; provisional window saved")
@@ -163,6 +195,7 @@ final class OvernightMotionCoordinator: ObservableObject {
     func applicationStateChanged(_ state: String) {
         if state != "active" { cancelRetrieval() }
         if state == "active" {
+            checkBattery()
             access = recorder.access()
             refreshClock()
             recordReturn()
@@ -316,6 +349,7 @@ final class OvernightMotionCoordinator: ObservableObject {
             "Visibility": trial.morningVisibility, "Events truncated": String(trial.eventsTruncated),
             "Requested start (Unix seconds)": String(trial.start.timeIntervalSince1970),
             "Requested end (Unix seconds)": String(trial.end.timeIntervalSince1970)]
+        if let id = trial.batteryComparisonID { metrics["Battery comparison trial"] = id.uuidString }
         if let summary = trial.fullSummary {
             metrics["Measurement timing"] = summary.clockLabel
             metrics["Sensor order failures"] = summary.sensorOrderFailures.map(String.init) ?? "Not separately recorded"

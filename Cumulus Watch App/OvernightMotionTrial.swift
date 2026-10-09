@@ -301,6 +301,19 @@ struct OvernightMotionSummary: Codable, Sendable {
     }
 }
 
+enum OvernightBatteryCriteria {
+    static let maximumDrop = 25.0
+    static let minimumReturnLevel = 0.2
+    static let maximumAdditionalDrop = 10.0
+    static let durationTolerance: TimeInterval = 900
+    static var minimumStartLevel: Double { minimumReturnLevel + maximumDrop / 100 }
+    static func canBegin(level: Double?) -> Bool {
+        guard let level, level.isFinite, (0...1).contains(level) else { return false }
+        // Battery level is supplied as Float by WatchKit; compare at that same precision.
+        return Float(level) >= Float(minimumStartLevel)
+    }
+}
+
 struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     enum ElapsedClock: String, Codable, Sendable {
         case continuous
@@ -342,6 +355,13 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         var otherApp = "Unknown"
         var charging = "Unknown"
         var interruption = "Unknown"
+
+        var hasKnownWearSetup: Bool {
+            [watchModel, watchOS, appBuild, timeZone, wrist, powerMode, sleepFocus, sleepTracking, otherApp].allSatisfy {
+                let value = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                return !value.isEmpty && value.caseInsensitiveCompare("Unknown") != .orderedSame
+            } && debuggerDetached == "Yes"
+        }
     }
     struct TimingAssessment: Codable, Sendable {
         var timingBasis: OvernightMotionSummary.TimingBasis?
@@ -400,6 +420,7 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
     var startUptime: TimeInterval
     var elapsedClock: ElapsedClock?
     var measurementBasis: OvernightMotionSummary.TimingBasis?
+    var batteryComparisonID: UUID?
     var firstClockMismatch: ClockMismatch?
     var recorderCall: RecorderCall?
     var configuration: Configuration
@@ -452,6 +473,16 @@ struct OvernightMotionTrial: Codable, Identifiable, Sendable {
         guard let begin = batteryStart.level, let finish = batteryReturn?.level else { return nil }
         return (begin - finish) * 100
     }
+    var hasComparableBatteryWindow: Bool {
+        guard mode != .pilot, phase == .elapsed, !clockDiscontinuity,
+              configuration.hasKnownWearSetup, configuration.charging == "No", configuration.interruption == "None",
+              let returned = batteryReturn, returned.date >= end,
+              let drop = batteryDrop, drop >= 0 else { return false }
+        let duration = returned.date.timeIntervalSince(batteryStart.date)
+        return abs(duration - mode.duration) <= OvernightBatteryCriteria.durationTolerance
+            && abs(batteryStart.date.timeIntervalSince(start)) <= OvernightBatteryCriteria.durationTolerance
+    }
+
     var pilotQualified: Bool {
         guard mode == .pilot, requestCount == 1, phase == .elapsed, !clockDiscontinuity,
               fullSummary?.meetsTimingCriteria == true, fullSummary?.timingBasis == measurementBasis,
@@ -569,22 +600,30 @@ struct OvernightMotionArchive: Codable, Sendable {
         }
     }
 
+    func comparableBaseline(configuration: OvernightMotionTrial.Configuration) -> OvernightMotionTrial? {
+        guard let baseline = trials.last(where: { $0.mode == .comparison }), baseline.hasComparableBatteryWindow else { return nil }
+        var expected = configuration
+        expected.charging = "No"
+        expected.interruption = "None"
+        return baseline.configuration == expected ? baseline : nil
+    }
+
     func batteryAssessment(for trial: OvernightMotionTrial) -> String {
         guard trial.mode == .overnight else { return "Battery comparison applies to recording nights" }
-        guard trial.configuration.charging == "No", trial.configuration.interruption == "None",
-              let drop = trial.batteryDrop, let returned = trial.batteryReturn, let remaining = returned.level else {
-            return "Battery conditions or readings incomplete"
+        guard trial.hasComparableBatteryWindow, let drop = trial.batteryDrop,
+              let returned = trial.batteryReturn, let remaining = returned.level else {
+            return "Battery conditions, clock or eight-hour readings incomplete"
         }
-        guard drop >= 0 else { return "Battery increased; charging or reading mismatch" }
-        if drop > 25 || remaining < 0.2 { return "Battery threshold not met" }
-        guard let baseline = trials.last(where: { $0.mode == .comparison && $0.id != trial.id }),
-              let baseDrop = baseline.batteryDrop, baseDrop >= 0, let baseReturn = baseline.batteryReturn,
-              abs(returned.date.timeIntervalSince(trial.batteryStart.date) - baseReturn.date.timeIntervalSince(baseline.batteryStart.date)) <= 900,
-              baseline.configuration == trial.configuration,
-              trial.configuration.watchModel != "Unknown",
-              trial.configuration.wrist != "Unknown", trial.configuration.powerMode != "Unknown",
-              trial.configuration.sleepFocus != "Unknown", trial.configuration.sleepTracking != "Unknown",
-              trial.configuration.debuggerDetached == "Yes" else { return "Comparable baseline not established; review settings" }
-        return drop <= baseDrop + 10 ? "Battery thresholds met for matched metadata; review conditions" : "Additional battery threshold not met"
+        if drop > OvernightBatteryCriteria.maximumDrop || remaining < OvernightBatteryCriteria.minimumReturnLevel {
+            return "Battery threshold not met"
+        }
+        guard let baseline = comparableBaseline(configuration: trial.configuration),
+              baseline.end <= trial.start, trial.batteryComparisonID == nil || trial.batteryComparisonID == baseline.id,
+              let baseDrop = baseline.batteryDrop, let baseReturn = baseline.batteryReturn,
+              abs(returned.date.timeIntervalSince(trial.batteryStart.date) - baseReturn.date.timeIntervalSince(baseline.batteryStart.date)) <= OvernightBatteryCriteria.durationTolerance else {
+            return "Comparable baseline not established; review settings, clock and durations"
+        }
+        return drop <= baseDrop + OvernightBatteryCriteria.maximumAdditionalDrop
+            ? "Battery thresholds met for matched metadata; review conditions" : "Additional battery threshold not met"
     }
 }

@@ -67,9 +67,14 @@ struct OvernightMotionView: View {
                     Text(mode == .comparison ? "Track battery for eight hours. No recording request is made."
                          : "One request for \(mode == .pilot ? "20 minutes" : "eight hours"). The system recording cannot be stopped from Cumulus.")
                         .font(.callout).foregroundStyle(.secondary)
-                    if mode == .overnight && !coordinator.pilotReady {
-                        Text("First pass the pilot timing and visibility checks on this OS and app build.")
-                            .font(.callout).foregroundStyle(.orange)
+                    if mode != .pilot {
+                        ExperimentMetric(label: "Checked battery", value: coordinator.preflightBattery.map { "\(Int(($0 * 100).rounded()))%" } ?? "Unknown")
+                        Button("Check battery") { coordinator.checkBattery() }
+                        if let reason = coordinator.preflightReason(mode, configuration: configuration) {
+                            Text(reason).font(.callout).foregroundStyle(.orange)
+                        } else {
+                            Text("Preflight checks met. Keep conditions unchanged; this is not recording evidence.").font(.callout)
+                        }
                     }
                     Button {
                         charging = "Unknown"
@@ -82,12 +87,13 @@ struct OvernightMotionView: View {
                             .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!coordinator.canStart(mode))
+                    .disabled(!coordinator.canStart(mode, configuration: configuration))
                 }
                 .disabled(coordinator.isRetrieving)
             }
-            if let trial = coordinator.latest, trial.mode == .pilot {
-                PilotGuideCard(trial: trial, now: now)
+            if let trial = coordinator.latest {
+                if trial.mode == .pilot { PilotGuideCard(trial: trial, now: now) }
+                else { OvernightGuideCard(trial: trial, now: now) }
             }
             if let trial = coordinator.latest {
                 ExperimentCard {
@@ -334,6 +340,7 @@ private struct OvernightTrialView: View {
                 ExperimentCard {
                     ExperimentHeading(title: "Request timing", symbol: "clock")
                     ExperimentMetric(label: "Elapsed clock", value: trial.clockLabel)
+                    ExperimentMetric(label: "Measurement timing", value: trial.measurementBasis == .sensorTime ? "Sensor elapsed time; raw wall dates retained" : "Legacy wall-date timing")
                     if let mismatch = trial.firstClockMismatch {
                         ExperimentMetric(label: "First clock mismatch", value: date(mismatch.observedAt))
                         ExperimentMetric(label: "Wall elapsed", value: seconds(mismatch.wallElapsed))
@@ -479,6 +486,22 @@ struct PilotGuideCard: View {
             }
             Text(guide.instruction).font(.caption)
             Text("The recording request continues while you leave. Probes require an active app and your tap.").font(.caption2).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct OvernightGuideCard: View {
+    let trial: OvernightMotionTrial
+    let now: Date
+    var body: some View {
+        let guide = OvernightGuide(trial: trial, now: now)
+        ExperimentCard {
+            ExperimentHeading(title: guide.title, symbol: "list.number")
+            if let target = guide.target {
+                ExperimentMetric(label: "Target time", value: target.formatted(date: .abbreviated, time: .standard))
+            }
+            Text(guide.instruction).font(.callout).fixedSize(horizontal: false, vertical: true)
+            Text("No automatic query, restart or alarm. Keep an independent alarm.").font(.caption).foregroundStyle(.secondary)
         }
     }
 }

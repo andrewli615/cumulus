@@ -47,3 +47,38 @@ struct PilotGuide: Sendable {
         }
     }
 }
+
+struct OvernightGuide: Sendable {
+    let title: String
+    let instruction: String
+    let target: Date?
+
+    init(trial: OvernightMotionTrial, now: Date) {
+        let deadline = trial.end.addingTimeInterval(300)
+        if trial.clockDiscontinuity || trial.phase == .uncertain {
+            title = "Timing uncertain"
+            instruction = "Preserve this trial. Do not restart recording. Wait the full reservation before acknowledging it; uncertainty prevents qualification."
+            target = nil
+        } else if now < trial.reservationEnd {
+            title = "Return at the reserved end"
+            instruction = "Leave using the Digital Crown. Wear the Watch without charging or other Cumulus trials. Return at the time below; battery is captured before retrieval."
+            target = trial.reservationEnd
+        } else if trial.mode == .comparison {
+            title = "Complete the comparison"
+            instruction = "Save actual charging and interruptions and inspect return battery timing. No motion query is needed. A late return, uncertain clock or changed setup cannot provide a matching baseline."
+            target = nil
+        } else if trial.firstUsefulReadAt != nil {
+            title = "Review this recording"
+            instruction = "Inspect sample timing, visibility, battery and errors separately. Save actual charging and interruptions. A software pass does not establish sleep staging or alarm reliability."
+            target = nil
+        } else if now <= deadline {
+            title = "Retrieve before the deadline"
+            instruction = "Read the whole window now and remain in Cumulus until completion. Retry an incomplete read while time remains. Completion must occur by the time below; do not wait until that time to start."
+            target = deadline
+        } else {
+            title = "Later retrieval is diagnostic"
+            instruction = "The five-minute visibility deadline passed. Retrieve now, retry at end + 10 minutes if incomplete, and preserve all attempts. Later useful data cannot prove earlier availability."
+            target = now < trial.end.addingTimeInterval(600) ? trial.end.addingTimeInterval(600) : nil
+        }
+    }
+}

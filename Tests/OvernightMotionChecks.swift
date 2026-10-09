@@ -3,6 +3,16 @@ import Foundation
 @main struct OvernightChecks {
     static let origin = Date(timeIntervalSince1970: 1_000_000)
     static func expect(_ condition: @autoclosure () -> Bool, _ message: String) { precondition(condition(), message) }
+    static func wearSetup() -> OvernightMotionTrial.Configuration {
+        var settings = OvernightMotionTrial.Configuration()
+        settings.watchModel = "Synthetic"
+        settings.watchOS = "Synthetic"; settings.appBuild = "Unknown (Unknown)"
+        settings.timeZone = TimeZone.current.identifier
+        settings.wrist = "Worn, unlocked"; settings.powerMode = "Off"
+        settings.sleepFocus = "On"; settings.sleepTracking = "On"
+        settings.debuggerDetached = "Yes"; settings.otherApp = "None"
+        return settings
+    }
     static func uniform(duration: Double = 1200) -> OvernightMotionSummary {
         var summary = OvernightMotionSummary(start: origin, end: origin.addingTimeInterval(duration))
         for index in 0..<Int(duration * 50) {
@@ -350,6 +360,24 @@ import Foundation
             default: fatalError("Unexpected fault fixture")
             }
         }
+        SyntheticRecorder.shared.configure(output: .dateAnomalies)
+        let detailedSensorNight = await read(recorder, duration: 28800, timingBasis: .sensorTime)
+        var modernLargeTrial = OvernightMotionTrial(mode: .overnight, start: origin, uptime: 1000,
+            configuration: wearSetup(), battery: 0.8, elapsedClock: .continuous, measurementBasis: .sensorTime)
+        modernLargeTrial.phase = .elapsed; modernLargeTrial.requestCount = 1
+        modernLargeTrial.batteryComparisonID = UUID()
+        modernLargeTrial.fullSummary = detailedSensorNight.summary
+        var modernRead = OvernightMotionTrial.Observation(pilotProbe: false, requestedAt: modernLargeTrial.end,
+            completedAt: modernLargeTrial.end, count: detailedSensorNight.summary.count, useful: true,
+            first: detailedSensorNight.summary.first, last: detailedSensorNight.summary.last,
+            nilChunks: 0, emptyChunks: 0, cancelled: false, error: nil)
+        modernRead.orderDiagnostics = detailedSensorNight.summary.orderDiagnostics
+        modernRead.timingAssessment = .init(summary: detailedSensorNight.summary, pilotProbe: false)
+        modernLargeTrial.observations = Array(repeating: modernRead, count: 40)
+        try OvernightMotionArchive(trials: [modernLargeTrial]).validate()
+        let modernPayload = try TestReport.encodeDiagnostics(modernLargeTrial)
+        expect(modernPayload.count <= 350_000 && detailedSensorNight.summary.orderDiagnostics?.examples.count == 12,
+            "A modern eight-hour report fits the existing payload cap with 960 buckets and 40 detailed reads")
         var missingPolicyFields = sensorNight.summary
         missingPolicyFields.sensorOrderFailures = nil
         expect(!missingPolicyFields.meetsTimingCriteria, "An incomplete sensor policy cannot qualify")
@@ -529,7 +557,7 @@ import Foundation
         defaults.removeObject(forKey: "overnightMotion.v1")
         owner.release(.overnightMotion)
         let comparison = OvernightMotionCoordinator(owner: owner, defaults: defaults)
-        comparison.start(.comparison, configuration: .init())
+        comparison.start(.comparison, configuration: wearSetup())
         expect(comparison.latest?.requestCount == 0 && SyntheticRecorder.shared.recordCount == 1, "Comparison never records")
         let comparisonTrial = comparison.latest!
         comparison.refreshClock(now: comparisonTrial.end, uptime: comparisonTrial.startUptime + 28800)
@@ -631,7 +659,7 @@ import Foundation
         defaults.set(try JSONEncoder().encode(qualification), forKey: "overnightMotion.v1")
         SyntheticRecorder.shared.configure()
         let unlocked = OvernightMotionCoordinator(owner: owner, defaults: defaults)
-        expect(unlocked.canStart(.overnight), "Qualified pilot unlocks overnight on matching OS/build")
+        expect(unlocked.pilotReady && !unlocked.canStart(.overnight), "Qualified pilot alone cannot bypass eight-hour setup and baseline")
         SyntheticRecorder.shared.configure(output: .missing)
         unlocked.retrieve(pilotProbe: true)
         await settle(unlocked)
@@ -647,7 +675,7 @@ import Foundation
         SyntheticRecorder.shared.configure()
         unlocked.retrieve(pilotProbe: true)
         await settle(unlocked)
-        expect(unlocked.pilotReady && unlocked.canStart(.overnight)
+        expect(unlocked.pilotReady && !unlocked.canStart(.overnight)
             && unlocked.latest?.firstUsefulProbeAt == qualified.firstUsefulProbeAt,
             "A usable retry restores qualification using the retained early visibility observation")
         SyntheticRecorder.shared.configure(output: .slow)
@@ -678,8 +706,39 @@ import Foundation
             && laterRead.latest?.observations.last?.clockDiscontinuity == true
             && laterRead.latest?.observations.last?.useful == false,
             "A clock-uncertain probe preserves completed qualification without claiming new visibility")
-        unlocked.start(.overnight, configuration: .init())
-        expect(unlocked.latest?.mode == .overnight && SyntheticRecorder.shared.recordCount == 1, "Qualified overnight issues one request")
+        unlocked.start(.overnight, configuration: wearSetup())
+        expect(unlocked.latest?.mode == .pilot && SyntheticRecorder.shared.recordCount == 0,
+            "Missing matching baseline blocks the recorder despite a qualified pilot")
+        var readyBaseline = OvernightMotionTrial(mode: .comparison, start: Date().addingTimeInterval(-30000), uptime: 1000,
+            configuration: wearSetup(), battery: 0.8, elapsedClock: .continuous, measurementBasis: .sensorTime)
+        readyBaseline.phase = .elapsed
+        readyBaseline.configuration.charging = "No"; readyBaseline.configuration.interruption = "None"
+        readyBaseline.batteryReturn = .init(date: readyBaseline.end, level: 0.65)
+        var readyArchive = unlocked.archive
+        readyArchive.trials.insert(readyBaseline, at: 0)
+        defaults.set(try JSONEncoder().encode(readyArchive), forKey: "overnightMotion.v1")
+        let readyNight = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(readyNight.canStart(.overnight, configuration: wearSetup()), "Matching pilot, setup, battery and baseline permit recording")
+        WKInterfaceDevice.current().batteryLevel = 0.1
+        readyNight.start(.overnight, configuration: wearSetup())
+        expect(SyntheticRecorder.shared.recordCount == 0 && readyNight.latest?.mode == .pilot,
+            "Start rechecks changed battery instead of trusting an earlier UI check")
+        WKInterfaceDevice.current().batteryLevel = -1
+        readyNight.checkBattery()
+        expect(!readyNight.canStart(.overnight, configuration: wearSetup()), "Unknown battery cannot authorize eight-hour recording")
+        WKInterfaceDevice.current().batteryLevel = 0.45
+        readyNight.checkBattery()
+        expect(readyNight.canStart(.overnight, configuration: wearSetup()), "Derived 45% start floor respects WatchKit Float precision")
+        var changedWear = wearSetup(); changedWear.powerMode = "On"
+        expect(!readyNight.canStart(.overnight, configuration: changedWear), "Changed settings require a matching comparison")
+        readyNight.start(.overnight, configuration: wearSetup())
+        expect(readyNight.latest?.mode == .overnight && readyNight.latest?.batteryComparisonID == readyBaseline.id
+            && SyntheticRecorder.shared.recordCount == 1,
+            "Fully prepared overnight issues one request")
+        let nightRecovery = OvernightMotionCoordinator(owner: owner, defaults: defaults)
+        expect(nightRecovery.hasReservation && nightRecovery.latest?.recovered == true
+            && SyntheticRecorder.shared.recordCount == 1, "Eight-hour relaunch retains its reservation without rearming")
+        WKInterfaceDevice.current().batteryLevel = 0.8
         owner.release(.overnightMotion)
         var prepared = OvernightMotionTrial(mode: .pilot, start: Date(), uptime: ProcessInfo.processInfo.systemUptime,
                                            configuration: .init(), battery: nil)
@@ -693,11 +752,8 @@ import Foundation
         owner.reconcile(alertPending: false, motionPending: true, overnightPending: true)
         expect(owner.current == .unresolved, "Conflicting reservations are not guessed away")
 
-        var settings = OvernightMotionTrial.Configuration()
-        settings.watchModel = "Synthetic"
-        settings.wrist = "Worn, unlocked"; settings.powerMode = "Off"
-        settings.sleepFocus = "On"; settings.sleepTracking = "On"
-        settings.debuggerDetached = "Yes"; settings.charging = "No"; settings.interruption = "None"
+        var settings = wearSetup()
+        settings.charging = "No"; settings.interruption = "None"
         var baseline = OvernightMotionTrial(mode: .comparison, start: origin, uptime: 1000, configuration: settings, battery: 0.8)
         baseline.phase = .elapsed
         baseline.batteryReturn = .init(date: baseline.end, level: 0.65)
@@ -706,10 +762,50 @@ import Foundation
         night.batteryReturn = .init(date: night.end, level: 0.6)
         let batteries = OvernightMotionArchive(trials: [baseline, night])
         expect(batteries.batteryAssessment(for: night).hasPrefix("Battery thresholds met"), "Matched battery baseline")
+        var uncertainBaseline = baseline
+        uncertainBaseline.clockDiscontinuity = true
+        expect(OvernightMotionArchive(trials: [uncertainBaseline, night]).batteryAssessment(for: night).hasPrefix("Comparable baseline not established"),
+            "A clock-uncertain comparison cannot be used as a battery baseline")
+        var lateBaseline = baseline; lateBaseline.batteryReturn = .init(date: baseline.end.addingTimeInterval(3600), level: 0.65)
+        var lateNight = night; lateNight.batteryReturn = .init(date: night.end.addingTimeInterval(3600), level: 0.6)
+        expect(OvernightMotionArchive(trials: [lateBaseline, lateNight]).batteryAssessment(for: lateNight).contains("incomplete"),
+            "Equally late nine-hour returns cannot masquerade as a matched eight-hour comparison")
+        expect(OvernightGuide(trial: night, now: night.end).title == "Retrieve before the deadline",
+            "Morning guide opens at end, leaving time for completion")
+        expect(OvernightGuide(trial: night, now: night.end.addingTimeInterval(301)).title == "Later retrieval is diagnostic",
+            "The completion deadline is not a suggestion to start late")
+        expect(OvernightGuide(trial: uncertainBaseline, now: uncertainBaseline.end).target == nil,
+            "An uncertain eight-hour clock suppresses timed guidance")
+        var wrongReference = night
+        wrongReference.batteryComparisonID = UUID()
+        expect(batteries.batteryAssessment(for: wrongReference).hasPrefix("Comparable baseline not established"),
+            "A recording cannot silently switch away from its saved comparison identity")
+        var futureBaseline = baseline
+        futureBaseline.start = night.start.addingTimeInterval(86400)
+        futureBaseline.end = futureBaseline.start.addingTimeInterval(28800)
+        futureBaseline.batteryStart = .init(date: futureBaseline.start, level: 0.8)
+        futureBaseline.batteryReturn = .init(date: futureBaseline.end, level: 0.65)
+        expect(OvernightMotionArchive(trials: [night, futureBaseline]).batteryAssessment(for: night).hasPrefix("Comparable baseline not established"),
+            "A later comparison cannot satisfy a recording's preflight retrospectively")
         night.configuration.powerMode = "On"
         expect(batteries.batteryAssessment(for: night).hasPrefix("Comparable baseline not established"), "Settings mismatch is inconclusive")
         night.configuration.charging = "Yes"
         expect(batteries.batteryAssessment(for: night).contains("incomplete"), "Charging cannot pass battery criteria")
+        for output in [SyntheticRecorder.Output.missing, .empty, .unexpected] {
+            SyntheticRecorder.shared.configure(output: output)
+            let faultyRead = await read(recorder, duration: 28800, timingBasis: .sensorTime)
+            try faultyRead.summary.validate()
+            expect(!faultyRead.summary.meetsTimingCriteria && faultyRead.summary.count == 0,
+                "Eight-hour missing, empty and unexpected results remain incomplete")
+        }
+        SyntheticRecorder.shared.configure(output: .slow)
+        let nightCancellation = OvernightRetrievalCancellation()
+        let cancelledNightTask = Task { await read(recorder, duration: 28800, cancellation: nightCancellation, timingBasis: .sensorTime) }
+        try await Task.sleep(for: .milliseconds(20))
+        nightCancellation.cancel()
+        let cancelledNight = await cancelledNightTask.value
+        expect(cancelledNight.cancelled && !cancelledNight.summary.meetsTimingCriteria,
+            "Cancelling eight-hour enumeration cannot yield complete timing evidence")
         expect(testArchive.errorMessage == nil && !testArchive.reports.isEmpty, "Actual coordinator writes diagnostic reports")
         let saved = try testArchive.report(id: testArchive.reports[0].id)
         expect(saved.diagnostics != nil, "Full typed summary is retained independently of rolling history")
