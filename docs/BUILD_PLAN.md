@@ -1,5 +1,15 @@
 # Step-by-step build
 
+## Current work — foreground movement analysis, October 14
+
+The owner elected to defer overnight fixed-alarm validation and develop sensing/analysis. Alarm acceptance remains pending; cancellation stays passed by owner report and the previously reported overnight run retains its unknowns. [Experiment 008](experiments/008-fixed-alarm.md#validation-deferred-for-analysis-development--october-14) preserves the existing acceptance criteria. This changes work order, not evidence or readiness.
+
+Build **0.1 (20)** adds an exploratory streaming feature layer to **Research → Motion probe**: mean acceleration magnitude, population magnitude standard deviation and sample-mean ENMO over 30-second sensor-time windows, with counts, gaps, receipt delay and rejected-data indicators. Only the current and latest completed window are held in memory; no feature values, raw motion or HealthKit samples are persisted. The requested foreground rate stays 10 Hz. The independent fixed alarm, background/overnight recorder, HealthKit queries and storage schema are unchanged.
+
+Sequence: (1) verify the arithmetic/callback handoff and short foreground feature display; (2) establish input coverage/availability and a private retention/deletion design for the intended sensing path before extending feature capture; (3) specify a sleep/wake task and evaluate a simple baseline before considering stages; (4) connect a validated, causal decision only after signal/model gates and separately tested alarm fallback permit it. Engineering a descriptive feature does not select a classifier, qualify overnight sensing or validate quiet movement as sleep. No datasets, model weights or training are introduced. Experiment 006 remains paused; its gates apply before adopting overnight recorder inputs.
+
+See [Experiment 002's feature contract and walkthrough](experiments/002-live-data.md#foreground-movement-features--build-20-october-14). The physical feature comparison is an awake UI/signal check, not a new overnight test or biological validation. Resume fixed-alarm acceptance separately when requested, recording the installed build; do not assign build-19 observations to build 20.
+
 ## Accelerated fixed-alarm MVP — October 9
 
 The owner selected an **alarm-first, Watch-only** release. Build one next-occurrence fixed-time alarm using a scheduled WatchKit session, with setup/review/edit/cancel/stop, truthful scheduling and relaunch recovery. No sensors, early-wake decision, classifier, recurrence, snooze or phone companion enter this version. Smart waking remains the later product goal below; its input/model gates do not block the fixed alarm.
@@ -160,7 +170,7 @@ These requirements preserve the full product goal. They are not satisfied by the
 
 | Requirement | Evidence required to call it ready | Current state |
 | --- | --- | --- |
-| Setup, review, edit, cancellation, stop, and recovery | Synthetic state/error checks and physical trials show understandable outcomes after relaunch and interruptions. Saved preferences and API requests are distinguished from observed scheduling state. | Final flow not implemented; only experiment controls exist. |
+| Setup, review, edit, cancellation, stop, and recovery | Synthetic state/error checks and physical trials show understandable outcomes after relaunch and interruptions. Saved preferences and API requests are distinguished from observed scheduling state. | Fixed-alarm setup/edit/cancel/stop/recovery are implemented; smart-window setup remains future work and remaining physical checks are open. |
 | Qualified and inspectable wake decision | A defined task, compatible signals, reproducible method versus a simple baseline, participant-separated evaluation, causal replay, predefined success criteria, uncertainty/coverage, and tested missing/stale inputs. | Inputs unresolved; no production method selected. |
 | Latest-wake fallback and alert delivery | A supported mechanism and repeated physical tests independently establish fallback and delivery under recorded conditions, including insufficient-data and interruption paths. Requests, perceived alerts, and waking outcomes are recorded separately. | Short alert retest passed by owner report; final fallback and overnight delivery remain untested. |
 | Battery practicality | Repeated physical observations meet predefined final-product battery criteria under recorded wear, settings, charging, and interruption conditions. | Overnight experiment pending; final-product criteria not yet defined. |

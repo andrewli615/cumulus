@@ -3,6 +3,8 @@
 Run from the repository root on macOS with Xcode installed:
 
 ```sh
+./scripts/check-motion-features.sh
+./scripts/check-alarm.sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
 ./scripts/check-cardiac-history.sh
@@ -16,6 +18,7 @@ All runners default `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Develop
 
 | Suite | Coverage |
 | --- | --- |
+| `MotionFeatureChecks.swift` | Known magnitude/variance/ENMO, orientation, half-open windows, gaps without zero-fill, receipt delay, invalid/order/clock/overflow handling, bounded state, stop/restart and actual foreground monitor callbacks via Core Motion doubles. No sleep labels or physical accuracy inferred. |
 | `CardiacTimingChecks.swift` / `CardiacTimingProviderChecks.swift` | Aggregate spacing without bridging flagged gaps or rejected entries; count/privacy/eligibility, timeout/cancellation and late results. The actual HealthKit adapter compiles against platform doubles to check object predicates, interval/offset conversion, mismatched lookup, errors and entry caps. No physical availability is inferred. |
 | `TestArchiveChecks.swift` | Real file persistence/relaunch, fractional dates, stable-ID updates, payload retrieval, report/byte ceilings, corrupt files and symlinks, invalid IDs/schema, deletion and suppression of deleted legacy imports, capacity readiness and typed archived evidence review. All fixtures are synthetic. |
 | `TestArchiveRetrievalChecks.py` | Private output guard including ignored Git directories, bounded JSON/base64 decoding, missing input, identity mismatches and corrupt files. No device is contacted. |

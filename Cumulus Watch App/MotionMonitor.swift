@@ -17,6 +17,7 @@ final class MotionMonitor: ObservableObject {
     @Published private(set) var observedRate: Double?
     @Published private(set) var isMonitoring = false
     @Published private(set) var status = "Not started"
+    @Published private(set) var features = MotionFeatures()
 
     private let manager = CMMotionManager()
     private let queue: OperationQueue = {
@@ -34,6 +35,7 @@ final class MotionMonitor: ObservableObject {
         sampleCount = 0
         observedRate = nil
         firstTimestamp = nil
+        features = MotionFeatures()
         guard manager.isAccelerometerAvailable else {
             status = "Accelerometer unavailable"
             return
@@ -51,6 +53,7 @@ final class MotionMonitor: ObservableObject {
             let y = data?.acceleration.y
             let z = data?.acceleration.z
             let timestamp = data?.timestamp
+            let receipt = ProcessInfo.processInfo.systemUptime
             Task { @MainActor [weak self] in
                 guard let self, self.isMonitoring, self.runID == currentRun else { return }
                 if let message {
@@ -58,6 +61,10 @@ final class MotionMonitor: ObservableObject {
                     return
                 }
                 guard let x, let y, let z, let timestamp else { return }
+                guard self.features.receive(x: x, y: y, z: z, timestamp: timestamp, receipt: receipt) else {
+                    self.status = "Rejected motion sample; inspect quality"
+                    return
+                }
                 let reading = Reading(x: x, y: y, z: z, timestamp: timestamp)
                 self.latest = reading
                 self.sampleCount += 1
@@ -74,6 +81,7 @@ final class MotionMonitor: ObservableObject {
     func stop(reason: String = "Stopped") {
         runID = UUID() // Ignore callbacks already queued by the previous run.
         manager.stopAccelerometerUpdates()
+        features.stop()
         isMonitoring = false
         status = reason
     }

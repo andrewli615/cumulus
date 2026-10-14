@@ -1,6 +1,6 @@
 # Cumulus
 
-Cumulus is moving toward a **Watch-only, one-time fixed alarm** first: set/review/edit/cancel/stop and truthful relaunch recovery. The fixed-alarm lifecycle and initial product UI are implemented; physical product validation is in progress. The longer-term goal is an explainable smart wake decision, not a sleep-stage claim. Keep an independent alarm for real wake requirements.
+Cumulus is moving toward a **Watch-only, one-time fixed alarm** first: set/review/edit/cancel/stop and truthful relaunch recovery. The fixed-alarm lifecycle and initial product UI are implemented; physical product acceptance is pending and overnight alarm validation is deferred while exploratory sensing/analysis proceeds. The longer-term goal is an explainable smart wake decision, not a sleep-stage claim. Keep an independent alarm for real wake requirements.
 
 The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9) defers overnight motion, further cardiac timing and classifier research as fixed-alarm release blockers. Existing experiment results remain preserved, including build 14's retained-window timing pass and its unqualified pilot. See [the experience](docs/EXPERIENCE.md) and [behavior requirements](docs/BEHAVIOR.md).
 
@@ -8,7 +8,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 | Screen | What it does | Evidence and next check |
 | --- | --- | --- |
-| Motion probe | Foreground acceleration and readable heart-rate age | One owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
+| Motion probe | Foreground acceleration, in-memory 30-second movement features and readable heart-rate age | Build 20 adds magnitude/variability/ENMO and timing quality; physical feature behavior is untested. One earlier owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
 | Scheduled alert test | Requests a session three minutes ahead and a haptic while running | Original mixed results, then owner-reported successful retest after changing Watch haptics. [Experiment 001](docs/experiments/001-scheduled-alert.md) |
 | Background motion test | Collects 60 seconds of sample timing/count summaries | Owner reports both background trials and manual-stop check passed. [Experiment 003](docs/experiments/003-background-motion.md) |
 | Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; owner reports procedure completion; individual outcomes and trial details are unknown. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
@@ -17,7 +17,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** the owner reports [one overnight alarm run already completed](docs/experiments/008-fixed-alarm.md#overnight-completion-report--october-14); its configuration, perception and battery qualification remain unknown. Keep build **0.1 (19)** and record a second night with the existing checklist, an independent backup and detached debugger. Two qualifying nights remain required; do not restart both solely because the first was reported later. The owner confirms cancellation **passed**, supported by normal invalidation about 118 seconds before the target and no haptic for the cancelled configuration. No repeat cancellation test is required. The full 50-event combined history is preserved privately; current device/app metadata confirms Series 8/watchOS 26.6 and app 0.1 (19). Overnight perception/battery and remaining physical edit, recovery, accessibility/clearing checks are pending. Experiment 006 stays paused.
+**Next:** on build **0.1 (20)**, open **Research → Motion probe** for the [foreground movement walkthrough](docs/experiments/002-live-data.md#foreground-movement-features--build-20-october-14). Magnitude, variability and ENMO describe movement; they are not sleep labels and do not control the alarm. Features stay in memory and are not added to Saved tests. The owner elected to defer overnight alarm validation; [Experiment 008](docs/experiments/008-fixed-alarm.md#validation-deferred-for-analysis-development--october-14) preserves the owner-confirmed cancellation pass and reported overnight run with incomplete qualification. Alarm acceptance remains pending. Experiment 006 and its unchanged sensor criteria remain paused; physiological validation and intended-state signal availability are still needed before a sleep decision.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 
@@ -56,6 +56,7 @@ The owner reports completing the previous UI and sleep-history checks on 2026-10
 Run the synthetic suites from the repository root:
 
 ```sh
+./scripts/check-motion-features.sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
 ./scripts/check-cardiac-history.sh

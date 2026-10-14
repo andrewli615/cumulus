@@ -41,6 +41,7 @@ struct ContentView: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
             ExperimentCard { motionSection }
+            ExperimentCard { MotionFeatureSection(features: motion.features, isMonitoring: motion.isMonitoring) }
             ExperimentCard { heartSection }
             Text("Readings stay in memory. Sample counts and diagnostic status are saved locally in Saved tests. This probe does not schedule alerts.")
                 .font(.caption2).foregroundStyle(.secondary)
@@ -73,7 +74,7 @@ struct ContentView: View {
                         .font(.caption2)
                 }
             }
-            ExperimentMetric(label: "Samples received", value: "\(motion.sampleCount)")
+            ExperimentMetric(label: "Accepted samples", value: "\(motion.sampleCount)")
             if let rate = motion.observedRate {
                 Text(String(format: "Observed average: %.1f Hz", rate)).font(.caption2)
             }

@@ -97,3 +97,7 @@ Keep retrospective reproduction separate from causal replay. At decision time, e
 5. **Only then consider the personal Watch MVP:** explicit data readiness/uncertainty, a separately verified fixed latest-wake fallback, alert-delivery trials, and repeated battery/accessibility/interruption and waking-benefit checks. Keep an independent alarm during development. No wake-deadline guarantee follows from this audit.
 
 Learning exercise: explain why a well-populated 30-second motion bucket cannot supply a motion-variability feature, and why a later measurement used by interpolation can change an earlier prediction.
+
+## Foreground feature extension — October 14
+
+Build 20 adds exploratory in-memory magnitude/variability/ENMO calculation to the foreground Motion probe, using [Experiment 002's explicit contract](../experiments/002-live-data.md#foreground-movement-features--build-20-october-14). The retrospective recorder still discards feature values; existing stored timing summaries still cannot reconstruct them. No export, persistence, model reproduction, training or dataset download is added. This engineering step changes neither the published-candidate recommendation nor the input, availability, calibration and biological-validation blockers above. The new foreground features are descriptive movement values, not a compatible stage-model input dataset or proof of overnight collection. The owner deferred overnight alarm validation; that does not establish the separate sensor gates.

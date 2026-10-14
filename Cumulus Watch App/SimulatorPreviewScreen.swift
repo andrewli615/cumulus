@@ -9,6 +9,7 @@ struct SimulatorPreviewScreen: View {
     @State private var previewMode: OvernightMotionTrial.Mode = .pilot
     @State private var previewConfiguration = OvernightMotionTrial.Configuration()
     private let trial: OvernightMotionTrial
+    private let featureFixture: MotionFeatures
     private var orderSummary: OvernightMotionSummary {
         var summary = OvernightMotionSummary(start: trial.start, end: trial.start.addingTimeInterval(1200))
         summary.receive(date: trial.start.addingTimeInterval(1), uptime: 1000, axesFinite: true, chunkStart: trial.start)
@@ -43,6 +44,15 @@ struct SimulatorPreviewScreen: View {
         trial.phase = .requested
         trial.requestCount = 1
         self.trial = trial
+        var features = MotionFeatures()
+        let origin = ProcessInfo.processInfo.systemUptime - 32
+        for index in 0..<320 {
+            let timestamp = origin + Double(index) / 10
+            features.receive(x: 0, y: 0, z: index.isMultiple(of: 2) ? 1 : 1.2,
+                             timestamp: timestamp, receipt: timestamp + 0.01)
+        }
+        features.stop()
+        featureFixture = features
         let report = TestReport(id: "overnight-synthetic-preview", kind: .overnight, createdAt: trial.start,
                                title: "Synthetic pilot", status: "No physical trial", metrics: ["Original build": "Synthetic"])
         store.saveDiagnostics(trial, report: report)
@@ -55,6 +65,10 @@ struct SimulatorPreviewScreen: View {
                 AlarmHomeView(coordinator: alarm, owner: owner) { Text("Synthetic research destination") }
             case "alarm-setup": AlarmTimeSelectionView(coordinator: alarm, editing: false)
             case "alarm-history": AlarmHistoryView(coordinator: alarm)
+            case "motion-features":
+                ExperimentPage {
+                    ExperimentCard { MotionFeatureSection(features: featureFixture, isMonitoring: false) }
+                }.navigationTitle("Analysis")
             case "trial-selector":
                 ExperimentPage {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }
