@@ -1,6 +1,6 @@
 # Experiment 008: Fixed-alarm MVP acceptance
 
-Status: build **0.1 (19)** implemented and software-verified on October 9. **Physical trials pending.** No installation, alarm scheduling, haptic perception or battery outcome on the physical Watch is claimed by this milestone. Experiment 006 remains paused and unresolved; its results and criteria are unchanged.
+Status: build **0.1 (19)** implemented and software-verified on October 9. On October 13, the owner reported that one approximately three-minute alarm went off; private read-back corroborates its scheduled/start/haptic-request/end lifecycle, and the installed app is 0.1 (19). **Overall physical acceptance remains pending.** Edit/cancel/recovery, overnight delivery, battery and accessibility are unresolved. Experiment 006 remains paused and unresolved; its results and criteria are unchanged.
 
 ## Question and limits
 
@@ -61,7 +61,7 @@ The read-only tool copies `Library/Application Support/Cumulus/Alarm/record.json
 - All seven suites passed on build 17; build 18 repeats the alarm suite after the visual-only change: alarm, background motion/shared delegate, overnight motion, sleep history, cardiac history, cardiac timing, and saved archive. The Python retrieval checks cover the separate alarm record, fractional request offsets, date encoding, bounds and malformed input.
 - Signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both report build 19. Project parsing, whitespace and local documentation links pass.
 - Eight build-16 initial-viewport screenshots on an isolated 40 mm simulator cover synthetic home, setup, unverified and history at `.large` and `.xxxLarge`. An oversized heading and wrapping history title were corrected. Interactive selection/return, lower-page confirmation, scrolling, VoiceOver and physical layout remain unverified. Simulator rendering is not alarm evidence.
-- **Physical result: pending.** No integrated short/overnight trial, perceived alert, battery result or physical deletion check has been supplied for build 19.
+- **Physical result: partial.** One short alert is owner-reported and its lifecycle is inspected below. No overnight delivery, battery result or physical deletion check is recorded; full acceptance remains pending.
 
 Learning exercise: identify the evidence behind Saved, Scheduled, Haptic requested and Perceived alert. Explain why only the last requires an observation from the wearer.
 
@@ -82,3 +82,26 @@ Build 19 adds an original nightcap to the SVG artwork and preserves its full col
 Build 19 remains unchanged for the physical trials. Fresh signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both compiled app bundles identify version 0.1 (19). The alarm suite, background/shared-delegate suite and four private retrieval tests pass. Project parsing, whitespace and local documentation links pass. These are readiness checks, not physical acceptance, signed installation or a new interactive simulator check.
 
 The short-test checklist above is ready, and a blank private worksheet was prepared outside Git. No Watch was installed, launched, read or scheduled during this preparation. No trial observations, HealthKit records or raw device logs were added. Existing physical results and all acceptance thresholds are preserved. The next action is Xcode installation with the existing app identity, then the short delivery trial from the Watch icon with the debugger detached.
+
+## Short-delivery report and inspection — October 13
+
+**Owner report:** "the 3 minute alarm went off." This establishes an owner-reported alert; the specific haptic, sound or visible system-alert observation and stop method were not supplied.
+
+**Inspected diagnostic summary:** read-only export from the paired Watch retrieved one alarm with five retained events. The installed Cumulus app was separately confirmed as **0.1 (19)** at read-back; the alarm record itself does not embed its recording build. An initial disconnected-device lookup failed; explicitly addressing the paired Watch succeeded without launching, reinstalling or scheduling Cumulus. Raw exports, identities and exact timestamps remain private outside Git.
+
+| Observation | Relative to requested time |
+| --- | --- |
+| Schedule request | 178.08 seconds before |
+| Scheduled state observed | 177.97 seconds before |
+| Session-start callback | +2.03 seconds |
+| Haptic request | +2.05 seconds |
+| Session invalidation, reason 0 | +7.95 seconds |
+
+The saved phase is `ended`; events are ordered, with one recorded haptic request and no recorded error. Reason 0 alone does not establish which stop action the owner used. The request lead is approximately three minutes, slightly below the suggested 180-second preparation interval. Settings, wearing, debugger attachment, battery, actual trial time zone, explicit stop behavior and absence of physical duplicates remain unknown. This supports the software path for one reported alert under incompletely recorded conditions; it does not complete the short-test group or qualify overnight reliability. No criteria changed.
+
+**Next — separate edit and cancellation tests, keeping build 19 and an independent alarm:**
+
+1. Open the alarm home and verify the previous alert has ended and **Set alarm** is available. If a session is active, stop it first; preserve an Unverified or unresolved state for inspection instead of bypassing it.
+2. **Edit:** set a time about four minutes ahead to allow setup time. While it is Scheduled, tap **Edit time** and replace it with a time about seven minutes ahead from now, reviewing the full date. Confirm the replacement becomes Scheduled. Leave the app. No alert should occur at the original time or during its following minute; the replacement should alert. Stop it and preserve history. Record alert perception and stop result; callbacks can be checked from the export.
+3. **Cancellation:** create a separate alarm about four minutes ahead; cancel with at least one minute remaining. Confirm **Cancelled**, leave the app and wait through five minutes after its requested time. Record whether any Cumulus alert occurs. Preserve the events and export this short-test group before clearing or starting later trials.
+4. Do not advance to the two overnight trials until edit/cancellation results and any unexplained errors or duplicates have been reviewed. Recovery, physical accessibility and independent clearing checks remain required.
