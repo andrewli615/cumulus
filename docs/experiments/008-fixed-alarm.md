@@ -12,6 +12,21 @@ Can the integrated, Watch-only fixed alarm schedule one absolute time, request a
 
 ## Prewritten physical procedure
 
+### Start here: short-test checklist
+
+Keep an independent backup alarm. Use build **0.1 (19)**; do not delete Cumulus, clear its data or run Research experiments during validation. Complete any pending Research session first. If ownership is unresolved or a saved alarm is Unverified, preserve the state and history for inspection rather than trying another schedule.
+
+1. In Xcode, open `Cumulus.xcodeproj`, select **Cumulus Watch App** and your paired Watch, then Run. A signing-free build is a compile check, not an installable device app; Xcode must sign this installation with the configured team. Preserve the existing bundle identifier so saved data stays in the same app container.
+2. When installation is complete, press the square **Stop** button in Xcode. Open Cumulus directly from the Watch app icon. Keep the debugger detached for the trial. Record the observed OS/build and intended Focus/haptic settings; leave uncaptured values unknown.
+3. Tap **Set alarm**, choose a time at least three minutes ahead, then scroll to **Confirm next occurrence**. Review the full date and time zone, tap **Schedule alarm**, and confirm **Scheduled** on the home screen. A request, saved time or Unverified status is not that confirmation.
+4. Leave via the Digital Crown. Observe whether you feel a Cumulus haptic and whether its system alert appears. Stop the alert, then open **Alarm history**. Preserve schedule, session-start, haptic-request and invalidation events, including errors. Do not manually transcribe every event; the private export below can evaluate their timing.
+5. Run the Edit and Cancellation trials in the full procedure below as separate tests. Preserve the original/replacement times and whether an alert appears at either time. Export after this short-test group, before later trials can displace its history. Resolve failed or unexplained short-test results before starting the overnight trials.
+6. Continue with two separate overnight deliveries using the procedure and unchanged acceptance criteria below. Export after each night. Record battery on the Watch just before leaving Cumulus and promptly after stopping the alert, plus charging and interruptions. Missing observations remain unknown.
+
+The app stores software events, not perceived haptics, settings or battery measurements. Keep those observations in a private worksheet outside Git. For each trial, record its label/date, requested time (original and replacement for edits), perceived haptic, visible Cumulus alert, stop result, errors/duplicates, conditions and start/end battery/time. Use **not run** for a trial you have not performed and **unknown** for a detail you missed. Export before clearing completed history; keep Saved tests intact. Physical clearing remains a separate final check, after preserving the relevant records.
+
+### Full trial procedure
+
 1. Preserve outstanding Research requests and saved reports. Finish any active/reserved Research session before scheduling an alarm. Install build 19 through Xcode without deleting Cumulus or clearing app data. Stop the Xcode run, then open Cumulus from the Watch icon. An app update does not qualify old alarm tests for the new build.
 2. Record Watch model, watchOS, app build, local time zone, haptic/sound settings, Sleep Focus, Low Power Mode, wrist/unlocked state and any interruptions. Leave unrecorded details unknown. Use an independent backup distinguishable from Cumulus's alert; do not attribute the backup's alert to Cumulus.
 3. **Short delivery:** set an alarm at least three minutes ahead. Review the full date/time zone and tap Schedule alarm. Confirm Scheduled; leave via the Digital Crown. At the requested time, record perceived haptic and visible system alert separately. Stop via the system Stop button or Cumulus's Stop alert. Inspect Alarm history for schedule state, start callback, haptic request and invalidation. A running-state observation is not a missing start callback.
@@ -61,3 +76,9 @@ Physical delivery, overnight battery, interactive UI/VoiceOver and process-relau
 Build 18 adds only the SVG cloud assets, license resource and visual layout changes documented in [the experience note](../EXPERIENCE.md#cloud-identity-and-visual-pass--build-18-october-9). Scheduling/recovery implementation is unchanged; physical acceptance must use the current installed build.
 
 Build 19 adds an original nightcap to the SVG artwork and preserves its full colors in the decorative heading. Watch/Simulator builds and the alarm suite pass; scheduling and research code are unchanged. Physical acceptance is still pending on the current build.
+
+## Test preparation — October 13
+
+Build 19 remains unchanged for the physical trials. Fresh signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both compiled app bundles identify version 0.1 (19). The alarm suite, background/shared-delegate suite and four private retrieval tests pass. Project parsing, whitespace and local documentation links pass. These are readiness checks, not physical acceptance, signed installation or a new interactive simulator check.
+
+The short-test checklist above is ready, and a blank private worksheet was prepared outside Git. No Watch was installed, launched, read or scheduled during this preparation. No trial observations, HealthKit records or raw device logs were added. Existing physical results and all acceptance thresholds are preserved. The next action is Xcode installation with the existing app identity, then the short delivery trial from the Watch icon with the debugger detached.
