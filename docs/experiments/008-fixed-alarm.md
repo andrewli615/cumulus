@@ -1,6 +1,6 @@
 # Experiment 008: Fixed-alarm MVP acceptance
 
-Status: build **0.1 (19)** implemented and software-verified on October 9. On October 13, the owner reported that one approximately three-minute alarm went off; private read-back corroborates its scheduled/start/haptic-request/end lifecycle, and the installed app is 0.1 (19). **Overall physical acceptance remains pending.** Edit/cancel/recovery, overnight delivery, battery and accessibility are unresolved. Experiment 006 remains paused and unresolved; its results and criteria are unchanged.
+Status: build **0.1 (19)** implemented and software-verified on October 9. On October 13, the owner reported one short alert and then additional runs. Private read-back now contains six configurations: four recorded haptic requests, two cancel-before-replacement transitions and normal invalidations, without recorded errors. The installed app was confirmed as 0.1 (19) at the initial short-trial read-back. **Overall physical acceptance remains pending.** Standalone cancellation, physical edit/perception observations, recovery, overnight delivery, battery and accessibility remain unresolved. Experiment 006 stays paused with its results and criteria unchanged.
 
 ## Question and limits
 
@@ -61,7 +61,7 @@ The read-only tool copies `Library/Application Support/Cumulus/Alarm/record.json
 - All seven suites passed on build 17; build 18 repeats the alarm suite after the visual-only change: alarm, background motion/shared delegate, overnight motion, sleep history, cardiac history, cardiac timing, and saved archive. The Python retrieval checks cover the separate alarm record, fractional request offsets, date encoding, bounds and malformed input.
 - Signing-free Debug builds pass for generic Watch and Watch Simulator with Xcode 27; both report build 19. Project parsing, whitespace and local documentation links pass.
 - Eight build-16 initial-viewport screenshots on an isolated 40 mm simulator cover synthetic home, setup, unverified and history at `.large` and `.xxxLarge`. An oversized heading and wrapping history title were corrected. Interactive selection/return, lower-page confirmation, scrolling, VoiceOver and physical layout remain unverified. Simulator rendering is not alarm evidence.
-- **Physical result: partial.** One short alert is owner-reported and its lifecycle is inspected below. No overnight delivery, battery result or physical deletion check is recorded; full acceptance remains pending.
+- **Physical result: partial.** One short alert is owner-reported; additional-run software delivery/stop/edit lifecycles are inspected below. Standalone cancellation and explicit perception/old-time silence observations are missing. No overnight delivery, battery result or physical deletion check is recorded; full acceptance remains pending.
 
 Learning exercise: identify the evidence behind Saved, Scheduled, Haptic requested and Perceived alert. Explain why only the last requires an observation from the wearer.
 
@@ -105,3 +105,24 @@ The saved phase is `ended`; events are ordered, with one recorded haptic request
 2. **Edit:** set a time about four minutes ahead to allow setup time. While it is Scheduled, tap **Edit time** and replace it with a time about seven minutes ahead from now, reviewing the full date. Confirm the replacement becomes Scheduled. Leave the app. No alert should occur at the original time or during its following minute; the replacement should alert. Stop it and preserve history. Record alert perception and stop result; callbacks can be checked from the export.
 3. **Cancellation:** create a separate alarm about four minutes ahead; cancel with at least one minute remaining. Confirm **Cancelled**, leave the app and wait through five minutes after its requested time. Record whether any Cumulus alert occurs. Preserve the events and export this short-test group before clearing or starting later trials.
 4. Do not advance to the two overnight trials until edit/cancellation results and any unexplained errors or duplicates have been reviewed. Recovery, physical accessibility and independent clearing checks remain required.
+
+## Additional-run inspection — October 13
+
+**Owner report:** "I did a few more runs." Specific new alert perceptions, old-time silence, settings, debugger state and battery were not supplied; do not infer them from the events.
+
+**Inspected diagnostic summary:** the private read-only export retains 30 ordered events across six alarm configurations, including all five original short-trial events and 25 new events. None of these retained lifecycles is truncated. The current record is `ended`; no error or repeated haptic request within one configuration is recorded. App code is unchanged on build 19; the records do not embed their trial build. Raw exports, identities and timestamps remain outside Git.
+
+| Configuration in retained order | Software lifecycle | Haptic-request offset |
+| --- | --- | --- |
+| 1 (previously inspected) | Scheduled, started, requested haptic, normal invalidation | +2.05 s |
+| 2 | Scheduled, started, requested haptic, Stop requested, normal invalidation | +2.03 s |
+| 3 | Scheduled, started, requested haptic, Stop requested, normal invalidation | +0.46 s |
+| 4 | Scheduled, cancellation requested before replacement, normal invalidation before its requested time; no start/haptic event | None recorded |
+| 5 | Replacement scheduled, then cancellation requested before another replacement; normal invalidation before its requested time; no start/haptic event | None recorded |
+| 6 | Final replacement scheduled, started, requested haptic, normal invalidation | +0.71 s |
+
+Configuration 5's request follows configuration 4's invalidation by approximately 0.016 seconds; its fire date is 120 seconds later. Configuration 6's request follows configuration 5's invalidation by approximately 0.010 seconds; its fire date is another 180 seconds later. These corroborate **one edit chain with two changes**, ending in a recorded haptic request. They do not establish two independent completed edit trials. All four recorded haptic offsets fall within 0–60 seconds, but these are short software observations, not qualifying overnight deliveries. The two recorded Stop requests corroborate app stop actions; normal invalidation without such a request does not identify the stop method.
+
+**No standalone cancellation** (`Cancellation requested` without replacement) appears in this retained history. Absence of a haptic event on an edited-away configuration is software evidence, not an observation that its old time was physically silent. Perception, absence of physical duplicates, wearing/Focus/debugger conditions, recovery and battery remain unknown. Overall acceptance remains pending; no criteria changed.
+
+**Next:** run one standalone cancellation on build 19 with the debugger detached and an independent backup: schedule about four minutes ahead, cancel with at least one minute remaining, confirm **Cancelled**, leave the app and wait until five minutes beyond the requested time. Record whether any Cumulus alert occurs. Preserve history for another read-back. If old-time silence and replacement perception were not observed during the edit chain, repeat one focused edit trial with those observations before overnight testing. Review cancellation and the remaining physical edit evidence before advancing. The 30-event snapshot is already preserved privately; export again before later trials displace the 40-event history. Do not clear pending or saved tests.
