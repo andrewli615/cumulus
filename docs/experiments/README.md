@@ -16,6 +16,15 @@ Each note is the authoritative record of its procedure, observations, and limita
 Next: inspect build 20's in-memory movement features under **Research → Motion probe**, using [Experiment 002's short foreground walkthrough](002-live-data.md#foreground-movement-features--build-20-october-14). [Overnight alarm validation is deferred](008-fixed-alarm.md#validation-deferred-for-analysis-development--october-14), with original criteria and owner reports preserved. Cancellation remains passed; the one reported overnight alarm run has incomplete qualification. Experiment 006 stays paused and unresolved. Movement features are not sleep estimates; raw values and feature summaries are not written to Git or app storage by this milestone.
 
 
+## Additional overnight report — October 15
+
+**Owner report:** "I ran another overnight experiment." The experiment type (fixed alarm versus motion recorder), trial date/build, alert perception, timing, battery, charging and errors were not specified. Keep this as an **additional reported run, outcome unclassified**; do not assign it to Experiment 006 or 008 or count a qualifying night without evidence. This report does not establish completion of the separate foreground-feature walkthrough.
+
+**Read-only inspection:** the research archive was retrieved and preserved privately: nine readable reports (one alert, one background and seven overnight-mode reports). The seven consist of six older pilots and the earlier nonrecording comparison; their recorded starts are October 6–8 and latest capture dates October 14. There is no saved eight-hour recording report or build-20 feature report in this export. That is an archive observation, not proof the reported run did not happen; foreground features are not persisted by build 20. The separate fixed-alarm file and current installed-app metadata could not be read because device services failed, including developer disk-image metadata and connection errors. Those are retrieval failures, not demonstrated alarm or sensor errors during the run. Exact records and device diagnostics remain outside Git. No app was installed, launched, scheduled or asked to collect data during inspection.
+
+**Direction:** continue [build 20's foreground feature work](002-live-data.md#foreground-movement-features--build-20-october-14), then define intended-state signal coverage/availability and private retention/deletion before extending capture or choosing a model. Fixed-alarm validation stays deferred and Experiment 006 unresolved; existing results and criteria are unchanged. Preserve and identify the newly reported run when its history is readable; this review does not call for an automatic repeat overnight trial.
+
+
 Template:
 
 ```markdown

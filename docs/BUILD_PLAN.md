@@ -10,6 +10,8 @@ Sequence: (1) verify the arithmetic/callback handoff and short foreground featur
 
 See [Experiment 002's feature contract and walkthrough](experiments/002-live-data.md#foreground-movement-features--build-20-october-14). The physical feature comparison is an awake UI/signal check, not a new overnight test or biological validation. Resume fixed-alarm acceptance separately when requested, recording the installed build; do not assign build-19 observations to build 20.
 
+October 15 review: the owner reports an additional overnight experiment, with type/outcome unspecified. The [inspection note](experiments/README.md#additional-overnight-report--october-15) records a readable archive containing older motion trials, while the separate alarm history and installed-build read failed through device services. No new pass, failed trial or build assignment follows. The updated engineer-proposal direction remains: verify descriptive foreground features, establish intended-state inputs and private retention, then evaluate one clearly defined target against a simple baseline. Sleep-stage agreement, a morning restfulness rating and post-wake sleep inertia remain separate outcomes; this report does not resume or complete the deferred alarm criteria.
+
 ## Accelerated fixed-alarm MVP — October 9
 
 The owner selected an **alarm-first, Watch-only** release. Build one next-occurrence fixed-time alarm using a scheduled WatchKit session, with setup/review/edit/cancel/stop, truthful scheduling and relaunch recovery. No sensors, early-wake decision, classifier, recurrence, snooze or phone companion enter this version. Smart waking remains the later product goal below; its input/model gates do not block the fixed alarm.
