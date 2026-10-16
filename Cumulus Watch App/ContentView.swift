@@ -56,6 +56,12 @@ struct ContentView: View {
                         .font(.body).fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if saveMovementSummaries {
+                ExperimentCard {
+                    MovementComparisonGuide(capture: motion.featureCapture, isMonitoring: motion.isMonitoring,
+                        mark: motion.markActivity)
+                }
+            }
             ExperimentCard { motionSection }
             ExperimentCard { MotionFeatureSection(features: motion.features, isMonitoring: motion.isMonitoring) }
             if motion.featureCapture != nil || saveMovementSummaries {

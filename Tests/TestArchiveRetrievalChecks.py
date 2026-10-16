@@ -19,6 +19,7 @@ class RetrievalChecks(unittest.TestCase):
                        "startedAt": 1000.125, "epochs": [{"startSeconds": 0.1,
                        "lastSampleSeconds": 29.9, "calculatedSeconds": 30.25,
                        "calculatedAt": 1030.375, "magnitudeMean": 1.01, "enmoMean": 0.02}],
+                       "activityMarkers": [{"activity": "still", "seconds": 0.05, "markedAt": 1000.175}],
                        "partial": None}
             report = {"id": "foreground-synthetic", "schemaVersion": 1, "kind": "foreground",
                       "createdAt": 1000.125,

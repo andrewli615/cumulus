@@ -1,5 +1,41 @@
 import SwiftUI
 
+struct MovementComparisonGuide: View {
+    let capture: ForegroundFeatureCapture?
+    let isMonitoring: Bool
+    let mark: (ForegroundFeatureCapture.Activity) -> Void
+
+    var body: some View {
+        ExperimentHeading(title: "Still & moving", symbol: "hand.wave")
+        if let marker = capture?.activityMarkers?.last {
+            Text("Last label: \(marker.activity.title)").font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+            if isMonitoring, let capture {
+                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    let elapsed = ProcessInfo.processInfo.systemUptime - capture.startUptime - marker.seconds
+                    Text(elapsed >= 0 ? String(format: "Since label: %.0f s", elapsed) : "Label clock uncertain")
+                        .font(.body).monospacedDigit()
+                }
+            }
+        } else { Text("No action label recorded").font(.body) }
+        ForEach(ForegroundFeatureCapture.Activity.allCases, id: \.self) { activity in
+            Button { mark(activity) } label: {
+                Text(activity == .unlabeled ? "Mark unlabeled" : "Mark \(activity.title)")
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .buttonStyle(.bordered)
+            .disabled(!isMonitoring || capture == nil || capture?.activityMarkers?.last?.activity == activity)
+        }
+        Text("Start a saved run. When settled, mark Still and remain comfortably still for at least 60 seconds. Then mark Gentle movement and move gently for at least 60 seconds before Stop.")
+            .font(.body).fixedSize(horizontal: false, vertical: true)
+        Text("Your action labels are not sensor-verified. Tapping can disturb nearby windows; windows crossing a label change are excluded. Keep this screen active. Elapsed time alone does not establish sample coverage.")
+            .font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        Text("Use Unlabeled during a pause or uncertain action. Labels and relative tap times stay in the existing saved report.")
+            .font(.body).fixedSize(horizontal: false, vertical: true)
+    }
+}
+
 struct MotionFeatureSection: View {
     let features: MotionFeatures
     let isMonitoring: Bool

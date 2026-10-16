@@ -55,8 +55,9 @@ struct SimulatorPreviewScreen: View {
         features.stop()
         featureFixture = features
         var savedFeatures = ForegroundFeatureCapture(id: UUID(), startedAt: Date().addingTimeInterval(-32),
-            startUptime: origin, originalBuild: "Synthetic 21", originalOS: "Simulated")
+            startUptime: origin, originalBuild: "Synthetic 22", originalOS: "Simulated")
         do {
+            try savedFeatures.markActivity(.still, date: savedFeatures.startedAt, uptime: origin)
             try savedFeatures.observe(features, samples: 320, date: .now,
                 uptime: ProcessInfo.processInfo.systemUptime, stopping: "Synthetic UI fixture")
         } catch { assertionFailure("Could not prepare synthetic feature fixture") }
@@ -79,6 +80,12 @@ struct SimulatorPreviewScreen: View {
                 }.navigationTitle("Analysis")
             case "motion-probe": ContentView(testArchive: archive)
             case "feature-history": ForegroundFeatureHistoryView(capture: savedFeatureFixture)
+            case "movement-guide":
+                ExperimentPage {
+                    ExperimentCard {
+                        MovementComparisonGuide(capture: savedFeatureFixture, isMonitoring: false, mark: { _ in })
+                    }
+                }.navigationTitle("Comparison")
             case "trial-selector":
                 ExperimentPage {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }

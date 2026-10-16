@@ -2,7 +2,7 @@ import Combine
 import CoreMotion
 import Foundation
 
-/// Owns a foreground-only sensor subscription. No samples are written to disk.
+/// Owns a foreground-only subscription. Optional saving retains summaries, not raw samples.
 @MainActor
 final class MotionMonitor: ObservableObject {
     struct Reading: Sendable {
@@ -145,6 +145,27 @@ final class MotionMonitor: ObservableObject {
         captureDeadline?.cancel()
         captureDeadline = nil
         if wasMonitoring, featureCapture != nil { _ = persistCapture(stopping: reason) }
+    }
+
+    func markActivity(_ activity: ForegroundFeatureCapture.Activity) {
+        guard isMonitoring, var capture = featureCapture else { return }
+        let now = uptime()
+        guard !capture.expired(at: now) else {
+            stop(reason: !now.isFinite || now < capture.startUptime
+                ? "Stopped: capture clock uncertain" : "10-minute saved-run limit reached")
+            return
+        }
+        do {
+            guard try capture.markActivity(activity, date: date(), uptime: now) else { return }
+            featureCapture = capture
+            if !persistCapture() { stop(reason: "Stopped after action-label save failure") }
+        } catch TestArchiveError.full {
+            stop(reason: "Stopped at 40 action labels")
+        } catch TestArchiveError.invalid {
+            stop(reason: "Stopped: action-label timing could not be verified")
+        } catch {
+            stop(reason: "Stopped: unexpected action-label error")
+        }
     }
 
     @discardableResult

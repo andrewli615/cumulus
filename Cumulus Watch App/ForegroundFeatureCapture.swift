@@ -3,6 +3,25 @@ import Foundation
 struct ForegroundFeatureCapture: Codable, Sendable {
     static let duration: TimeInterval = 600
     static let maximumWindows = 20
+    static let maximumActivityMarkers = 40
+
+    enum Activity: String, Codable, Sendable, CaseIterable {
+        case still, moving, unlabeled
+
+        var title: String {
+            switch self {
+            case .still: "Still"
+            case .moving: "Gentle movement"
+            case .unlabeled: "Unlabeled"
+            }
+        }
+    }
+
+    struct ActivityMarker: Codable, Sendable {
+        let activity: Activity
+        let seconds: Double
+        let markedAt: Date
+    }
 
     struct Epoch: Codable, Sendable, Identifiable {
         var id: Double { startSeconds }
@@ -86,6 +105,38 @@ struct ForegroundFeatureCapture: Codable, Sendable {
     private(set) var preStartSamples = 0
     private(set) var skippedWindows = 0
     private(set) var maximumGap: Double = 0
+    // Optional so saved build-21 reports remain readable without invented labels.
+    private(set) var activityMarkers: [ActivityMarker]?
+
+    @discardableResult
+    mutating func markActivity(_ activity: Activity, date: Date, uptime: Double) throws -> Bool {
+        let elapsed = uptime - startUptime
+        guard stoppedAt == nil, elapsed.isFinite, elapsed >= 0, elapsed < Self.duration,
+              date.timeIntervalSince1970.isFinite,
+              activityMarkers?.last.map({ elapsed >= $0.seconds }) != false else { throw TestArchiveError.invalid }
+        if activityMarkers?.last?.activity == activity { return false }
+        guard (activityMarkers?.count ?? 0) < Self.maximumActivityMarkers else { throw TestArchiveError.full }
+        guard activityMarkers?.last.map({ elapsed > $0.seconds }) != false else { throw TestArchiveError.invalid }
+        clockUncertain = clockUncertain || abs(date.timeIntervalSince(startedAt) - elapsed) > 2
+        activityMarkers = (activityMarkers ?? []) + [.init(activity: activity, seconds: elapsed, markedAt: date)]
+        return true
+    }
+
+    func activity(for epoch: Epoch, completed: Bool) -> Activity? {
+        guard completed, !clockUncertain, let markers = activityMarkers,
+              let index = markers.lastIndex(where: { $0.seconds <= epoch.startSeconds }),
+              markers[index].activity != .unlabeled else { return nil }
+        // A label at the end belongs to the next half-open window. Never label a mixed window.
+        if index + 1 < markers.count, markers[index + 1].seconds < epoch.endSeconds { return nil }
+        return markers[index].activity
+    }
+
+    func activityDescription(for epoch: Epoch, completed: Bool) -> String {
+        guard completed else { return "Partial; excluded from action comparison" }
+        guard !clockUncertain else { return "Clock uncertain; excluded from action comparison" }
+        if let activity = activity(for: epoch, completed: true) { return activity.title + " · self-reported" }
+        return "Unlabeled or transition; excluded from action comparison"
+    }
 
     var reportID: String { "foreground-" + id.uuidString.lowercased() }
     var status: String {
@@ -147,6 +198,16 @@ struct ForegroundFeatureCapture: Codable, Sendable {
               (stoppedAt == nil) == (stopReason == nil), (stopReason?.count ?? 0) <= 500,
               stoppedAt?.timeIntervalSince1970.isFinite != false,
               partial == nil || stoppedAt != nil else { throw TestArchiveError.invalid }
+        guard (activityMarkers?.count ?? 0) <= Self.maximumActivityMarkers else { throw TestArchiveError.invalid }
+        var previousMarker: Double = -1
+        for marker in activityMarkers ?? [] {
+            guard marker.seconds.isFinite, marker.seconds >= 0, marker.seconds < Self.duration,
+                  marker.seconds > previousMarker, marker.markedAt.timeIntervalSince1970.isFinite,
+                  clockUncertain || abs(marker.markedAt.timeIntervalSince(startedAt) - marker.seconds) <= 2 else {
+                throw TestArchiveError.invalid
+            }
+            previousMarker = marker.seconds
+        }
         var previousEnd: Double = 0
         for epoch in epochs {
             try epoch.validate(completed: true)
@@ -169,6 +230,7 @@ struct ForegroundFeatureCapture: Codable, Sendable {
             metrics: ["Completed windows": String(epochs.count), "Partial window": String(partial != nil),
                 "Accepted samples": String(acceptedSamples), "Clock mapping uncertain": String(clockUncertain),
                 "Pre-start samples excluded": String(preStartSamples),
+                "Self-reported action markers": String(activityMarkers?.count ?? 0),
                 "Original build": originalBuild, "Original watchOS": originalOS,
                 "Input": "Foreground accelerometer; requested 10 Hz; units g",
                 "Calculation": "Magnitude, population SD, sample-mean clipped ENMO; version 1"])

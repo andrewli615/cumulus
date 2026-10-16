@@ -37,6 +37,61 @@ final class FeatureClock: @unchecked Sendable {
         let report = try capture.report()
         let checked = try decode(report)
         expect(checked.originalBuild == "Synthetic 21" && checked.partial?.count == 1, "Versioned round trip preserves origin and partial")
+        expect(checked.activityMarkers == nil, "Build-21 payloads remain readable without invented action labels")
+
+        var labeled = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic 22", originalOS: "Synthetic")
+        try labeled.markActivity(.still, date: origin, uptime: 100)
+        let duplicateLabel = try labeled.markActivity(.still, date: origin.addingTimeInterval(1), uptime: 101)
+        expect(!duplicateLabel,
+            "Repeated identical label does not create a marker")
+        try labeled.markActivity(.moving, date: origin.addingTimeInterval(30), uptime: 130)
+        expect(labeled.activity(for: checked.epochs[0], completed: true) == .still,
+            "Label at exact end belongs to the next half-open window")
+        try labeled.markActivity(.unlabeled, date: origin.addingTimeInterval(31), uptime: 131)
+        expect(labeled.activity(for: checked.partial!, completed: false) == nil, "Partial is never compared")
+
+        var mixed = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic", originalOS: "Synthetic")
+        try mixed.markActivity(.still, date: origin, uptime: 100)
+        try mixed.markActivity(.moving, date: origin.addingTimeInterval(15), uptime: 115)
+        expect(mixed.activity(for: checked.epochs[0], completed: true) == nil, "Transition window excluded")
+        var lateLabel = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic", originalOS: "Synthetic")
+        try lateLabel.markActivity(.still, date: origin.addingTimeInterval(1), uptime: 101)
+        expect(lateLabel.activity(for: checked.epochs[0], completed: true) == nil, "Label does not backfill earlier window time")
+        var unmarked = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic", originalOS: "Synthetic")
+        try unmarked.markActivity(.unlabeled, date: origin, uptime: 100)
+        expect(unmarked.activity(for: checked.epochs[0], completed: true) == nil, "Explicit unlabeled is excluded")
+        try labeled.observe(features, samples: 3, date: origin.addingTimeInterval(32), uptime: 132, stopping: "Synthetic")
+        let labeledRoundTrip = try decode(labeled.report())
+        expect(labeledRoundTrip.activityMarkers?.count == 3 && labeledRoundTrip.activity(for: checked.epochs[0], completed: true) == .still,
+            "Action labels persist with original source and window attribution")
+        do { try labeled.markActivity(.still, date: origin.addingTimeInterval(33), uptime: 133)
+            preconditionFailure("Stopped capture accepted a label") } catch TestArchiveError.invalid { }
+        do { try mixed.markActivity(.still, date: origin, uptime: 99)
+            preconditionFailure("Pre-start label accepted") } catch TestArchiveError.invalid { }
+        do { try mixed.markActivity(.still, date: origin.addingTimeInterval(10), uptime: 110)
+            preconditionFailure("Reversed label time accepted") } catch TestArchiveError.invalid { }
+        do { try mixed.markActivity(.still, date: origin, uptime: .nan)
+            preconditionFailure("Nonfinite label time accepted") } catch TestArchiveError.invalid { }
+        do { try mixed.markActivity(.still, date: origin.addingTimeInterval(600), uptime: 700)
+            preconditionFailure("Deadline label accepted") } catch TestArchiveError.invalid { }
+        var shifted = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic", originalOS: "Synthetic")
+        try shifted.markActivity(.still, date: origin.addingTimeInterval(10), uptime: 100)
+        expect(shifted.clockUncertain && shifted.activity(for: checked.epochs[0], completed: true) == nil,
+            "Clock mismatch prevents label attribution")
+        var boundedLabels = ForegroundFeatureCapture(id: UUID(), startedAt: origin, startUptime: 100,
+            originalBuild: "Synthetic", originalOS: "Synthetic")
+        for index in 0..<40 {
+            try boundedLabels.markActivity(index.isMultiple(of: 2) ? .still : .moving,
+                date: origin.addingTimeInterval(Double(index)), uptime: 100 + Double(index))
+        }
+        try boundedLabels.validate()
+        do { try boundedLabels.markActivity(.still, date: origin.addingTimeInterval(40), uptime: 140)
+            preconditionFailure("Action marker bound exceeded") } catch TestArchiveError.full { }
         let assessment = try SavedReportAssessment(report: report)
         expect(assessment.featureCapture?.id == capture.id && assessment.lines.contains { $0.contains("do not establish sleep") },
                "Saved report inspector validates and explains movement-only evidence")
@@ -86,6 +141,9 @@ final class FeatureClock: @unchecked Sendable {
         monitor.start(archive: store)
         expect(monitor.isMonitoring && manager.starts == 1 && store.reports.count == 1, "Initial save precedes sensor start")
         let identifier = monitor.featureCapture!.reportID
+        monitor.markActivity(.still)
+        let marked = try decode(store.report(id: identifier))
+        expect(marked.activityMarkers?.last?.activity == .still, "Monitor immediately saves manual label before samples")
         let before = try Data(contentsOf: directory.appendingPathComponent(identifier + ".json"))
         let callback = manager.callback!
         callback(.init(acceleration: .init(x: 0, y: 0, z: 1), timestamp: 99), nil)
@@ -109,6 +167,10 @@ final class FeatureClock: @unchecked Sendable {
         monitor.stop(reason: "Synthetic stop")
         let stopped = try decode(store.report(id: identifier))
         expect(stopped.partial?.count == 1 && stopped.stopReason == "Synthetic stop", "Actual stop persists partial and reason")
+        expect(stopped.activity(for: stopped.epochs[0], completed: true) == .still,
+            "Actual monitor label covers a complete window")
+        monitor.markActivity(.moving)
+        expect(monitor.featureCapture?.activityMarkers?.count == 1, "Stopped monitor ignores late label actions")
         callback(.init(acceleration: .init(x: 0, y: 0, z: 3), timestamp: 131), nil)
         await drain()
         let afterLate = try decode(store.report(id: identifier))
@@ -158,6 +220,18 @@ final class FeatureClock: @unchecked Sendable {
                "Clock failure stops collection and persists explicit uncertainty")
         expect(clockFailure.partial == nil && clockFailure.stopReason?.contains("partial not recorded") == true,
                "An uncertain clock cannot manufacture partial timing")
+        store.reload()
+        clock.set(1100)
+        monitor.start(archive: store)
+        let labelFailureID = monitor.featureCapture!.reportID
+        let beforeLabelFailure = try Data(contentsOf: directory.appendingPathComponent(labelFailureID + ".json"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        clock.set(1101)
+        monitor.markActivity(.still)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        let afterLabelFailure = try Data(contentsOf: directory.appendingPathComponent(labelFailureID + ".json"))
+        expect(!monitor.isMonitoring && monitor.status.contains("action-label save failure") && beforeLabelFailure == afterLabelFailure,
+            "A failed action-label write stops collection and preserves previous bytes")
         let initialDirectory = directory.appendingPathComponent("initial-write")
         let initialFailure = TestArchiveStore(directory: initialDirectory)
         try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: initialDirectory.path)
@@ -167,6 +241,6 @@ final class FeatureClock: @unchecked Sendable {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: initialDirectory.path)
         expect(!monitor.isMonitoring && manager.starts == previousStarts && monitor.status.contains("initial save failed"),
                "Unexpected initial write failure prevents sensor collection")
-        print("PASS: feature schema/arithmetic/availability, partials/bounds/clocks, persistence/relaunch/deletion, callback saves, deadlines and storage failure")
+        print("PASS: feature schema/arithmetic/availability, action labels/boundaries, partials/bounds/clocks, persistence/relaunch/deletion, callback saves, deadlines and storage failure")
     }
 }

@@ -16,6 +16,20 @@ struct ForegroundFeatureHistoryView: View {
                         .font(.body).fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if let markers = capture.activityMarkers, !markers.isEmpty {
+                ExperimentCard {
+                    ExperimentHeading(title: "Action labels", symbol: "hand.wave")
+                    Text("Self-reported at tap time; not sensor-verified. Only completed windows wholly within one label are attributed. Attribution is not a data-quality pass or sleep estimate.")
+                        .font(.body).fixedSize(horizontal: false, vertical: true)
+                    ForEach([ForegroundFeatureCapture.Activity.still, .moving], id: \.self) { activity in
+                        ExperimentMetric(label: activity.title + " · attributed windows",
+                            value: String(capture.epochs.filter { capture.activity(for: $0, completed: true) == activity }.count))
+                    }
+                    ForEach(Array(markers.enumerated()), id: \.offset) { _, marker in
+                        ExperimentMetric(label: marker.activity.title, value: String(format: "From %.2f s", marker.seconds))
+                    }
+                }
+            }
             if capture.epochs.isEmpty { Text("No completed windows were saved.").font(.body) }
             ForEach(capture.epochs) { epoch in epochCard(epoch, completed: true) }
             if let partial = capture.partial { epochCard(partial, completed: false) }
@@ -28,6 +42,8 @@ struct ForegroundFeatureHistoryView: View {
         ExperimentCard {
             Text(completed ? "Completed window" : "Partial window")
                 .font(.headline).accessibilityAddTraits(.isHeader)
+            Text(capture.activityDescription(for: epoch, completed: completed))
+                .font(.body).fixedSize(horizontal: false, vertical: true)
             ExperimentMetric(label: "Window from run start", value: String(format: "%.2f–%.2f s", epoch.startSeconds, epoch.endSeconds))
             ExperimentMetric(label: "Accepted samples", value: String(epoch.count))
             metric("Mean magnitude", epoch.magnitudeMean, "g")

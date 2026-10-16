@@ -19,6 +19,7 @@ struct SavedReportAssessment {
                 "\(capture.epochs.count) completed windows; final partial: \(capture.partial == nil ? "none" : "present").",
                 "Invalid samples: \(capture.invalidSamples); order anomalies: \(capture.orderAnomalies); empty windows skipped: \(capture.skippedWindows).",
                 "Pre-start sensor samples excluded: \(capture.preStartSamples).",
+                "Self-reported action markers: \(capture.activityMarkers?.count ?? 0). Transition, unlabeled and partial windows are excluded from action comparison; labels are not sensor-verified.",
                 capture.clockUncertain ? "Wall/uptime mapping uncertain; do not assume reliable calendar alignment."
                     : "No mapping mismatch recorded; foreground receipt/calculation times are software observations.",
                 "Movement features do not establish sleep, stages, perceived alerts or all-night availability."]
