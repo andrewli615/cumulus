@@ -12,6 +12,23 @@ spec.loader.exec_module(archive)
 
 
 class RetrievalChecks(unittest.TestCase):
+    def test_foreground_feature_payload_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)
+            payload = {"schemaVersion": 1, "format": "foreground-motion-features",
+                       "startedAt": 1000.125, "epochs": [{"startSeconds": 0.1,
+                       "lastSampleSeconds": 29.9, "calculatedSeconds": 30.25,
+                       "calculatedAt": 1030.375, "magnitudeMean": 1.01, "enmoMean": 0.02}],
+                       "partial": None}
+            report = {"id": "foreground-synthetic", "schemaVersion": 1, "kind": "foreground",
+                      "createdAt": 1000.125,
+                      "diagnostics": base64.b64encode(json.dumps(payload).encode()).decode()}
+            (path / "foreground-synthetic.json").write_text(json.dumps(report))
+            reports, failures = archive.read_reports(path)
+            self.assertFalse(failures)
+            self.assertEqual(reports[0]["diagnostics"], payload)
+            self.assertNotIn("rawSamples", reports[0]["diagnostics"])
+
     def test_fractional_dates_and_diagnostic_decoding(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder)

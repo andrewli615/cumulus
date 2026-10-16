@@ -8,7 +8,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 | Screen | What it does | Evidence and next check |
 | --- | --- | --- |
-| Motion probe | Foreground acceleration, in-memory 30-second movement features and readable heart-rate age | Build 20 adds magnitude/variability/ENMO and timing quality; physical feature behavior is untested. One earlier owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
+| Motion probe | Foreground acceleration, in-memory 30-second movement features and readable heart-rate age | Build 21 optionally saves bounded feature windows for review; physical feature behavior/storage overhead is untested. One earlier owner-reported motion run; heart-data freshness remains to be assessed. [Experiment 002](docs/experiments/002-live-data.md) |
 | Scheduled alert test | Requests a session three minutes ahead and a haptic while running | Original mixed results, then owner-reported successful retest after changing Watch haptics. [Experiment 001](docs/experiments/001-scheduled-alert.md) |
 | Background motion test | Collects 60 seconds of sample timing/count summaries | Owner reports both background trials and manual-stop check passed. [Experiment 003](docs/experiments/003-background-motion.md) |
 | Sleep history | Reads stored sleep intervals, dates, and sources | Implemented and software checked; owner reports procedure completion; individual outcomes and trial details are unknown. [Experiment 004](docs/experiments/004-sleep-stage-feasibility.md) |
@@ -17,13 +17,13 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** on build **0.1 (20)**, open **Research → Motion probe** for the [foreground movement walkthrough](docs/experiments/002-live-data.md#foreground-movement-features--build-20-october-14). Magnitude, variability and ENMO describe movement; they are not sleep labels and do not control the alarm. Features stay in memory and are not added to Saved tests. The owner elected to defer overnight alarm validation; [Experiment 008](docs/experiments/008-fixed-alarm.md#validation-deferred-for-analysis-development--october-14) preserves the owner-confirmed cancellation pass and reported overnight run with incomplete qualification. Alarm acceptance remains pending. Experiment 006 and its unchanged sensor criteria remain paused; physiological validation and intended-state signal availability are still needed before a sleep decision.
+**Next:** build **0.1 (21)** adds [optional saved movement windows](docs/experiments/002-live-data.md#optional-saved-movement-windows--build-21-october-15). In Research → Motion probe, enable **Save movement summaries** before a short awake run, then inspect Saved tests → Foreground movement features → Movement windows. Saving defaults off, is foreground-only, stops at a ten-minute deadline, and retains at most twenty completed windows plus a partial. Derived values/timing stay local; raw acceleration and individual HealthKit readings are excluded. This is not a sleep estimate. Fixed-alarm validation remains deferred; Experiment 006 and prior results/criteria remain unchanged.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 
 ## Saved tests
 
-Open **Saved tests** to inspect locally retained run summaries, conditions, counts, and lifecycle events. Existing retained alert/background/overnight histories are imported on app launch; old discarded data cannot be recovered. New foreground and HealthKit reads save diagnostic counts/status only. Raw acceleration and individual health records remain unrecorded.
+Open **Saved tests** to inspect locally retained run summaries, conditions, counts, and lifecycle events. Existing retained alert/background/overnight histories are imported on app launch; old discarded data cannot be recovered. Foreground reads save diagnostic counts/status; opt-in build-21 runs also save bounded derived movement windows and timing. HealthKit reads retain counts/status only. Raw acceleration and individual health records remain unrecorded.
 
 The archive retains up to 200 reports or 32 MB without silently evicting old reports. Storage failures are shown. **Delete completed test data** also clears completed recovery histories and pilot qualification; pending/unresolved work blocks deletion. No automatic upload occurs. See [storage boundaries](docs/ARCHITECTURE.md#storage-boundaries).
 
@@ -57,6 +57,7 @@ Run the synthetic suites from the repository root:
 
 ```sh
 ./scripts/check-motion-features.sh
+./scripts/check-foreground-capture.sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
 ./scripts/check-cardiac-history.sh

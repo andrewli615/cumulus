@@ -14,7 +14,7 @@ struct TestArchiveView: View {
                 ExperimentMetric(label: "Archive size", value: String(format: "%.2f MB of 32 MB", Double(archive.storedBytes) / 1_048_576))
                 if let reason = archive.newReportBlockReason { Text(reason).font(.caption).foregroundStyle(.orange) }
                 Text("Diagnostic summaries stay on this Watch until you delete them or uninstall the app. Up to 200 reports or 32 MB; older reports are never silently replaced by newer runs.").font(.caption2)
-                Text("Health readings and raw acceleration are not included. These reports describe software observations, not proof of sleep stages or waking.").font(.caption2).foregroundStyle(.secondary)
+                Text("Optional foreground reports include derived movement windows and timing. Individual health readings and raw acceleration are excluded. Timing and movement can still reveal personal behavior.").font(.caption2).foregroundStyle(.secondary)
                 if let message = archive.errorMessage { Text(message).font(.caption).foregroundStyle(.orange) }
                 if archive.unreadableFiles > 0 { Text("\(archive.unreadableFiles) unreadable files preserved.").font(.caption2) }
                 Button("Reload saved reports") { archive.reload() }.buttonStyle(.bordered)
@@ -50,6 +50,14 @@ struct TestReportView: View {
     @State private var readError: String?
     var body: some View {
         ExperimentPage {
+            if let capture = assessment?.featureCapture {
+                NavigationLink {
+                    ForegroundFeatureHistoryView(capture: capture)
+                } label: {
+                    Text("Movement windows").frame(maxWidth: .infinity, minHeight: 44)
+                        .fixedSize(horizontal: false, vertical: true)
+                }.buttonStyle(.bordered)
+            }
             ExperimentCard {
                 ExperimentHeading(title: report.title, symbol: "doc.text")
                 Text(report.status).font(.caption)

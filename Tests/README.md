@@ -4,6 +4,7 @@ Run from the repository root on macOS with Xcode installed:
 
 ```sh
 ./scripts/check-motion-features.sh
+./scripts/check-foreground-capture.sh
 ./scripts/check-alarm.sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
@@ -18,10 +19,11 @@ All runners default `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Develop
 
 | Suite | Coverage |
 | --- | --- |
+| `ForegroundFeatureCaptureChecks.swift` | Versioned derived-row arithmetic/timing, schema/identity/legacy validation, bounds and partials, cached pre-start input, clock mismatch, real archive round trip/relaunch/deletion, callback persistence/deadline and real write failure. No biological or physical-delivery claim. |
 | `MotionFeatureChecks.swift` | Known magnitude/variance/ENMO, orientation, half-open windows, gaps without zero-fill, receipt delay, invalid/order/clock/overflow handling, bounded state, stop/restart and actual foreground monitor callbacks via Core Motion doubles. No sleep labels or physical accuracy inferred. |
 | `CardiacTimingChecks.swift` / `CardiacTimingProviderChecks.swift` | Aggregate spacing without bridging flagged gaps or rejected entries; count/privacy/eligibility, timeout/cancellation and late results. The actual HealthKit adapter compiles against platform doubles to check object predicates, interval/offset conversion, mismatched lookup, errors and entry caps. No physical availability is inferred. |
 | `TestArchiveChecks.swift` | Real file persistence/relaunch, fractional dates, stable-ID updates, payload retrieval, report/byte ceilings, corrupt files and symlinks, invalid IDs/schema, deletion and suppression of deleted legacy imports, capacity readiness and typed archived evidence review. All fixtures are synthetic. |
-| `TestArchiveRetrievalChecks.py` | Private output guard including ignored Git directories, bounded JSON/base64 decoding, missing input, identity mismatches and corrupt files. No device is contacted. |
+| `TestArchiveRetrievalChecks.py` | Private output guard including ignored Git directories, bounded JSON/base64 decoding, missing input, identity mismatches and corrupt files. Feature export preserves derived rows and fractional observation times. No device is contacted. |
 | `BackgroundMotionChecks.swift` | Sample bucket boundaries, gaps/delays, stale samples, stopping and late callbacks, error handling, archive bounds, session ownership, cancellation, expiry, and relaunch routing. Compiles the actual trial, owner, coordinators, and app delegate. |
 | `CardiacHistoryChecks.swift` | Source-specific gap merging and window edges, grouped counts, units, per-type result limits/errors, partial completion, read-only authorization, invalid records, cancellation, and late callbacks. Compiles the actual cardiac reader and coverage calculations. |
 | `OvernightMotionChecks.swift` | Manual pilot target/deadline/uncertainty guidance and actual streaming worker, bucket/chunk boundaries, gaps and failed-criterion explanations, order-anomaly categories with expected overlap excluded, bounded subtype counts and legacy summaries with unknown breakdowns, finite values, clocks, bounded archives/enumeration, nil/empty results, authorization, fixed requests, slow preparation and recorder-call reservations, time-driven eligibility, pilot gate including rejection of another build/watchOS, qualification revoked by an incomplete latest probe and restored by a usable retry, preservation of history across revocation/relaunch/cancellation/clock-uncertain probes, legacy recovery, completed evidence across later reboot/read uncertainty, cancellation, summary replacement, and battery comparisons. `OvernightPlatformDoubles.swift` is also used by the background suite to compile the updated app delegate. |

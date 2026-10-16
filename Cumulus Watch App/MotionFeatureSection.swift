@@ -54,7 +54,7 @@ struct MotionFeatureSection: View {
             }
             Text(isMonitoring ? "Updates only while this probe is active. Missing samples are not quiet movement." : "Collection stopped. Retained summaries do not update until another run.")
                 .font(.body).fixedSize(horizontal: false, vertical: true)
-            Text("No sleep estimate. Features stay in memory and reset on Start. Completion does not establish adequate coverage.")
+            Text("No sleep estimate. Live features reset on Start; optional saving retains bounded summaries in Saved tests. Completion does not establish adequate coverage.")
                 .font(.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
     }

@@ -2,8 +2,29 @@ import Foundation
 
 struct SavedReportAssessment {
     let lines: [String]
+    let featureCapture: ForegroundFeatureCapture?
+    private struct Header: Decodable { let format: String? }
 
     init(report: TestReport) throws {
+        if report.kind == .foreground, let data = report.diagnostics,
+           try JSONDecoder().decode(Header.self, from: data).format == "foreground-motion-features" {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .secondsSince1970
+            let capture = try decoder.decode(ForegroundFeatureCapture.self, from: data)
+            try capture.validate()
+            guard capture.reportID == report.id, capture.startedAt == report.createdAt else { throw TestArchiveError.invalid }
+            featureCapture = capture
+            lines = [capture.status,
+                "Original build: \(capture.originalBuild); watchOS: \(capture.originalOS).",
+                "\(capture.epochs.count) completed windows; final partial: \(capture.partial == nil ? "none" : "present").",
+                "Invalid samples: \(capture.invalidSamples); order anomalies: \(capture.orderAnomalies); empty windows skipped: \(capture.skippedWindows).",
+                "Pre-start sensor samples excluded: \(capture.preStartSamples).",
+                capture.clockUncertain ? "Wall/uptime mapping uncertain; do not assume reliable calendar alignment."
+                    : "No mapping mismatch recorded; foreground receipt/calculation times are software observations.",
+                "Movement features do not establish sleep, stages, perceived alerts or all-night availability."]
+            return
+        }
+        featureCapture = nil
         guard report.kind == .overnight, let data = report.diagnostics else { lines = []; return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970

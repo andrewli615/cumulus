@@ -7,6 +7,7 @@ struct ContentView: View {
     var testArchive: TestArchiveStore? = nil
     @State private var reportID: UUID?
     @State private var startedAt: Date?
+    @State private var saveMovementSummaries = false
 
     private var isMonitoring: Bool {
         motion.isMonitoring || heart.isMonitoring
@@ -26,13 +27,18 @@ struct ContentView: View {
                     } else {
                         reportID = UUID()
                         startedAt = Date()
-                        motion.start()
+                        motion.start(archive: saveMovementSummaries ? testArchive : nil)
+                        if saveMovementSummaries && !motion.isMonitoring {
+                            reportID = nil
+                            startedAt = nil
+                            return
+                        }
                         heart.start()
                         saveReport(status: "Monitoring requested; completion not recorded")
                     }
                 } label: {
                     Text(isMonitoring ? "Stop monitoring" : "Start monitoring")
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .buttonStyle(.borderedProminent)
@@ -40,10 +46,23 @@ struct ContentView: View {
                 Text("Foreground only. Stops when you leave this probe.")
                     .font(.caption2).foregroundStyle(.secondary)
             }
+            if testArchive != nil {
+                ExperimentCard {
+                    Toggle("Save movement summaries", isOn: $saveMovementSummaries)
+                        .font(.body).disabled(isMonitoring || heart.isRequestingAccess)
+                    Text(saveMovementSummaries
+                        ? "Saves derived movement and timing on this Watch. 10-minute saving limit. Delete in Saved tests; private exports remain separate. No raw acceleration or health readings."
+                        : "Movement features stay in memory. Enable saving before Start for later review.")
+                        .font(.body).fixedSize(horizontal: false, vertical: true)
+                }
+            }
             ExperimentCard { motionSection }
             ExperimentCard { MotionFeatureSection(features: motion.features, isMonitoring: motion.isMonitoring) }
+            if motion.featureCapture != nil || saveMovementSummaries {
+                Text(motion.captureMessage).font(.body).fixedSize(horizontal: false, vertical: true)
+            }
             ExperimentCard { heartSection }
-            Text("Readings stay in memory. Sample counts and diagnostic status are saved locally in Saved tests. This probe does not schedule alerts.")
+            Text("Raw readings stay in memory. Diagnostic counts/status are saved locally; movement feature windows are saved only when enabled. This probe does not schedule alerts.")
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .navigationTitle("Motion")
@@ -54,6 +73,9 @@ struct ContentView: View {
         }
         .onDisappear {
             stop(reason: "Stopped on leaving the probe")
+        }
+        .onChange(of: motion.isMonitoring) { _, running in
+            if !running, reportID != nil { stop(reason: motion.status) }
         }
     }
 
@@ -108,6 +130,7 @@ struct ContentView: View {
     }
 
     private func saveReport(status: String) {
+        guard motion.featureCapture == nil else { return }
         guard let id = reportID, let startedAt else { return }
         let report = TestReport(id: "foreground-" + id.uuidString.lowercased(), kind: .foreground,
             createdAt: startedAt, title: "Foreground probe", status: status,

@@ -44,6 +44,8 @@
 		A00000000000000000000025 /* AlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000025 /* AlarmView.swift */; };
 		A00000000000000000000027 /* MotionFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000027 /* MotionFeatures.swift */; };
 		A00000000000000000000028 /* MotionFeatureSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000028 /* MotionFeatureSection.swift */; };
+		A00000000000000000000029 /* ForegroundFeatureCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000029 /* ForegroundFeatureCapture.swift */; };
+		A0000000000000000000002A /* ForegroundFeatureHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002A /* ForegroundFeatureHistoryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -87,6 +89,8 @@
 		B00000000000000000000025 /* AlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmView.swift; sourceTree = "<group>"; };
 		B00000000000000000000027 /* MotionFeatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFeatures.swift; sourceTree = "<group>"; };
 		B00000000000000000000028 /* MotionFeatureSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFeatureSection.swift; sourceTree = "<group>"; };
+		B00000000000000000000029 /* ForegroundFeatureCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundFeatureCapture.swift; sourceTree = "<group>"; };
+		B0000000000000000000002A /* ForegroundFeatureHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundFeatureHistoryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +164,8 @@
 			children = (
 				B00000000000000000000002 /* ContentView.swift */,
 				B00000000000000000000003 /* MotionMonitor.swift */,
+				B0000000000000000000002A /* ForegroundFeatureHistoryView.swift */,
+				B00000000000000000000029 /* ForegroundFeatureCapture.swift */,
 				B00000000000000000000028 /* MotionFeatureSection.swift */,
 				B00000000000000000000027 /* MotionFeatures.swift */,
 				B00000000000000000000004 /* HeartRateReader.swift */,
@@ -336,6 +342,8 @@
 				A00000000000000000000009 /* WatchAppDelegate.swift in Sources */,
 				A00000000000000000000002 /* ContentView.swift in Sources */,
 				A00000000000000000000003 /* MotionMonitor.swift in Sources */,
+				A0000000000000000000002A /* ForegroundFeatureHistoryView.swift in Sources */,
+				A00000000000000000000029 /* ForegroundFeatureCapture.swift in Sources */,
 				A00000000000000000000028 /* MotionFeatureSection.swift in Sources */,
 				A00000000000000000000027 /* MotionFeatures.swift in Sources */,
 				A00000000000000000000004 /* HeartRateReader.swift in Sources */,
@@ -381,7 +389,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -410,7 +418,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Cumulus Watch App/Cumulus.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = 3U6ZX92DYH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

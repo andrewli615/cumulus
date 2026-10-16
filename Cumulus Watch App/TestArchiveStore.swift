@@ -11,8 +11,8 @@ final class TestArchiveStore: ObservableObject {
     private let maximumReports: Int
     private let maximumBytes: Int
     private var fileSizes: [String: Int] = [:]
-    private let build: String
-    private let os: String
+    let build: String
+    let os: String
     private var deletedThrough: Date?
     private var isReadable = false
     private var deletionMarker: URL { directory.appendingPathExtension("deleted-through") }
@@ -84,8 +84,9 @@ final class TestArchiveStore: ObservableObject {
         }
     }
 
-    func save(_ value: TestReport, importing: Bool = false) {
-        if importing, let deletedThrough, value.createdAt <= deletedThrough { return }
+    @discardableResult
+    func save(_ value: TestReport, importing: Bool = false) -> Bool {
+        if importing, let deletedThrough, value.createdAt <= deletedThrough { return false }
         do {
             guard isReadable else { throw TestArchiveError.unreadable }
             var report = value
@@ -120,20 +121,24 @@ final class TestArchiveStore: ObservableObject {
             var protectedURL = url
             try protectedURL.setResourceValues(values)
             if unreadableFiles > 0, errorMessage == nil { errorMessage = "Unreadable reports remain preserved." }
+            return true
         } catch TestArchiveError.full {
             errorMessage = "Test archive full. Older reports were kept; this update was not saved. Retrieve or delete reports before continuing."
         } catch {
             errorMessage = "A test archive update failed. Inspect saved reports and storage before relying on the archive."
         }
+        return false
     }
 
-    func saveDiagnostics<T: Encodable>(_ value: T, report: TestReport, importing: Bool = false) {
+    @discardableResult
+    func saveDiagnostics<T: Encodable>(_ value: T, report: TestReport, importing: Bool = false) -> Bool {
         do {
             var report = report
             report.diagnostics = try TestReport.encodeDiagnostics(value)
-            save(report, importing: importing)
+            return save(report, importing: importing)
         } catch {
             errorMessage = "Diagnostic metadata could not be encoded; this report was not saved."
+            return false
         }
     }
 

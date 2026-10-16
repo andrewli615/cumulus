@@ -10,6 +10,7 @@ struct SimulatorPreviewScreen: View {
     @State private var previewConfiguration = OvernightMotionTrial.Configuration()
     private let trial: OvernightMotionTrial
     private let featureFixture: MotionFeatures
+    private let savedFeatureFixture: ForegroundFeatureCapture
     private var orderSummary: OvernightMotionSummary {
         var summary = OvernightMotionSummary(start: trial.start, end: trial.start.addingTimeInterval(1200))
         summary.receive(date: trial.start.addingTimeInterval(1), uptime: 1000, axesFinite: true, chunkStart: trial.start)
@@ -53,6 +54,13 @@ struct SimulatorPreviewScreen: View {
         }
         features.stop()
         featureFixture = features
+        var savedFeatures = ForegroundFeatureCapture(id: UUID(), startedAt: Date().addingTimeInterval(-32),
+            startUptime: origin, originalBuild: "Synthetic 21", originalOS: "Simulated")
+        do {
+            try savedFeatures.observe(features, samples: 320, date: .now,
+                uptime: ProcessInfo.processInfo.systemUptime, stopping: "Synthetic UI fixture")
+        } catch { assertionFailure("Could not prepare synthetic feature fixture") }
+        savedFeatureFixture = savedFeatures
         let report = TestReport(id: "overnight-synthetic-preview", kind: .overnight, createdAt: trial.start,
                                title: "Synthetic pilot", status: "No physical trial", metrics: ["Original build": "Synthetic"])
         store.saveDiagnostics(trial, report: report)
@@ -69,6 +77,8 @@ struct SimulatorPreviewScreen: View {
                 ExperimentPage {
                     ExperimentCard { MotionFeatureSection(features: featureFixture, isMonitoring: false) }
                 }.navigationTitle("Analysis")
+            case "motion-probe": ContentView(testArchive: archive)
+            case "feature-history": ForegroundFeatureHistoryView(capture: savedFeatureFixture)
             case "trial-selector":
                 ExperimentPage {
                     ExperimentCard { OvernightTrialSelector(mode: $previewMode) }
