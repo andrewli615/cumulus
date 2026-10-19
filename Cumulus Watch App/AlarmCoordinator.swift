@@ -20,16 +20,22 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
     private let owner: ExperimentSessionOwner
     private let store: any AlarmStorage
     private let now: () -> Date
+    private let makeOrigin: () -> AlarmRecord.Origin?
+    private let recordObservation: (AlarmRecord) -> Void
     private var session: WKExtendedRuntimeSession?
     private var replacement: Date?
     private var pendingInvalidation = false
     private var storageFailed = false
     private var didRequestHaptic = false
 
-    init(owner: ExperimentSessionOwner, store: any AlarmStorage = AlarmFileStore(), now: @escaping () -> Date = Date.init) {
+    init(owner: ExperimentSessionOwner, store: any AlarmStorage = AlarmFileStore(), now: @escaping () -> Date = Date.init,
+         makeOrigin: @escaping () -> AlarmRecord.Origin? = { nil },
+         recordObservation: @escaping (AlarmRecord) -> Void = { _ in }) {
         self.owner = owner
         self.store = store
         self.now = now
+        self.makeOrigin = makeOrigin
+        self.recordObservation = recordObservation
         super.init()
         do {
             record = try store.load()
@@ -49,7 +55,7 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         }
     }
 
-    @discardableResult func schedule(at fireDate: Date) -> Bool {
+    @discardableResult func schedule(at fireDate: Date, replacingAlarmID: UUID? = nil) -> Bool {
         guard WKApplication.shared().applicationState == .active else {
             errorMessage = "Open Cumulus to schedule the alarm."; return false
         }
@@ -61,6 +67,8 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         }
         let history = events
         record = AlarmRecord(id: UUID(), fireDate: fireDate, createdAt: now(), events: history)
+        record?.origin = makeOrigin()
+        record?.replacesAlarmID = replacingAlarmID
         replacement = nil
         didRequestHaptic = false
         isUnverified = false
@@ -242,7 +250,7 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
                     self.errorMessage = "Replacement not set. The previous session ended; review and schedule again."
                     return
                 }
-                self.schedule(at: replacement)
+                self.schedule(at: replacement, replacingAlarmID: self.record?.id)
             }
         }
     }
@@ -273,6 +281,7 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         do {
             try store.save(record)
             storageFailed = false
+            recordObservation(record)
             return true
         } catch {
             storageFailed = true

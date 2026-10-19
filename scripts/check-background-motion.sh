@@ -14,6 +14,7 @@ xcrun --sdk macosx swiftc -swift-version 6 -sdk "$(xcrun --sdk macosx --show-sdk
     'Cumulus Watch App/TestArchiveStore.swift' \
     'Cumulus Watch App/BackgroundMotionTrial.swift' \
     'Cumulus Watch App/AlarmRecord.swift' \
+    'Cumulus Watch App/AlarmTrial.swift' 'Cumulus Watch App/AlarmTrialStore.swift' \
     "$build_dir/AlarmCoordinator.swift" \
     'Cumulus Watch App/ExperimentSessionOwner.swift' \
     "$build_dir/BackgroundMotionCoordinator.swift" \

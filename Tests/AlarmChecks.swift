@@ -25,7 +25,10 @@ import Foundation
         let defaults = UserDefaults(suiteName: "Cumulus.AlarmChecks.\(UUID())")!
         let owner = ExperimentSessionOwner(defaults: defaults)
         let store = MemoryAlarmStore()
-        let alarm = AlarmCoordinator(owner: owner, store: store, now: { now })
+        var recordedSnapshots: [AlarmRecord] = []
+        let alarm = AlarmCoordinator(owner: owner, store: store, now: { now },
+            makeOrigin: { .init(build: "Synthetic 23", os: "Synthetic", timeZone: "UTC") },
+            recordObservation: { recordedSnapshots.append($0) })
         let date = now.addingTimeInterval(180)
         WKApplication.shared().applicationState = .background
         alarm.schedule(at: date)
@@ -36,6 +39,9 @@ import Foundation
         WKExtendedRuntimeSession.stateAfterStart = .notStarted
         alarm.schedule(at: date)
         let first = WKExtendedRuntimeSession.latest!
+        let firstID = alarm.record!.id
+        expect(alarm.record?.origin?.build == "Synthetic 23" && recordedSnapshots.last?.id == firstID,
+            "New origin is captured when scheduling and observer receives saved evidence")
         expect(alarm.status == "Scheduling requested" && owner.current == .alarm, "Request is not scheduling evidence")
         alarm.schedule(at: date)
         expect(WKExtendedRuntimeSession.latest === first, "Duplicate prevented")
@@ -52,6 +58,7 @@ import Foundation
         await settle()
         let second = WKExtendedRuntimeSession.latest!
         expect(second !== first && second.requestedDate == changed, "Replacement starts only after confirmation")
+        expect(alarm.record?.replacesAlarmID == firstID, "Edit links the replacement to the cancelled configuration")
         first.run()
         await settle()
         expect(first.haptics == 0 && alarm.record?.fireDate == changed, "Old start callback cannot alert or mutate replacement")

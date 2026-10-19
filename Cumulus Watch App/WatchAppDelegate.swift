@@ -6,6 +6,7 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     let testArchive: TestArchiveStore
     let sessionOwner: ExperimentSessionOwner
     let alarmCoordinator: AlarmCoordinator
+    let alarmTrials: AlarmTrialStore
     let alertCoordinator: ScheduledAlertCoordinator
     let backgroundCoordinator: BackgroundMotionCoordinator
 
@@ -24,7 +25,14 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
         self.testArchive = testArchive
         let owner = ExperimentSessionOwner(defaults: defaults)
         sessionOwner = owner
-        alarmCoordinator = AlarmCoordinator(owner: owner, store: alarmStore)
+        let trials = AlarmTrialStore(archive: testArchive)
+        alarmTrials = trials
+        alarmCoordinator = AlarmCoordinator(owner: owner, store: alarmStore,
+            makeOrigin: { .init(build: testArchive.build, os: testArchive.os, timeZone: TimeZone.current.identifier) },
+            recordObservation: { record in
+                // Capture after the alarm action can proceed. Deletion markers also suppress queued old snapshots.
+                Task { @MainActor in trials.capture(record, importing: true) }
+            })
         alertCoordinator = ScheduledAlertCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         backgroundCoordinator = BackgroundMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
         overnightCoordinator = OvernightMotionCoordinator(owner: owner, defaults: defaults, testArchive: testArchive)
@@ -33,6 +41,7 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
                         motionPending: backgroundCoordinator.hasUnresolvedSession,
                         overnightPending: overnightCoordinator.hasReservation, alarmPending: alarmCoordinator.hasReservation)
         if alarmCoordinator.isUnverified && alarmCoordinator.errorMessage != nil || alertCoordinator.storageError != nil || backgroundCoordinator.storageError != nil || overnightCoordinator.storageError != nil { owner.markUnresolved() }
+        if let record = alarmCoordinator.record { trials.capture(record, importing: true) }
     }
 
     func clearCompletedTestData() {

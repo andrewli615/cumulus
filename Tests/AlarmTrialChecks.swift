@@ -52,6 +52,13 @@ import Foundation
         let legacyData = try JSONEncoder().encode(legacy)
         let legacyDecoded = try JSONDecoder().decode(AlarmRecord.self, from: legacyData)
         expect(legacyDecoded.origin == nil, "Old alarm metadata is not invented")
+        let fractional = Date(timeIntervalSinceReferenceDate: 811_000_000.1234567)
+        var precise = AlarmRecord(id: UUID(), fireDate: fractional.addingTimeInterval(60), createdAt: fractional)
+        precise.record("Schedule requested", at: fractional)
+        var preciseTrial = try AlarmTrial.decode(AlarmTrial(record: precise, capturedAt: fractional).report())
+        precise.record("Scheduled state observed", at: fractional.addingTimeInterval(0.0123456))
+        try preciseTrial.merge(precise, capturedAt: fractional.addingTimeInterval(1))
+        expect(preciseTrial.events.count == 2, "Foundation alarm dates and Unix report dates merge without false event conflicts")
         var edit = legacy
         edit.phase = .cancellationRequested
         edit.replacementFireDate = date.addingTimeInterval(120)

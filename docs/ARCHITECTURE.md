@@ -8,6 +8,8 @@ Owner observations are explicit, optional self-reports: trial type, perceived ha
 
 Lifecycle snapshots preserve owner edits; saving a draft merges with latest software evidence and rejects a stale owner-edit revision. Archive errors preserve the prior report and remain separate from live alarm storage/status: a reporting failure must not block scheduling, haptics or invalidation. Startup imports honor deletion markers; clearing completed Saved tests must not silently reimport an old completed alarm. Clearing live alarm history leaves archived copies intact; clearing Saved tests includes trial reports and research history, with pending/unresolved-state guards. Exported copies survive either operation. Check mismatched identities, missing history, bounds, round trips, write failure and clearing before wiring the UI.
 
+The delegate queues archive snapshots after alarm persistence so reporting is outside the immediate platform-action path. This is best-effort capture, not a transaction spanning both files; startup can reconcile the current configuration, while interrupted/missing prior history stays unknown. Foundation-reference dates in the live alarm file are normalized to the Unix-date representation used by reports before immutable-event comparison. This prevents serialization roundoff from looking like conflicting evidence without introducing a timing tolerance or ignoring changed event identities/content.
+
 Cumulus uses one native watch-only SwiftUI target. The fixed-alarm home links to six experiments through Research; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
 
 ## Fixed alarm

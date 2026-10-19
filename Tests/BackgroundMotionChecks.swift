@@ -278,6 +278,31 @@ struct CMAccelerometerData: Sendable { let timestamp: TimeInterval }
         alarmSession.end(.none)
         await settle()
         expect(relaunched.sessionOwner.current == .none, "Personal alarm releases shared owner after stop")
+        let completedAlarm = relaunched.alarmCoordinator.record!
+        let trial = try relaunched.alarmTrials.load(completedAlarm.id)
+        expect(trial.phase == .stopped && trial.events.allSatisfy { $0.alarmID == completedAlarm.id },
+            "Delegate snapshots current configuration lifecycle separately from other alarm histories")
+        expect(trial.origin?.build == testArchive.build && trial.observations.feltHaptic == .unknown,
+            "New alarm provenance is recorded without invented perception")
+        relaunched.clearCompletedTestData()
+        let afterDelete = WatchAppDelegate(testArchive: testArchive, defaults: alarmDefaults, alarmStore: AlarmFileStore(url: alarmURL))
+        await settle()
+        expect(testArchive.reports.isEmpty && afterDelete.alarmCoordinator.record != nil,
+            "Clearing completed reports survives startup while keeping separate live alarm history")
+        let fullAlarmDefaults = UserDefaults(suiteName: "Cumulus.FullAlarmDelegate.\(UUID())")!
+        let fullAlarmURL = fullDirectory.appendingPathComponent("separate-alarm.json")
+        let fullApp = WatchAppDelegate(testArchive: fullArchive, defaults: fullAlarmDefaults, alarmStore: AlarmFileStore(url: fullAlarmURL))
+        expect(fullApp.alarmCoordinator.schedule(at: Date().addingTimeInterval(180)), "Full diagnostic archive does not prevent alarm scheduling")
+        let fullAlarmSession = WKExtendedRuntimeSession.latest!
+        fullAlarmSession.state = .running
+        fullApp.handle(fullAlarmSession)
+        await settle()
+        expect(fullAlarmSession.haptics == 1 && fullApp.alarmTrials.errorMessage != nil,
+            "Archive failure is visible without blocking haptics")
+        fullApp.alarmCoordinator.stop()
+        fullAlarmSession.end(.none)
+        await settle()
+        expect(fullApp.alarmCoordinator.record?.phase == .stopped, "Archive failure does not prevent stopping the attached alarm")
         print("PASS: sample boundaries, freshness, bounds, clocks, ownership, cancellation, error/expiry/manual-stop cleanup, stale callbacks and relaunch interruption")
     }
 }

@@ -78,25 +78,26 @@ struct AlarmTrial: Codable, Sendable {
         try record.validate()
         schemaVersion = 1
         alarmID = record.id
-        fireDate = record.fireDate
-        requestedAt = record.createdAt
+        fireDate = Self.reportDate(record.fireDate)
+        requestedAt = Self.reportDate(record.createdAt)
         origin = record.origin
         replacesAlarmID = record.replacesAlarmID
-        firstCapturedAt = capturedAt
-        lastCapturedAt = capturedAt
+        firstCapturedAt = Self.reportDate(capturedAt)
+        lastCapturedAt = Self.reportDate(capturedAt)
         phase = record.phase
-        requestedReplacementDate = record.replacementFireDate
-        events = record.events.filter { $0.alarmID == record.id }
+        requestedReplacementDate = record.replacementFireDate.map(Self.reportDate)
+        events = record.events.filter { $0.alarmID == record.id }.map(Self.reportEvent)
         try validate()
     }
 
     @discardableResult
     mutating func merge(_ record: AlarmRecord, capturedAt: Date) throws -> Bool {
         try record.validate()
-        guard record.id == alarmID, record.fireDate == fireDate, record.createdAt == requestedAt,
+        guard record.id == alarmID, Self.reportDate(record.fireDate) == fireDate,
+              Self.reportDate(record.createdAt) == requestedAt,
               record.origin == origin, record.replacesAlarmID == replacesAlarmID,
               capturedAt.timeIntervalSince1970.isFinite else { throw AlarmTrialError.invalid }
-        let incoming = record.events.filter { $0.alarmID == alarmID }
+        let incoming = record.events.filter { $0.alarmID == alarmID }.map(Self.reportEvent)
         for event in incoming {
             if let old = events.first(where: { $0.id == event.id }), old != event { throw AlarmTrialError.invalid }
         }
@@ -110,8 +111,8 @@ struct AlarmTrial: Codable, Sendable {
         }
         if events.count > 40 { historyTruncated = true; events = Array(events.suffix(40)) }
         phase = record.phase
-        if let replacement = record.replacementFireDate { requestedReplacementDate = replacement }
-        lastCapturedAt = capturedAt
+        if let replacement = record.replacementFireDate { requestedReplacementDate = Self.reportDate(replacement) }
+        lastCapturedAt = Self.reportDate(capturedAt)
         try validate()
         return true
     }
@@ -165,5 +166,15 @@ struct AlarmTrial: Codable, Sendable {
         try trial.validate()
         guard report.id == trial.reportID, report.createdAt == trial.requestedAt else { throw AlarmTrialError.invalid }
         return trial
+    }
+
+    // AlarmFileStore uses Foundation reference dates; reports use Unix dates. Normalize once
+    // to the report representation before comparing immutable events across those encodings.
+    private static func reportDate(_ date: Date) -> Date {
+        Date(timeIntervalSince1970: date.timeIntervalSince1970)
+    }
+    private static func reportEvent(_ event: AlarmRecord.Event) -> AlarmRecord.Event {
+        .init(id: event.id, alarmID: event.alarmID, fireDate: reportDate(event.fireDate),
+            date: reportDate(event.date), message: event.message)
     }
 }
