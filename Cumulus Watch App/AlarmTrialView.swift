@@ -155,64 +155,128 @@ struct AlarmTrialEditView: View {
     @ObservedObject var store: AlarmTrialStore
     let trial: AlarmTrial
     @State private var observations: AlarmTrial.Observations
+    @State private var original: AlarmTrial.Observations
     @State private var expectedRevision: UUID?
+    @State private var saveError: String?
     init(trial: AlarmTrial, store: AlarmTrialStore) {
         self.trial = trial
         self.store = store
         _observations = State(initialValue: trial.observations)
+        _original = State(initialValue: trial.observations)
         _expectedRevision = State(initialValue: trial.observationsRevision)
     }
     var body: some View {
         Form {
             Section {
-                Text(trial.fireDate.formatted(date: .complete, time: .shortened)).font(.headline)
-                Text("Alarm \(trial.alarmID.uuidString.prefix(8)). Changes save only with Save observations. Leave missed details Unknown.")
+                Text(trial.fireDate.formatted(date: .complete, time: .shortened))
+                    .font(.headline).fixedSize(horizontal: false, vertical: true)
+                Text("Alarm \(trial.alarmID.uuidString.prefix(8))").font(.body)
+                Text(observations == original ? "Review observations" : "Unsaved changes")
+                    .font(.body).accessibilityAddTraits(.isHeader)
+                Text("Changes, including battery readings, save only with Save observations. Going back without saving discards this form. Leave missed details Unknown.")
                     .font(.body).fixedSize(horizontal: false, vertical: true)
-                Button {
-                    if store.saveObservations(observations, for: trial.alarmID, expectedRevision: expectedRevision) { dismiss() }
-                } label: {
-                    Text("Save observations").frame(maxWidth: .infinity, minHeight: 44)
-                        .fixedSize(horizontal: false, vertical: true)
-                }.buttonStyle(.borderedProminent)
-                if let error = store.errorMessage { Text(error).font(.body).foregroundStyle(.orange) }
             }
             Section("Trial") {
                 Picker("Type", selection: $observations.kind) {
                     ForEach(AlarmTrial.Kind.allCases, id: \.self) { Text($0.title).tag($0) }
                 }.pickerStyle(.navigationLink)
-            }
-            Section("Alert · your report") {
-                answer("Felt haptic", $observations.feltHaptic)
-                answer("Saw system alert", $observations.sawAlert)
-                answer("Unexplained duplicate", $observations.duplicates)
-                answer("Stop worked", $observations.stopWorked)
-                answer("Old time silent · edit/cancel", $observations.oldTimeSilent)
-            }
-            Section("Conditions · your report") {
-                answer("Debugger detached", $observations.debuggerDetached)
-                answer("Sleep Focus used", $observations.sleepFocus)
-                answer("Haptics enabled", $observations.hapticsEnabled)
-                answer("Charged during trial", $observations.charged)
-                answer("Interrupted", $observations.interrupted)
-                TextField("Settings note · optional", text: $observations.settingsNote)
-                Text("Up to 200 characters. Record actual settings; do not paste logs or health records.").font(.caption)
+                NavigationLink {
+                    AlarmTrialAnswersView(observations: $observations, conditions: false)
+                } label: {
+                    VStack(alignment: .leading) {
+                        Text("Alert observations").font(.body)
+                        Text("Felt haptic: \(observations.feltHaptic.title)").font(.caption)
+                    }.fixedSize(horizontal: false, vertical: true).frame(minHeight: 44)
+                }
+                NavigationLink {
+                    AlarmTrialAnswersView(observations: $observations, conditions: true)
+                } label: {
+                    Text("Conditions & settings").font(.body).frame(minHeight: 44)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Section("Battery · manual readings") {
-                NavigationLink("Start reading") { AlarmTrialBatteryView(title: "Start battery", reading: $observations.startBattery) }
-                NavigationLink("End reading") { AlarmTrialBatteryView(title: "End battery", reading: $observations.endBattery) }
-                Text("Record a current percentage with its current time. Missed earlier readings remain Unknown. Battery loss alone does not establish a qualifying night.")
+                batteryLink("Start battery", $observations.startBattery)
+                batteryLink("End battery", $observations.endBattery)
+                Text("Record a current percentage and time. Missed earlier readings remain Unknown.")
                     .font(.body).fixedSize(horizontal: false, vertical: true)
+            }
+            Section("Save this alarm's observations") {
+                if let problem = observations.validationMessage {
+                    Text(problem).font(.body).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                }
+                if let saveError {
+                    Text(saveError).font(.body).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                }
+                Button {
+                    if store.saveObservations(observations, for: trial.alarmID, expectedRevision: expectedRevision) { dismiss() }
+                    else { saveError = store.errorMessage ?? "Observations were not saved. Your draft remains open." }
+                } label: {
+                    Text("Save observations").frame(maxWidth: .infinity, minHeight: 44)
+                        .fixedSize(horizontal: false, vertical: true)
+                }.buttonStyle(.borderedProminent).disabled(observations.validationMessage != nil)
+                Text("Your report does not schedule, cancel or qualify an alarm.").font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }.fontDesign(.serif).tint(.blue).navigationTitle("Observations")
     }
+    private func batteryLink(_ title: String, _ reading: Binding<AlarmTrial.BatteryReading?>) -> some View {
+        NavigationLink { AlarmTrialBatteryView(title: title, reading: reading) } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.body)
+                if let value = reading.wrappedValue {
+                    Text("\(value.percent)% · \(value.observedAt.formatted(date: .abbreviated, time: .standard))")
+                        .font(.body).monospacedDigit()
+                } else { Text("Unknown").font(.body).foregroundStyle(.secondary) }
+            }.fixedSize(horizontal: false, vertical: true).frame(minHeight: 44)
+        }
+    }
+}
+
+private struct AlarmTrialAnswersView: View {
+    @Binding var observations: AlarmTrial.Observations
+    let conditions: Bool
+    var body: some View {
+        Form {
+            Text("Draft only. Return to Observations and tap Save observations.")
+                .font(.body).fixedSize(horizontal: false, vertical: true)
+            if conditions {
+                Section("Conditions · your report") {
+                    answer("Debugger detached", $observations.debuggerDetached)
+                    answer("Sleep Focus used", $observations.sleepFocus)
+                    answer("Haptics enabled", $observations.hapticsEnabled)
+                    answer("Charged during trial", $observations.charged)
+                    answer("Interrupted", $observations.interrupted)
+                }
+                Section("Settings note · optional") {
+                    TextField("Actual settings", text: $observations.settingsNote)
+                    Text("\(observations.settingsNote.count)/200 characters. Do not paste logs or health records.")
+                        .font(.body).fixedSize(horizontal: false, vertical: true)
+                    if observations.settingsNote.count > 200 {
+                        Text("Shorten this note before saving.").font(.body).foregroundStyle(.orange)
+                    }
+                }
+            } else {
+                Section("Alert · your report") {
+                    answer("Felt haptic", $observations.feltHaptic)
+                    answer("Saw system alert", $observations.sawAlert)
+                    answer("Unexplained duplicate", $observations.duplicates)
+                    answer("Stop worked", $observations.stopWorked)
+                    answer("Old time silent · edit/cancel", $observations.oldTimeSilent)
+                }
+            }
+        }.fontDesign(.serif).tint(.blue).navigationTitle(conditions ? "Conditions" : "Alert report")
+    }
     private func answer(_ title: String, _ selection: Binding<AlarmTrial.Answer>) -> some View {
-        Picker(title, selection: selection) {
+        Picker(selection: selection) {
             ForEach(AlarmTrial.Answer.allCases, id: \.self) { Text($0.title).tag($0) }
-        }.pickerStyle(.navigationLink)
+        } label: { Text(title).fixedSize(horizontal: false, vertical: true).frame(minHeight: 44) }
+            .pickerStyle(.navigationLink)
     }
 }
 
 struct AlarmTrialBatteryView: View {
+    @Environment(\.dismiss) private var dismiss
     let title: String
     @Binding var reading: AlarmTrial.BatteryReading?
     @State private var percent: Int
@@ -224,20 +288,31 @@ struct AlarmTrialBatteryView: View {
     var body: some View {
         Form {
             Section {
-                Text("Enter the percentage currently shown by your Watch. Record now timestamps this tap; it cannot recover an earlier reading. Then return and Save observations.")
-                    .font(.body).fixedSize(horizontal: false, vertical: true)
-                Picker("Battery percent", selection: $percent) {
+                if let reading {
+                    Text("Recorded draft: \(reading.percent)%").font(.headline)
+                    Text(reading.observedAt.formatted(date: .abbreviated, time: .standard)).font(.body)
+                } else { Text("No reading recorded").font(.body) }
+                Picker("Current percentage", selection: $percent) {
                     Text("Unknown").tag(-1)
                     ForEach(0...100, id: \.self) { Text("\($0)%").tag($0) }
                 }.pickerStyle(.navigationLink)
-                Button { reading = .init(percent: percent, observedAt: .now) } label: {
-                    Text("Record now").frame(maxWidth: .infinity, minHeight: 44)
-                }.buttonStyle(.borderedProminent).disabled(percent < 0)
-                if let reading {
-                    Text("Draft: \(reading.percent)%").font(.headline)
-                    Text(reading.observedAt.formatted(date: .abbreviated, time: .standard)).font(.body)
-                    Button("Clear draft reading") { self.reading = nil; percent = -1 }
-                        .frame(minHeight: 44).buttonStyle(.bordered)
+                Button {
+                    reading = .init(percent: percent, observedAt: .now)
+                    dismiss()
+                } label: {
+                    Text("Record now & return").frame(maxWidth: .infinity, minHeight: 44)
+                        .fixedSize(horizontal: false, vertical: true)
+                }.buttonStyle(.borderedProminent).disabled(!(0...100).contains(percent))
+                Text("Enter the percentage currently shown by your Watch. Recording timestamps this tap, then returns to the unsaved form. Tap Save observations there. It cannot recover an earlier reading.")
+                    .font(.body).fixedSize(horizontal: false, vertical: true)
+                if reading != nil {
+                    Button {
+                        reading = nil
+                        dismiss()
+                    } label: {
+                        Text("Clear draft & return").frame(maxWidth: .infinity, minHeight: 44)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }.buttonStyle(.bordered)
                 }
             }
         }.fontDesign(.serif).tint(.blue).navigationTitle(title)

@@ -32,16 +32,20 @@ struct AlarmTrial: Codable, Sendable {
         var endBattery: BatteryReading?
         var settingsNote = ""
 
-        func validate() throws {
-            guard settingsNote.count <= 200 else { throw AlarmTrialError.invalid }
+        var validationMessage: String? {
+            if settingsNote.count > 200 { return "Shorten the settings note to 200 characters." }
             for reading in [startBattery, endBattery].compactMap({ $0 }) {
-                guard (0...100).contains(reading.percent), reading.observedAt.timeIntervalSince1970.isFinite else {
-                    throw AlarmTrialError.invalid
-                }
+                if !(0...100).contains(reading.percent) { return "Battery percentages must be between 0 and 100." }
+                if !reading.observedAt.timeIntervalSince1970.isFinite { return "A battery reading has an invalid time. Clear it and record again." }
             }
             if let startBattery, let endBattery, endBattery.observedAt < startBattery.observedAt {
-                throw AlarmTrialError.invalid
+                return "End battery was recorded before start battery. Clear the incorrect reading; missed readings stay Unknown."
             }
+            return nil
+        }
+
+        func validate() throws {
+            guard validationMessage == nil else { throw AlarmTrialError.invalid }
         }
     }
 

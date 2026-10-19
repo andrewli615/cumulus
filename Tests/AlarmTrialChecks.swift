@@ -74,6 +74,23 @@ import Foundation
         let replacementTrial = try AlarmTrial(record: replacement, capturedAt: date)
         expect(replacementTrial.replacesAlarmID == edit.id, "Replacement report retains prior configuration identity")
 
+        var form = AlarmTrial.Observations()
+        expect(form.validationMessage == nil, "All Unknown is an honest, valid observation")
+        form.settingsNote = String(repeating: "☁️", count: 200)
+        expect(form.validationMessage == nil, "200 user-perceived characters accepted")
+        form.settingsNote += "x"
+        expect(form.validationMessage?.contains("200") == true, "Form identifies overlong note before save")
+        form.settingsNote = ""
+        form.startBattery = .init(percent: -1, observedAt: date)
+        expect(form.validationMessage?.contains("between 0 and 100") == true, "Unknown selection is not a recorded negative percentage")
+        form.startBattery = .init(percent: 100, observedAt: date)
+        form.endBattery = .init(percent: 0, observedAt: date)
+        expect(form.validationMessage == nil, "Boundary percentages and equal observation times valid")
+        form.endBattery = .init(percent: 50, observedAt: date.addingTimeInterval(-1))
+        expect(form.validationMessage?.contains("before start") == true, "Form explains reversed battery chronology")
+        form.endBattery = .init(percent: 50, observedAt: Date(timeIntervalSince1970: .infinity))
+        expect(form.validationMessage?.contains("invalid time") == true, "Nonfinite battery date rejected before save")
+
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let archive = TestArchiveStore(directory: directory, build: "Capturing build", os: "Capturing OS")

@@ -97,3 +97,9 @@ File purposes: `design/cumulus-app-icon.svg` remains the editable launcher sourc
 The launcher preview was inspected at 256px and 48px under a circular mask: the cap and pom-pom remain distinct. Normal/larger-text home screenshots on an isolated 40 mm simulator show the colored mark and fully visible Set alarm action. Watch/Simulator builds and the alarm regression suite pass; the opaque 1024px PNG matches its SVG source. Physical Watch appearance, scrolling and VoiceOver remain unverified; no alarm was scheduled by this visual pass.
 
 Learning exercise: compare the dark cap on the bright app icon with the lighter cap on the dark in-app card. Explain why their geometry stays the same while their contrast needs differ.
+
+## Observation usability — build 24, October 19
+
+The observation editor uses separate Alert observations and Conditions & settings pages, leaving trial type, battery summaries and Save on a shorter parent form. Each battery row shows its percentage and timestamp or Unknown. Record now & return updates the draft and returns; only Save observations persists it. Clear draft & return also requires that save. The form labels unsaved changes, explains that Back discards them, and puts validation/save errors beside Save. Overlong notes and reversed battery times need correction; no text or observations are silently discarded to make validation pass.
+
+Native scrolling forms, navigation pickers, serif text, dark cards and blue primary actions remain. Action labels wrap and important targets retain a 44-point minimum height. Alarm/session/sensor behavior is unchanged. Targeted model/archive/alarm checks and signing-free Watch/Simulator builds pass. Synthetic normal/larger-text routes compile, but no rendering, scrolling or VoiceOver success is claimed: CoreSimulator reports an incompatible service version and Simulator is absent from enabled UI surfaces. Physical acceptance remains open.

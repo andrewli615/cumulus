@@ -213,3 +213,9 @@ Physical walkthrough when safe to update, preserving existing data and pending a
 Ten Swift suites, six Python checks and signing-free Watch/Simulator Debug builds pass. Checks cover identity mismatch, source/metadata compatibility, fractional date normalization, edit association, partial/truncated histories, stale owner revisions, actual write failure, archive capacity, relaunch/deletion suppression and full-archive scheduling/haptic/Stop behavior. UI fixtures compile; Simulator is unavailable to the UI-control tool and its service-version mismatch prevents claiming interactive readiness. No physical installation, delivery, observation-save or deletion result is claimed. Passed cancellation/awake checks need no automatic repeat; overnight acceptance remains deferred.
 
 Learning exercise: compare the original build, the report-capture build and a self-reported observation date; they describe different evidence and cannot backfill one another.
+
+## Build 24 local usability pass — October 19
+
+Build **0.1 (24)** keeps the build-23 observation procedure, with shorter **Alert observations** and **Conditions & settings** pages. Start/end battery rows now show recorded draft values and times. **Record now & return** returns to the parent; **Save observations** is still required. The parent labels unsaved changes and shows validation/save errors beside Save; Back without saving discards the form. Missed details remain Unknown.
+
+Local trial/archive/alarm checks and signing-free Watch/Simulator builds pass. Boundary percentages, equal/reversed/nonfinite reading times and the 200-character note boundary are checked. No physical or interactive simulator result is added; normal/larger text, VoiceOver, persistence/read-back and independent clearing remain device checks. Prior owner-reported results, deferred overnight validation and all acceptance criteria remain unchanged.
