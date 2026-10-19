@@ -1,5 +1,13 @@
 # Current architecture and open decisions
 
+## Fixed-alarm trial retention — October 18
+
+Implementation policy: retain a distinct `fixedalarm` report in the existing protected, backup-excluded Saved tests archive, one stable report per alarm configuration. Existing 200-report/32-MB bounds and private export apply; no silent eviction or upload. Store at most forty lifecycle events for that configuration, preserving immutable identities and marking missing/truncated history. New configurations may record originating build/OS/time zone; old configurations keep missing provenance Unknown, separately from the version that later captures a report.
+
+Owner observations are explicit, optional self-reports: trial type, perceived haptic/visible alert, edit/stop outcome, duplicates, debugger/Focus/haptic conditions, interruptions, charging and battery percentages with observation times. No HealthKit or motion query, raw log, automatic perception, reliability score or inferred pass is added. Battery readings entered through the form are manual; capturing one timestamps the tap as a current observation, never an earlier night. Reports can reveal personal timing and must remain private outside Git on export.
+
+Lifecycle snapshots preserve owner edits; saving a draft merges with latest software evidence and rejects a stale owner-edit revision. Archive errors preserve the prior report and remain separate from live alarm storage/status: a reporting failure must not block scheduling, haptics or invalidation. Startup imports honor deletion markers; clearing completed Saved tests must not silently reimport an old completed alarm. Clearing live alarm history leaves archived copies intact; clearing Saved tests includes trial reports and research history, with pending/unresolved-state guards. Exported copies survive either operation. Check mismatched identities, missing history, bounds, round trips, write failure and clearing before wiring the UI.
+
 Cumulus uses one native watch-only SwiftUI target. The fixed-alarm home links to six experiments through Research; there is no companion app, sleep-stage model, or production wake-decision rule. Xcode navigator groups organize responsibilities without moving source files or adding modules.
 
 ## Fixed alarm
