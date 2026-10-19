@@ -49,6 +49,12 @@ struct AlarmRecord: Codable, Sendable {
               phase != .hapticRequested || hapticRequestedAt != nil,
               replacementFireDate == nil || phase == .cancellationRequested else { throw AlarmStorageError.invalid }
         guard replacesAlarmID != id else { throw AlarmStorageError.invalid }
+        // History includes older configurations, but each identity must retain one absolute target.
+        var targets: [UUID: Date] = [id: fireDate]
+        for event in events {
+            if let target = targets[event.alarmID], target != event.fireDate { throw AlarmStorageError.invalid }
+            targets[event.alarmID] = event.fireDate
+        }
     }
 }
 

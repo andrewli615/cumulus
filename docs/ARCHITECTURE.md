@@ -20,6 +20,10 @@ Cumulus uses one native watch-only SwiftUI target. The fixed-alarm home links to
 
 Build 17 preserves the pending replacement date during an edit. A recovered interrupted edit reports that the replacement is not set and resumes cancellation of the old session when permitted; it never re-arms the replacement automatically. Confirmed invalidation clears that metadata. Older records without the optional field remain readable. Actions check actual session state as well as UI flags.
 
+Build 25 distinguishes unreadable/unverified storage from an interrupted-edit warning when reconciling ownership. A readable interrupted edit still routes to the alarm coordinator to resume old-session invalidation, without re-arming the lost replacement. Re-delivery of the same attached object refreshes its state without another relaunch event. An additional object cannot replace the known session or mutate its alarm through callbacks: its rejection is recorded, ownership becomes unresolved, and new schedules/clearing remain blocked. The delegate routes a known attached object before consulting shared ownership, so existing Cancel/Stop remain usable even after a conflict. This match applies only within the live process; no new association is invented after termination.
+
+Each retained event identity/configuration keeps one target date, including older configurations in rolling history. A failed completion save leaves the last persisted pending state unverified on relaunch; it does not invent a persisted stop. A persisted haptic marker suppresses another request on attachment, but termination between the platform call and saving that marker can leave an unrecorded request. The code does not guarantee exactly-once delivery. Trial snapshots and owner observations remain independently stored; live-history clearing and archived-report deletion are checked separately.
+
 ## Ownership and data flow
 
 | Boundary | Current implementation |

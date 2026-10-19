@@ -303,6 +303,79 @@ struct CMAccelerometerData: Sendable { let timestamp: TimeInterval }
         fullAlarmSession.end(.none)
         await settle()
         expect(fullApp.alarmCoordinator.record?.phase == .stopped, "Archive failure does not prevent stopping the attached alarm")
+        let editDefaults = UserDefaults(suiteName: "Cumulus.EditRelaunch.\(UUID())")!
+        let editDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: editDirectory) }
+        let editStore = AlarmFileStore(url: editDirectory.appendingPathComponent("live.json"))
+        let editArchive = TestArchiveStore(directory: editDirectory.appendingPathComponent("archive"))
+        let editApp = WatchAppDelegate(testArchive: editArchive, defaults: editDefaults, alarmStore: editStore)
+        expect(editApp.alarmCoordinator.schedule(at: Date().addingTimeInterval(180)), "Edit relaunch fixture schedules")
+        let editSession = WKExtendedRuntimeSession.latest!
+        expect(editApp.alarmCoordinator.edit(to: Date().addingTimeInterval(600)), "Edit fixture awaits old invalidation")
+        let editRecovery = WatchAppDelegate(testArchive: editArchive, defaults: editDefaults, alarmStore: editStore)
+        expect(editRecovery.sessionOwner.current == .alarm && editRecovery.alarmCoordinator.isUnverified,
+               "An interrupted-edit warning must not misroute a readable pending alarm as unresolved")
+        let returnedEdit = WKExtendedRuntimeSession(); returnedEdit.state = .scheduled
+        editRecovery.handle(returnedEdit)
+        expect(returnedEdit.invalidations == 1 && !editRecovery.alarmCoordinator.isUnverified,
+               "Production delegate routes interrupted edit to resume cancellation")
+        expect(editSession.invalidations == 1, "Terminated process requested cancellation once")
+        returnedEdit.end(.none)
+        await settle()
+        expect(editRecovery.alarmCoordinator.record?.phase == .cancelled && editRecovery.alarmCoordinator.canSchedule,
+               "Recovered edit ends the original without automatically creating a replacement")
+        expect(editRecovery.alarmCoordinator.errorMessage?.contains("Replacement not set") == true,
+               "Recovery retains actionable replacement warning")
+        let editedID = editRecovery.alarmCoordinator.record!.id
+        let beforeClear = try editRecovery.alarmTrials.load(editedID)
+        editRecovery.alarmCoordinator.clearHistory()
+        expect(editRecovery.alarmCoordinator.record == nil, "Live history clears when completed")
+        let afterClear = try editRecovery.alarmTrials.load(editedID)
+        expect(beforeClear.events == afterClear.events, "Clearing live history leaves archived trial evidence intact")
+        let clearRecovery = WatchAppDelegate(testArchive: editArchive, defaults: editDefaults, alarmStore: editStore)
+        expect(clearRecovery.alarmCoordinator.canSchedule && editArchive.reports.count == 1,
+               "Independent live-history clearing survives relaunch")
+
+        let extraDefaults = UserDefaults(suiteName: "Cumulus.ExtraSession.\(UUID())")!
+        let extraDirectory = editDirectory.appendingPathComponent("extra")
+        let extraApp = WatchAppDelegate(testArchive: TestArchiveStore(directory: extraDirectory.appendingPathComponent("archive")),
+            defaults: extraDefaults, alarmStore: AlarmFileStore(url: extraDirectory.appendingPathComponent("live.json")))
+        expect(extraApp.alarmCoordinator.schedule(at: Date().addingTimeInterval(180)), "Extra-session fixture schedules")
+        let retainedSession = WKExtendedRuntimeSession.latest!
+        let extraSession = WKExtendedRuntimeSession(); extraSession.state = .running
+        extraApp.handle(extraSession)
+        expect(extraApp.sessionOwner.current == .unresolved && extraApp.alarmCoordinator.canCancel,
+               "Unknown additional delivery reserves unresolved ownership but preserves known alarm controls")
+        extraApp.handle(retainedSession)
+        expect(retainedSession.delegate === extraApp.alarmCoordinator,
+               "Unresolved ownership must not route a known attached alarm to another coordinator")
+        retainedSession.run()
+        await settle()
+        expect(retainedSession.haptics == 1 && extraApp.alarmCoordinator.canStop, "Known alarm remains usable after repeated delegate delivery")
+        extraApp.alarmCoordinator.stop(); retainedSession.end(.none)
+        await settle()
+        expect(extraApp.alarmCoordinator.record?.phase == .stopped && extraApp.sessionOwner.current == .unresolved,
+               "Stopping known alarm does not resolve unknown additional session")
+        let retainedReports = extraApp.testArchive.reports.count
+        extraApp.clearCompletedTestData()
+        expect(extraApp.testArchive.reports.count == retainedReports && retainedReports > 0,
+               "Unresolved extra session still blocks destructive report clearing")
+
+        let corruptDefaults = UserDefaults(suiteName: "Cumulus.CorruptAlarmRouting.\(UUID())")!
+        let corruptDirectory = editDirectory.appendingPathComponent("corrupt")
+        let corruptStore = AlarmFileStore(url: corruptDirectory.appendingPathComponent("live.json"))
+        let corruptArchive = TestArchiveStore(directory: corruptDirectory.appendingPathComponent("archive"))
+        let beforeCorruption = WatchAppDelegate(testArchive: corruptArchive, defaults: corruptDefaults, alarmStore: corruptStore)
+        expect(beforeCorruption.alarmCoordinator.schedule(at: Date().addingTimeInterval(180)), "Corrupt-store fixture schedules")
+        try Data("invalid".utf8).write(to: corruptStore.url)
+        let corruptRecovery = WatchAppDelegate(testArchive: corruptArchive, defaults: corruptDefaults, alarmStore: corruptStore)
+        expect(corruptRecovery.alarmCoordinator.hasUnverifiedStorage && corruptRecovery.sessionOwner.current == .unresolved,
+               "Actual unreadable alarm state still makes shared ownership unresolved")
+        let unknownDelivery = WKExtendedRuntimeSession(); unknownDelivery.state = .running
+        corruptRecovery.handle(unknownDelivery)
+        expect(unknownDelivery.haptics == 0 && !corruptRecovery.alarmCoordinator.canSchedule,
+               "Unreadable configuration never authorizes a new alarm request")
+
         print("PASS: sample boundaries, freshness, bounds, clocks, ownership, cancellation, error/expiry/manual-stop cleanup, stale callbacks and relaunch interruption")
     }
 }

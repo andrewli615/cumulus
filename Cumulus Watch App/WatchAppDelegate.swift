@@ -40,7 +40,7 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
         owner.reconcile(alertPending: alertCoordinator.blocksMotionProbe,
                         motionPending: backgroundCoordinator.hasUnresolvedSession,
                         overnightPending: overnightCoordinator.hasReservation, alarmPending: alarmCoordinator.hasReservation)
-        if alarmCoordinator.isUnverified && alarmCoordinator.errorMessage != nil || alertCoordinator.storageError != nil || backgroundCoordinator.storageError != nil || overnightCoordinator.storageError != nil { owner.markUnresolved() }
+        if alarmCoordinator.hasUnverifiedStorage || alertCoordinator.storageError != nil || backgroundCoordinator.storageError != nil || overnightCoordinator.storageError != nil { owner.markUnresolved() }
         if let record = alarmCoordinator.record { trials.capture(record, importing: true) }
     }
 
@@ -56,6 +56,11 @@ final class WatchAppDelegate: NSObject, WKApplicationDelegate {
     }
 
     func handle(_ extendedRuntimeSession: WKExtendedRuntimeSession) {
+        // A conflicting extra delivery can change ownership without changing the attached alarm's identity.
+        if alarmCoordinator.isAttached(to: extendedRuntimeSession) {
+            alarmCoordinator.attach(extendedRuntimeSession)
+            return
+        }
         switch sessionOwner.current {
         case .alarm: alarmCoordinator.attach(extendedRuntimeSession)
         case .alert: alertCoordinator.attachRelaunchedSession(extendedRuntimeSession)

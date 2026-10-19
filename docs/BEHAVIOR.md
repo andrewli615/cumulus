@@ -62,3 +62,7 @@ Missing or stale data must leave a separately tested latest-wake path. An early 
 ## Quality bar
 
 The fixed-alarm release uses the [current release checklist](BUILD_PLAN.md#fixed-alarm-release-checklist) and unchanged [Experiment 008](experiments/008-fixed-alarm.md) delivery/battery criteria; full acceptance remains pending and overnight validation deferred. For future smart waking, define measurable fallback and waking-outcome criteria before its validation; the [future evidence gates](BUILD_PLAN.md#personal-mvp-exit-evidence) apply to that later release. Repeated physical results are needed for sensor and alert behavior; builds and synthetic checks establish software behavior only. Claims describe tested devices, software, settings and conditions. Keep an independent alarm during development and make no medical or guaranteed-wake claim.
+
+## Recovery hardening — build 25, October 19
+
+A readable interrupted edit retains alarm ownership while awaiting its original returned session; the replacement remains not set. A repeated delivery of the already attached session refreshes state without a duplicate haptic request or invented relaunch event. An unmatched additional session cannot replace that object or complete its alarm; it leaves shared ownership unresolved and blocks new scheduling/clearing while existing attached-alarm controls remain available. Actual unreadable storage remains unverified and cannot authorize a new request. These paths pass local coordinator/delegate checks; physical recovery remains unverified.

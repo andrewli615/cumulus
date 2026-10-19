@@ -37,7 +37,7 @@ import Foundation
         var mismatchedTarget = alarm
         mismatchedTarget.events = [.init(id: UUID(), alarmID: alarm.id, fireDate: date, date: date, message: "Wrong target")]
         do { _ = try AlarmTrial(record: mismatchedTarget, capturedAt: date)
-            preconditionFailure("Mismatched target accepted") } catch AlarmTrialError.invalid { }
+            preconditionFailure("Mismatched target accepted") } catch AlarmStorageError.invalid { }
         var partial = alarm
         partial.events.removeFirst()
         let missing = try AlarmTrial(record: partial, capturedAt: date)
@@ -96,6 +96,10 @@ import Foundation
         let archive = TestArchiveStore(directory: directory, build: "Capturing build", os: "Capturing OS")
         let store = AlarmTrialStore(archive: archive, now: { date.addingTimeInterval(200) })
         expect(store.capture(alarm), "Actual archive snapshot saved")
+        var conflictingSource = alarm
+        conflictingSource.origin = .init(build: "Wrong origin", os: "Synthetic", timeZone: "UTC")
+        expect(!store.capture(conflictingSource) && store.errorMessage != nil, "Source mismatch surfaces an archive error")
+        expect(store.capture(alarm) && store.errorMessage == nil, "Verified unchanged evidence clears an obsolete capture error")
         let saved = try store.load(alarm.id)
         expect(saved.origin == origin && archive.reports.first?.captureBuild == "Capturing build", "Original and capture versions remain distinct")
         expect(store.saveObservations(observations, for: alarm.id, expectedRevision: nil), "Owner observations save")
@@ -130,6 +134,12 @@ import Foundation
         expect(store.capture(alarm, importing: true) && archive.reports.isEmpty, "Startup import honors deletion marker")
         expect(store.capture(alarm), "Explicit save may restore selected historical evidence")
         expect(archive.reports.count == 1, "No unrelated report evicted or invented")
+        let restoredRevision = try store.load(alarm.id).observationsRevision
+        let unrelatedID = UUID()
+        expect(!store.saveObservations(observations, for: unrelatedID, expectedRevision: restoredRevision),
+               "Observation save cannot fall back to a different existing alarm")
+        let unchangedTrial = try store.load(alarm.id)
+        expect(unchangedTrial.observationsRevision == restoredRevision, "Wrong-identity save preserves matching report")
         let fullArchive = TestArchiveStore(directory: directory.appendingPathComponent("full"), maximumReports: 0)
         let fullStore = AlarmTrialStore(archive: fullArchive)
         expect(!fullStore.capture(alarm) && fullStore.errorMessage != nil, "Capacity failure is explicit")

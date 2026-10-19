@@ -23,12 +23,12 @@ final class AlarmTrialStore: ObservableObject {
             let trial: AlarmTrial
             if archive.reports.contains(where: { $0.id == id }) {
                 var saved = try load(record.id)
-                guard try saved.merge(record, capturedAt: now()) else { return true }
+                guard try saved.merge(record, capturedAt: now()) else { errorMessage = nil; return true }
                 trial = saved
             } else { trial = try AlarmTrial(record: record, capturedAt: now()) }
             let saved = archive.save(try trial.report(), importing: importing)
             // Suppression by a deletion marker is intentional, not a failed alarm.
-            if importing, !saved, archive.errorMessage == nil { return true }
+            if importing, !saved, archive.errorMessage == nil { errorMessage = nil; return true }
             errorMessage = saved ? nil : "Trial report not saved. Live alarm state is separate. Check Saved tests storage."
             return saved
         } catch AlarmTrialError.invalid {

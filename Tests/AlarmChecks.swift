@@ -195,6 +195,90 @@ import Foundation
         await settle()
         expect(WKExtendedRuntimeSession.latest === lateEdit && delayed.errorMessage?.contains("Replacement not set") == true,
                "Expired replacement is refused rather than rolled to another day")
+        let isolatedOwner = ExperimentSessionOwner(defaults: UserDefaults(suiteName: "Cumulus.SessionIsolation.\(UUID())")!)
+        let isolatedStore = MemoryAlarmStore()
+        let isolated = AlarmCoordinator(owner: isolatedOwner, store: isolatedStore, now: { now })
+        expect(isolated.schedule(at: date), "Isolation fixture schedules")
+        let knownSession = WKExtendedRuntimeSession.latest!
+        let knownID = isolated.record!.id
+        let unexpectedSession = WKExtendedRuntimeSession()
+        unexpectedSession.state = .running
+        isolated.attach(unexpectedSession)
+        expect(unexpectedSession.delegate == nil && isolated.canCancel && !isolated.isUnverified,
+               "Unexpected delivery must not replace or disable the known attached session")
+        unexpectedSession.run(); unexpectedSession.end(.none)
+        await settle()
+        expect(isolated.record?.id == knownID && isolated.record?.phase == .scheduled,
+               "Unexpected session callbacks cannot complete another alarm configuration")
+        expect(isolatedOwner.current == .unresolved && !isolated.canSchedule,
+               "Additional session creates unresolved ownership, not permission to schedule again")
+        knownSession.run()
+        await settle()
+        let beforeDuplicateAttach = isolated.events.count
+        isolated.attach(knownSession)
+        expect(knownSession.haptics == 1 && isolated.events.count == beforeDuplicateAttach,
+               "Repeated attachment is idempotent and does not fabricate relaunch events")
+        isolatedStore.fails = true
+        isolated.stop()
+        expect(knownSession.invalidations == 1, "Known session can still be stopped with unresolved owner and failed storage")
+        knownSession.end(.none)
+        await settle()
+        expect(isolated.record?.phase == .stopped && !isolated.canSchedule,
+               "Failure to persist completion blocks another schedule")
+        isolatedStore.fails = false
+        // Unresolved extra-session ownership remains conservative even after local completion.
+        expect(isolatedOwner.current == .unresolved, "Do not clear unrelated unresolved ownership on known-session completion")
+
+        let completionOwner = ExperimentSessionOwner(defaults: UserDefaults(suiteName: "Cumulus.CompletionFailure.\(UUID())")!)
+        let completionStore = MemoryAlarmStore()
+        let completion = AlarmCoordinator(owner: completionOwner, store: completionStore, now: { now })
+        expect(completion.schedule(at: date), "Completion failure fixture schedules")
+        let completionSession = WKExtendedRuntimeSession.latest!
+        completionSession.run()
+        await settle()
+        completionStore.fails = true
+        completion.stop(); completionSession.end(.none)
+        await settle()
+        expect(completion.record?.phase == .stopped && completion.errorMessage != nil && !completion.canSchedule,
+               "Unsaved completion does not allow another alarm")
+        completionStore.fails = false
+        let completionRecovery = AlarmCoordinator(owner: completionOwner, store: completionStore, now: { now })
+        expect(completionRecovery.isUnverified && completionRecovery.record?.phase == .hapticRequested,
+               "Relaunch does not invent a completion that failed to persist")
+        let returnedCompletion = WKExtendedRuntimeSession(); returnedCompletion.state = .running
+        completionRecovery.attach(returnedCompletion)
+        expect(returnedCompletion.haptics == 0 && completionRecovery.canStop,
+               "Persisted haptic marker prevents another request during completion recovery")
+        completionRecovery.stop(); returnedCompletion.end(.none)
+        await settle()
+        completionStore.fails = true
+        completionRecovery.clearHistory()
+        expect(completionRecovery.record?.phase == .stopped && completionRecovery.errorMessage?.contains("Could not clear") == true,
+               "Failed clear preserves the completed configuration")
+        completionStore.fails = false
+        completionRecovery.clearHistory()
+        expect(completionRecovery.record == nil && completionRecovery.canSchedule, "Clear retries after storage recovers")
+
+        let raceOwner = ExperimentSessionOwner(defaults: UserDefaults(suiteName: "Cumulus.CancelRace.\(UUID())")!)
+        let race = AlarmCoordinator(owner: raceOwner, store: MemoryAlarmStore(), now: { now })
+        expect(race.schedule(at: date), "Cancellation race fixture schedules")
+        let racingSession = WKExtendedRuntimeSession.latest!
+        race.cancel()
+        racingSession.run()
+        racingSession.delegate?.extendedRuntimeSessionWillExpire(racingSession)
+        racingSession.end(.none)
+        racingSession.end(.none)
+        await settle()
+        expect(racingSession.haptics == 0 && race.record?.phase == .cancelled && race.canSchedule,
+               "Start while cancellation is pending cannot request a haptic or block confirmed completion")
+        let completedEvents = race.events
+        racingSession.run()
+        racingSession.delegate?.extendedRuntimeSessionWillExpire(racingSession)
+        racingSession.end(.error, error: NSError(domain: "SyntheticLate", code: 1))
+        await settle()
+        expect(race.events == completedEvents && race.record?.phase == .cancelled,
+               "Duplicate invalidation and late start/expiry/error cannot rewrite a completed configuration")
+
         let foreignDefaults = UserDefaults(suiteName: "Cumulus.ForeignAlarm.\(UUID())")!
         let foreignOwner = ExperimentSessionOwner(defaults: foreignDefaults)
         let foreign = AlarmCoordinator(owner: foreignOwner, store: MemoryAlarmStore())
@@ -222,6 +306,22 @@ import Foundation
         try JSONSerialization.data(withJSONObject: legacy).write(to: fileStore.url)
         let loadedLegacy = try fileStore.load()
         expect(loadedLegacy?.replacementFireDate == nil, "Older records without pending replacement remain readable")
+        var mismatchedHistory = savedEdit
+        mismatchedHistory.events = [.init(id: UUID(), alarmID: savedEdit.id,
+            fireDate: savedEdit.fireDate.addingTimeInterval(60), date: now, message: "Wrong target")]
+        do { try fileStore.save(mismatchedHistory); preconditionFailure("Wrong current target accepted") }
+        catch AlarmStorageError.invalid { }
+        let historicalID = UUID()
+        mismatchedHistory.events = [
+            .init(id: UUID(), alarmID: historicalID, fireDate: date, date: now, message: "Old configuration"),
+            .init(id: UUID(), alarmID: historicalID, fireDate: changed, date: now, message: "Conflicting old target")]
+        do { try fileStore.save(mismatchedHistory); preconditionFailure("Conflicting historical targets accepted") }
+        catch AlarmStorageError.invalid { }
+        // Loading bypasses the save validator to reproduce corrupt on-disk metadata.
+        try JSONEncoder().encode(mismatchedHistory).write(to: fileStore.url)
+        let invalidRecovery = AlarmCoordinator(owner: owner, store: fileStore, now: { now })
+        expect(invalidRecovery.hasUnverifiedStorage && !invalidRecovery.canSchedule,
+               "Invalid stored target identity is unreadable state, never an armed alarm")
         try Data("invalid".utf8).write(to: fileStore.url)
         do { _ = try fileStore.load(); preconditionFailure("Corrupt data accepted") } catch {}
         let unrelated = directory.appendingPathComponent("research-sentinel.txt")

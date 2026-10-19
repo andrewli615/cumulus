@@ -11,6 +11,7 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
     @Published private(set) var canCancel = false
     @Published private(set) var canStop = false
 
+    var hasUnverifiedStorage: Bool { storageFailed && isUnverified }
     var hasReservation: Bool { session != nil || isUnverified || record?.phase.pending == true || storageFailed }
     var canSchedule: Bool { !hasReservation && owner.current == .none }
     var canEdit: Bool { canCancel && !storageFailed }
@@ -122,7 +123,21 @@ final class AlarmCoordinator: NSObject, ObservableObject, WKExtendedRuntimeSessi
         return true
     }
 
+    func isAttached(to candidate: WKExtendedRuntimeSession) -> Bool { session === candidate }
+
     func attach(_ delivered: WKExtendedRuntimeSession) {
+        if let attached = session {
+            guard attached === delivered else {
+                // An unexpected delivery must not steal the identity used by callbacks for the known alarm.
+                owner.markUnresolved()
+                errorMessage = "An additional session could not be matched. The known alarm is retained; no alert requested for the additional session."
+                append("Additional session rejected; known alarm retained")
+                _ = persist()
+                return
+            }
+            refreshState()
+            return
+        }
         delivered.delegate = self
         // Ownership alone is insufficient when configuration is missing/corrupt.
         guard !storageFailed, record?.phase.pending == true,

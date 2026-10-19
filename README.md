@@ -6,10 +6,10 @@ The [current MVP plan](docs/BUILD_PLAN.md#current-mvp-plan--october-18) keeps ov
 
 ## MVP path — October 18
 
-Current code is **0.1 (24)**. The fixed alarm, bounded alarm-trial records and awake movement-feature comparison are implemented. Ten Swift suites, six Python checks and signing-free Watch/Simulator builds pass at the October 19 implementation checkpoint. Physical form/read-back and overall acceptance remain incomplete; no new Watch trial was run.
+Current code is **0.1 (25)**. The fixed alarm, bounded alarm-trial records and awake movement-feature comparison are implemented. Ten Swift suites, six Python checks and signing-free Debug Watch/Simulator plus Release Watch builds pass at the October 19 hardening checkpoint. Physical form/read-back and overall acceptance remain incomplete; no new Watch trial was run.
 
 1. **Implemented:** Alarm → **Alarm tests** now retains per-configuration lifecycle evidence and editable owner-reported perception, conditions and manual battery readings. New alarms record originating build/OS; old provenance and missed observations stay Unknown. This does not add sensing or automatically pass a trial.
-2. **Next—check and harden the product:** follow [the build-23 observation walkthrough](docs/experiments/008-fixed-alarm.md#build-23-observation-workflow--october-19), with build 24’s shorter observation pages and visible battery drafts, then check small-screen scrolling, larger text, VoiceOver, edit/stop, unverified recovery and independent clearing. Fix specific problems found.
+2. **Next—check the hardened product on Watch:** build 25 fixes interrupted-edit and attached-session recovery routing; follow [the build-23 observation walkthrough](docs/experiments/008-fixed-alarm.md#build-23-observation-workflow--october-19), with build 24’s shorter observation pages and visible battery drafts, then check small-screen scrolling, larger text, VoiceOver, edit/stop, unverified recovery and independent clearing. Fix specific problems found.
 3. **Finish acceptance when resumed:** retain the passed cancellation and prior trials; complete only missing physical evidence and two qualifying overnight deliveries under the unchanged timing/battery criteria. Overnight validation stays deferred by the owner.
 4. **Freeze the personal candidate:** record the accepted build and tested limits. No automatic publishing or guaranteed-wake claim.
 
