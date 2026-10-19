@@ -1,6 +1,57 @@
 # Step-by-step build
 
-## Current work — foreground movement analysis, October 14
+## Current MVP plan — October 18
+
+The first personal MVP remains a **Watch-only, one-time fixed alarm**. It is implemented, but acceptance is not complete. Sleep/wake estimation, sleep stages and earlier waking belong to a later release; qualifying those inputs does not block the fixed alarm. The owner deferred overnight alarm validation to explore sensing. This review identifies the remaining release work without resuming those trials or treating missing observations as passes.
+
+**Current repository: 0.1 (22).** The Alarm screen is the entry point, with set/review/edit/cancel/stop, full date/time-zone confirmation, shared session ownership, persisted state and truthful relaunch recovery. Research remains accessible separately. Build 22 adds optional, bounded foreground features and self-reported action markers; the October 16 awake comparison is complete. No sleep estimator, sensor-triggered alarm, recurrence, snooze, companion app or cloud service is implemented or required for this MVP.
+
+### Readiness snapshot
+
+| Area | Evidence checked | Release implication |
+| --- | --- | --- |
+| Alarm software | Product lifecycle, date resolution, edit ordering, duplicate prevention, recovery and storage paths exist with synthetic coverage. | Implemented; software success does not establish physical delivery. |
+| Alarm device evidence | Last private alarm review, October 16: 55 unique events across eleven configurations, eight single haptic requests, no recorded errors or repeated requests within a configuration. Cancellation passed by owner confirmation. | Preserve these results. Remaining physical edit/perception, recovery and overnight evidence is incomplete; do not repeat cancellation merely to fill a checklist. |
+| Awake movement features | Original build-22 capture: 1,597 samples, five complete windows, one attributed Still window and two Gentle movement windows; timing/quality and feature response reviewed. | Awake engineering check complete. No repeat needed; no sleep accuracy or overnight availability claim follows. |
+| Overnight motion and models | Experiment 006 remains paused/unresolved; stored timing summaries cannot reconstruct missing overnight feature values. No qualified sleep input/reference set or model exists. | Later sensing work; not a fixed-alarm release blocker. |
+| Physical usability/privacy | Initial simulator viewports inspected; full normal/larger-text scrolling, VoiceOver, recovery display and independent clearing behavior remain unverified. | Focused product checks still needed. Retain existing reports before any deletion check. |
+
+### Ordered release milestones
+
+| Milestone | Concrete deliverable | Completion evidence / status |
+| --- | --- | --- |
+| 1. Make validation inspectable | Add a small in-app fixed-alarm trial record/viewer, linked to one alarm configuration, with original build/OS and owner-reported perception, conditions and battery observations. | **Recommended next coding chunk; not implemented.** Validate matching, unknowns, persistence, bounds, private export and clearing. Lifecycle events alone must never mark a perceived-alert or battery pass. |
+| 2. Harden the product experience | Check set/review/edit/cancel/stop, unverified recovery, errors and History on a small Watch with normal/larger text and VoiceOver; fix specific problems found. | Software/build checks plus recorded physical navigation/recovery/clearing outcomes. Do not add snooze, recurrence or sensing while fixing these paths. |
+| 3. Complete existing device acceptance | Reconcile preserved short/edit/cancellation evidence, then finish only missing short checks and the two qualifying overnight deliveries using the existing protocol. | **Deferred by owner; still a release gate.** Review earlier nights before requesting another; missing perception/battery cannot be reconstructed from request events. No repeat of the accepted cancellation is required. |
+| 4. Freeze a personal release candidate | Identify the exact accepted build, device/OS/settings and limitations; preserve private evidence and confirm all required checks are accounted for. | Ready for limited personal use only after milestones 1–3 and the checklist below. No automatic push, tag, TestFlight/App Store release or public reliability claim. |
+
+### Next coding chunk — alarm trial records
+
+The current `AlarmRecord` holds configuration and forty lifecycle events, but no per-trial originating build, perception or battery observations. `AlarmHistoryView` displays events; it is not an acceptance worksheet. Add a distinct fixed-alarm report type through the existing bounded Saved tests archive, leaving the active alarm record and other research reports intact. Design the schema and retention/deletion behavior before writing it; reuse private export, atomic writes, capacity guards and no silent eviction.
+
+Record the applicable alarm identity/absolute target, original app build/OS, trial type (short, edit, cancellation or overnight), associated event evidence and whether that history is incomplete. Keep **software-observed** request/callback offsets separate from **owner-reported** haptic/visible-alert perception, old-time silence, duplicates, debugger/Focus/haptic conditions, battery observation times/levels, charging and interruptions. Uncaptured fields default to Unknown. Entered observations are self-reports, not sensor verification; newly entered build metadata must not be backdated onto an older alarm. Missing or displaced events must remain explicit.
+
+Acceptance for this coding chunk: synthetic checks cover mismatched configurations, truncated history, incomplete observations, edit/cancel association, persistence/relaunch, write failure, capacity, export and independent clearing. Scheduling and sensor behavior stay unchanged; no automatic trials or HealthKit queries occur. Physical saved-record usability and deletion require separate checks. This is evidence capture, not an automatic reliability score or alarm mechanism replacement.
+
+Faster alternative: complete the existing private worksheet/export flow if adequate observations are already available. The report UI is recommended because missed associations and conditions have repeatedly limited review; it is not a new delivery/battery acceptance threshold. A complete private evidence record can satisfy the observation requirement without waiting for an in-app form. Do not add record-keeping features as a reason to discard a qualifying prior result or expand MVP scope.
+
+### Fixed-alarm release checklist
+
+- Preserve observed Scheduled versus saved/Unverified versus Haptic requested versus perceived alert. No automatic rearming or replacement before confirmed cancellation; failures remain visible.
+- Retain the passed cancellation and existing short/edit software evidence. Complete missing physical edit old-time silence/replacement perception, stop and recovery observations; do not infer them from normal invalidation.
+- When overnight validation resumes, require **two separately qualified nights**: haptic request **0–60 seconds after** target, perceived alert and no unexplained duplicates, with the debugger detached and intended Sleep Focus/haptic settings. Record actual build, wearing interval and interruptions. No charging; battery loss **at most 25 percentage points** and **at least 20% remaining**, using start/end observation times. These unchanged project thresholds are not Apple guarantees.
+- Verify small-screen normal/larger-text scrolling, readable actions and VoiceOver, plus independent alarm/research clearing with pending-state guards. Preserve unrelated reports and private exports; exported copies require separate deletion.
+- Run relevant regression suites and signing-free Watch/Simulator builds for the candidate. Record unavailable checks and remaining risks. Keep an independent alarm during development/validation; no guaranteed-wake or reduced-grogginess claim.
+
+### Separate sensing track
+
+The awake feature check is done. The next sensing deliverable is the [offline input/reference contract](SLEEP_RESEARCH_ROADMAP.md#next-sensing-deliverable--input-and-reference-contract), not another awake repetition or an on-Watch model. It can be planned while overnight alarm validation remains deferred. Actual overnight feature coverage, missingness and availability, appropriate reference labels, retention and evaluation criteria must be established before sleep/wake benchmarking; smart waking additionally needs a causal decision, fallback and outcome evidence. This track does not delay release of an otherwise accepted fixed alarm.
+
+### Audit verification — October 18
+
+All nine existing Swift suites and five Python retrieval checks pass. Signing-free Debug builds for generic Watch and Simulator destinations both succeed at **0.1 (22)**. Build logs report a CoreSimulator service-version mismatch and disable simulator device support; compilation still succeeds, but this does not establish interactive simulator readiness. This audit inspected the product entry point, alarm UI/coordinator/record, current feature work and existing evidence; it did not install or launch an app, retrieve new device data, run physical trials, inspect interactive UI or change app code. October 16 device outcomes remain dated evidence, not new October 18 observations. Detailed earlier milestones below are historical; use this section for current work order.
+
+## Foreground movement analysis — October 14–16 history
 
 The owner elected to defer overnight fixed-alarm validation and develop sensing/analysis. Alarm acceptance remains pending; cancellation stays passed by owner report and the previously reported overnight run retains its unknowns. [Experiment 008](experiments/008-fixed-alarm.md#validation-deferred-for-analysis-development--october-14) preserves the existing acceptance criteria. This changes work order, not evidence or readiness.
 
@@ -38,7 +89,7 @@ October 14 owner confirmation: cancellation **passed by owner report**, corrobor
 
 Cumulus will investigate accessible Watch measurements, apply explainable mathematical features, test their biological interpretation, and use validated inputs to inform a wake decision. A minimum sleep opportunity is a hard gate before any earlier wake is eligible; a planned opportunity is not proof of time actually asleep. Claim measured sleep duration only after sleep-onset and sleep/wake estimates are validated. The intended benefit is reduced sleep inertia, which must be measured after waking rather than inferred from a predicted stage. Raw motion, derived health measurements, and Apple's sleep classifications are different kinds of evidence. Access to historical data does not establish access to timely live data.
 
-The intended first release is **Watch-only and for personal use**: a latest wake time, an earlier wake window, an evidence-backed early decision, and a separately tested latest-wake fallback when inputs are insufficient. See [the target experience](EXPERIENCE.md) and [behavior requirements](BEHAVIOR.md). Research gates precede that product flow. Sleep-stage classification is a possible task, not a required solution; wake-opportunity or sleep/wake estimation may fit the evidence better. The [research input audit](research/INPUT_COMPATIBILITY_AUDIT.md) is complete, but no decision method or benchmark is selected for implementation yet.
+The future smart-waking release is **Watch-only and for personal use**: a latest wake time, an earlier wake window, an evidence-backed early decision, and a separately tested latest-wake fallback when inputs are insufficient. See [the target experience](EXPERIENCE.md) and [behavior requirements](BEHAVIOR.md). Research gates precede that product flow; they do not block the fixed-alarm first release. Sleep-stage classification is a possible task, not a required solution; wake-opportunity or sleep/wake estimation may fit the evidence better. The [research input audit](research/INPUT_COMPATIBILITY_AUDIT.md) is complete, but no decision method or benchmark is selected for implementation yet.
 
 ## How the engineer proposal fits the build sequence
 
@@ -182,7 +233,7 @@ These requirements preserve the full product goal. They are not satisfied by the
 | Privacy and clearing | Local processing and minimal retention; storage/deletion design before persistent health data; clearing checks show intended data is removed without misrepresenting a pending alarm or system-managed recording. No personal records or raw logs in Git. | Bounded experiment metadata and in-memory readers exist; final retention/deletion design and validation remain. |
 | Software checks and truthful account | Relevant synthetic checks and Watch builds pass. A concise after-action account identifies the decision path, requests, errors, and uncertainty; claims stay within tested devices/software/settings/conditions. | Experiment checks/builds pass; product account and final validation remain. |
 
-Both a qualified wake decision and a separately tested fallback are required for the intended MVP. Agreement with Apple's sleep labels alone does not prove a better waking experience. No medical or guaranteed-wake claim follows from these experiments.
+Both a qualified wake decision and a separately tested fallback are required for the future smart-waking release, not the reduced fixed-alarm MVP. Agreement with Apple's sleep labels alone does not prove a better waking experience. No medical or guaranteed-wake claim follows from these experiments.
 
 ## Verification and learning
 

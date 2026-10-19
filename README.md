@@ -2,7 +2,18 @@
 
 Cumulus is moving toward a **Watch-only, one-time fixed alarm** first: set/review/edit/cancel/stop and truthful relaunch recovery. The fixed-alarm lifecycle and initial product UI are implemented; physical product acceptance is pending and overnight alarm validation is deferred while exploratory sensing/analysis proceeds. The longer-term goal is an explainable smart wake decision, not a sleep-stage claim. Keep an independent alarm for real wake requirements.
 
-The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9) defers overnight motion, further cardiac timing and classifier research as fixed-alarm release blockers. Existing experiment results remain preserved, including build 14's retained-window timing pass and its unqualified pilot. See [the experience](docs/EXPERIENCE.md) and [behavior requirements](docs/BEHAVIOR.md).
+The [current MVP plan](docs/BUILD_PLAN.md#current-mvp-plan--october-18) keeps overnight motion, further cardiac timing and classifier research separate from fixed-alarm release acceptance. Existing experiment results remain preserved, including build 14's retained-window timing pass and its unqualified pilot. See [the experience](docs/EXPERIENCE.md) and [behavior requirements](docs/BEHAVIOR.md).
+
+## MVP path — October 18
+
+Current code is **0.1 (22)**. The fixed alarm is built; the awake movement-feature comparison is complete. Nine Swift suites, five Python checks and signing-free Watch/Simulator builds pass in the October 18 audit. Physical acceptance remains incomplete; this audit did not run new Watch trials.
+
+1. **Next coding chunk:** retain per-alarm test observations in the app—build/OS, associated lifecycle evidence and owner-reported perception, conditions and battery—with Unknown for missed details. This is planned, not implemented; no sensing is added to the alarm.
+2. **Harden the product:** check small-screen scrolling, larger text, VoiceOver, edit/stop, unverified recovery and independent clearing; fix specific problems found.
+3. **Finish acceptance when resumed:** retain the passed cancellation and prior trials; complete only missing physical evidence and two qualifying overnight deliveries under the unchanged timing/battery criteria. Overnight validation stays deferred by the owner.
+4. **Freeze the personal candidate:** record the accepted build and tested limits. No automatic publishing or guaranteed-wake claim.
+
+Sensing stays a separate track: [specify actual inputs and a comparison reference](docs/SLEEP_RESEARCH_ROADMAP.md#next-sensing-deliverable--input-and-reference-contract) before an offline sleep/wake baseline. No repeat of the completed awake check is needed, and no sleep model is required for the fixed-alarm MVP.
 
 ## Current experiments
 
@@ -17,7 +28,7 @@ The [accelerated build plan](docs/BUILD_PLAN.md#accelerated-fixed-alarm-mvp--oct
 
 The physical reports support only the tested conditions. Experiment 006 separates owner reports from a read-only inspection of saved diagnostic metadata; earlier experiments lack exact metrics. Setup details and independent sensor observations remain incomplete. They do not establish overnight reliability, validated sleep staging, or a reliable wake deadline. Each experiment note preserves its procedures, observations, and limitations.
 
-**Next:** [the build-22 awake comparison has been reviewed](docs/experiments/002-live-data.md#labeled-comparison-inspection--october-16); no repeat is required. Specify the real input path, coverage/missingness, causal availability and comparison reference for a simple offline sleep/wake baseline. Still/Movement are self-reports, not sleep labels. Saving defaults off, is foreground-only, and retains bounded features and at most forty label changes within ten minutes. Raw acceleration and individual HealthKit readings are excluded. This is not a sleep estimate. Physical usability, reopen/deletion and overhead remain unverified. Fixed-alarm validation stays deferred; Experiment 006 and prior criteria remain unchanged.
+**Research status:** [the build-22 awake comparison has been reviewed](docs/experiments/002-live-data.md#labeled-comparison-inspection--october-16); no repeat is required. Still/Movement are self-reports, not sleep labels. Saving defaults off, is foreground-only, and retains bounded features and at most forty label changes within ten minutes. Raw acceleration and individual HealthKit readings are excluded. This is not a sleep estimate. Physical usability, reopen/deletion and overhead remain unverified. Follow the MVP path above for product work; Experiment 006 stays paused with its prior criteria unchanged.
 
 Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations, archive-readiness guards, and [conditional internal cardiac timing](docs/experiments/007-cardiac-internal-timing.md). The timing inspector appears only after Cardiac history actually finds an eligible grouped heart-rate record or heartbeat series. It saves bounded aggregate diagnostics, not individual health values/times. No sleep classifier or final wake rule is added. The inspected October 8 pilot records original and capture build 6. Build 8 is software-verified and its retained-pilot diagnostic read-back is recorded; a fresh build-8 recording has been inspected and fails qualification, and qualifying recording trials must match their running build.
 
@@ -83,13 +94,15 @@ Xcode groups organize the files by responsibility; source files remain in `Cumul
 | Xcode group | Files and purpose |
 | --- | --- |
 | App | `CumulusApp.swift`, `ExperimentChooserView.swift`, `WatchAppDelegate.swift`, `ExperimentSessionOwner.swift`: entry, navigation, relaunch routing, and exclusive session ownership. `ExperimentStyle.swift` supplies shared page, card, heading, and metric views. |
-| Foreground probe | `ContentView.swift`, `MotionMonitor.swift`, `HeartRateReader.swift`: screen, motion callbacks, and read-only heart records. |
+| Alarm | `AlarmView.swift`, `AlarmCoordinator.swift`, `AlarmRecord.swift`: product home/setup/history, one-time session lifecycle, absolute time resolution and separate persisted configuration/events. Trial perception/battery capture is planned. |
+| Foreground probe | `ContentView.swift`, `MotionMonitor.swift`, `HeartRateReader.swift`: screen, motion callbacks, and read-only heart records. `MotionFeatures.swift`, `ForegroundFeatureCapture.swift`, `MotionFeatureSection.swift`, `ForegroundFeatureHistoryView.swift`: streaming calculations, optional saved summaries/action labels and review UI. |
 | Scheduled alert | `ScheduledAlertView.swift`, `ScheduledAlertCoordinator.swift`: controls, lifecycle, and event history. |
 | Background motion | `BackgroundMotionView.swift`, `BackgroundMotionCoordinator.swift`, `BackgroundMotionTrial.swift`: trial setup, collection lifetime, and bounded summaries. |
 | Sleep history | `SleepHistoryView.swift`, `SleepStageReader.swift`: historical interval display and read-only snapshot query. |
 | Cardiac history | `CardiacHistoryView.swift`, `CardiacHistoryReader.swift`: read-only snapshots, grouped record counts, and source-specific record-span gaps. |
 | Overnight motion | `OvernightMotionView.swift`, `OvernightMotionCoordinator.swift`, `OvernightMotionRecorder.swift`, `OvernightMotionTrial.swift`: setup, fixed-window ownership/recovery, serial streaming retrieval, and bounded timing/battery summaries. |
-| Resources | `Info.plist`, `Cumulus.entitlements`, `Assets.xcassets`: permission explanations, capabilities, and starter assets. The app icon remains a placeholder. |
+| Saved tests | `TestReport.swift`, `TestArchiveStore.swift`, `TestArchiveView.swift`, `SavedReportAssessment.swift`: bounded report persistence, export/review and evidence interpretation. |
+| Resources | `Info.plist`, `Cumulus.entitlements`, `Assets.xcassets`: permission explanations, capabilities and the cloud/nightcap app identity. Editable SVG sources and licensing are in `design/`. |
 
 Foreground readings, sleep intervals, and cardiac snapshots stay in memory. Cardiac history clears on exit or background entry, with separate result/error states and explicit per-type limits. Sleep history clears on screen exit or background entry. Alert diagnostics retain the latest 40 events; background diagnostics retain five trials, twelve five-second buckets per trial, and up to 40 events per trial. Overnight diagnostics retain three trials, up to 960 thirty-second buckets, 40 events and 40 retrieval observations per trial, with aggregate ordering diagnostics and up to twelve relative timing/query-position examples per read in build 8, plus a small qualifying-pilot record. Raw vectors are inspected for finite values and discarded; Apple manages sensor-recording retention independently. These store no raw motion vectors or HealthKit readings. Shared session ownership blocks conflicting experiments and preserves uncertainty after relaunch. See [architecture](docs/ARCHITECTURE.md) for data flow.
 

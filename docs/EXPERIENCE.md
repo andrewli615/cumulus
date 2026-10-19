@@ -4,7 +4,9 @@
 
 The accelerated first release is a calm, Watch-only **one-time fixed alarm**. Set a time, review its full date, schedule it, edit/cancel it, and stop an active alert. Show Scheduled only from WatchKit session evidence; saved intent after relaunch stays Unverified until a session arrives. Research screens and saved tests remain available under Research.
 
-This first version collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. It retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm acceptance criteria](BUILD_PLAN.md#accelerated-fixed-alarm-mvp--october-9). Keep an independent alarm during validation. Build 19 retains the initial alarm screen, separate hour/minute choice lists, full date/time-zone confirmation, edit/cancel/stop and a local 40-event history. Existing experiments remain under Research. Integrated physical tests are pending.
+The alarm path collects no motion/HealthKit data and does not estimate sleep, decide an early wake, repeat or snooze. Optional Research collection stays separate. The alarm retains a bounded local lifecycle account, with explicit errors and no perceived-wake claim. Physical delivery, battery and accessibility must meet the [fixed-alarm release checklist](BUILD_PLAN.md#fixed-alarm-release-checklist). Keep an independent alarm during validation. Build **0.1 (22)** retains the initial alarm screen, separate hour/minute choice lists, full date/time-zone confirmation, edit/cancel/stop and a local 40-event history. Cancellation passed by owner confirmation and other lifecycle observations are preserved; complete product acceptance remains pending, with overnight validation deferred.
+
+The next planned product addition is a small alarm-trial observation screen linked to the relevant alarm: show what the software recorded, let the owner record perception/conditions/battery, and keep missed details Unknown. It must preserve the primary set/stop actions, serif typography, cloud identity, dark cards and readable blue controls. No health records, sensor decision or new alarm feature is needed for that evidence step. See [the ordered MVP milestones](BUILD_PLAN.md#ordered-release-milestones); this screen is planned, not built.
 
 ## Future smart-waking experience
 
@@ -12,7 +14,7 @@ This first version collects no motion/HealthKit data and does not estimate sleep
 
 Cumulus aims to be a calm personal Watch alarm that, after a sufficient sleep opportunity, may choose an earlier wake opportunity from validated, timely data and otherwise follows a separately tested latest-wake fallback. Its intended benefit is less sleep inertia, not a particular sleep-stage label.
 
-This is the product target. The current app has six research screens; it does not implement that alarm flow, a production wake rule, or its fallback. Overnight input qualification remains unresolved in [Experiment 006](experiments/006-overnight-motion.md).
+This is the later smart-waking target. The current app implements the fixed-alarm flow and separate Research screens; it does not implement a sensor-based wake rule or its fallback. Overnight input qualification remains unresolved in [Experiment 006](experiments/006-overnight-motion.md).
 
 ## A single night
 
@@ -26,7 +28,7 @@ The target interaction is defined; exact controls, the qualified input path, dec
 
 ## Product goal
 
-The first release is for personal use on Apple Watch alone. Cumulus remains a research app until its inputs, decision method, fallback, and alert behavior have evidence behind them. Meeting the night's required minimum sleep opportunity is an eligibility gate: cycle estimates or sensor signals must never move the alarm earlier by shortening it. A planned opportunity is not proof of time actually asleep; Cumulus must validate sleep-onset and sleep/wake estimates before claiming measured sleep duration. Sleep-stage classification is one possible research task, not a required solution. A phone companion, server, or cloud sync needs a demonstrated requirement.
+The first fixed-alarm release is for personal use on Apple Watch alone and needs its own product acceptance, not a sleep classifier. A later smart-waking release needs qualified inputs, a tested decision and fallback, and separate outcome evidence. For that later release, meeting the night's required minimum sleep opportunity is an eligibility gate: cycle estimates or sensor signals must never move the alarm earlier by shortening it. A planned opportunity is not proof of time actually asleep; Cumulus must validate sleep-onset and sleep/wake estimates before claiming measured sleep duration. Sleep-stage classification is one possible research task, not a required solution. A phone companion, server, or cloud sync needs a demonstrated requirement.
 
 Evaluate the intended benefit through waking outcomes, such as repeated self-reports of grogginess and a brief, consistent post-wake performance measure. An estimated stage or cycle boundary is an intermediate prediction, not evidence that someone woke with less tiredness. Define the measurement protocol before comparing alarm strategies.
 
