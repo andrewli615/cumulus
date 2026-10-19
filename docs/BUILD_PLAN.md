@@ -27,6 +27,8 @@ The first personal MVP remains a **Watch-only, one-time fixed alarm**. It is imp
 
 ### Next coding chunk — alarm trial records
 
+Implementation checkpoint: the retention policy is committed, and build-23 model/storage work adds a distinct bounded `fixedalarm` payload with optional originating metadata, edit links, event-identity merging, Unknown owner observations, independent draft revisions and existing archive protections. Lifecycle wiring and the Watch form are still the next chunks; this foundation alone does not capture new trials automatically or alter scheduling.
+
 The current `AlarmRecord` holds configuration and forty lifecycle events, but no per-trial originating build, perception or battery observations. `AlarmHistoryView` displays events; it is not an acceptance worksheet. Add a distinct fixed-alarm report type through the existing bounded Saved tests archive, leaving the active alarm record and other research reports intact. Design the schema and retention/deletion behavior before writing it; reuse private export, atomic writes, capacity guards and no silent eviction.
 
 Record the applicable alarm identity/absolute target, original app build/OS, trial type (short, edit, cancellation or overnight), associated event evidence and whether that history is incomplete. Keep **software-observed** request/callback offsets separate from **owner-reported** haptic/visible-alert perception, old-time silence, duplicates, debugger/Focus/haptic conditions, battery observation times/levels, charging and interruptions. Uncaptured fields default to Unknown. Entered observations are self-reports, not sensor verification; newly entered build metadata must not be backdated onto an older alarm. Missing or displaced events must remain explicit.

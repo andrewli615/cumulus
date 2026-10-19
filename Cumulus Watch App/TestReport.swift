@@ -3,6 +3,7 @@ import Foundation
 struct TestReport: Codable, Identifiable, Sendable {
     enum Kind: String, Codable, Sendable {
         case foreground, alert, background, sleep, cardiac, overnight
+        case fixedAlarm = "fixedalarm"
     }
     struct Event: Codable, Sendable {
         let date: Date

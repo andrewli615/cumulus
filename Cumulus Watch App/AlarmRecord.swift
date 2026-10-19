@@ -1,7 +1,12 @@
 import Foundation
 
-struct AlarmRecord: Codable {
-    enum Phase: String, Codable {
+struct AlarmRecord: Codable, Sendable {
+    struct Origin: Codable, Sendable, Equatable {
+        let build: String
+        let os: String
+        let timeZone: String
+    }
+    enum Phase: String, Codable, Sendable {
         case requesting, scheduled, hapticRequested, cancellationRequested, stopRequested
         case cancelled, stopped, ended, failed
 
@@ -12,7 +17,7 @@ struct AlarmRecord: Codable {
             }
         }
     }
-    struct Event: Codable, Identifiable {
+    struct Event: Codable, Identifiable, Sendable, Equatable {
         let id: UUID
         let alarmID: UUID
         let fireDate: Date
@@ -26,6 +31,8 @@ struct AlarmRecord: Codable {
     var hapticRequestedAt: Date?
     var replacementFireDate: Date?
     var events: [Event] = []
+    var origin: Origin?
+    var replacesAlarmID: UUID?
 
     mutating func record(_ message: String, at date: Date) {
         events.append(Event(id: UUID(), alarmID: id, fireDate: fireDate, date: date,
@@ -36,10 +43,12 @@ struct AlarmRecord: Codable {
         let dates = [fireDate, createdAt] + [hapticRequestedAt, replacementFireDate].compactMap { $0 }
             + events.flatMap { [$0.fireDate, $0.date] }
         guard dates.allSatisfy({ $0.timeIntervalSince1970.isFinite }),
+              origin.map({ [$0.build, $0.os, $0.timeZone].allSatisfy { $0.count <= 128 } }) != false,
               events.count <= 40, Set(events.map(\.id)).count == events.count,
               events.allSatisfy({ $0.message.count <= 500 }),
               phase != .hapticRequested || hapticRequestedAt != nil,
               replacementFireDate == nil || phase == .cancellationRequested else { throw AlarmStorageError.invalid }
+        guard replacesAlarmID != id else { throw AlarmStorageError.invalid }
     }
 }
 

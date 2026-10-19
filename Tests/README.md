@@ -6,6 +6,7 @@ Run from the repository root on macOS with Xcode installed:
 ./scripts/check-motion-features.sh
 ./scripts/check-foreground-capture.sh
 ./scripts/check-alarm.sh
+./scripts/check-alarm-trials.sh
 ./scripts/check-background-motion.sh
 ./scripts/check-sleep-history.sh
 ./scripts/check-cardiac-history.sh
@@ -19,6 +20,7 @@ All runners default `DEVELOPER_DIR` to `/Applications/Xcode.app/Contents/Develop
 
 | Suite | Coverage |
 | --- | --- |
+| `AlarmTrialChecks.swift` | Per-configuration evidence/provenance, missing and truncated history, edit links, Unknown owner reports, stale draft revisions, Unix date round trips, actual archive reload/deletion suppression/capacity and write failure. No automatic delivery/perception/battery pass. |
 | `ForegroundFeatureCaptureChecks.swift` | Versioned derived-row arithmetic/timing, optional action-label compatibility, half-open phase boundaries, exclusion of transition/unlabeled/partial/uncertain rows, marker bounds and immediate persistence/write failure, schema/identity/legacy validation, cached pre-start input, clock mismatch, archive round trip/relaunch/deletion, callback persistence/deadline and real write failure. No biological or physical-delivery claim. |
 | `MotionFeatureChecks.swift` | Known magnitude/variance/ENMO, orientation, half-open windows, gaps without zero-fill, receipt delay, invalid/order/clock/overflow handling, bounded state, stop/restart and actual foreground monitor callbacks via Core Motion doubles. No sleep labels or physical accuracy inferred. |
 | `CardiacTimingChecks.swift` / `CardiacTimingProviderChecks.swift` | Aggregate spacing without bridging flagged gaps or rejected entries; count/privacy/eligibility, timeout/cancellation and late results. The actual HealthKit adapter compiles against platform doubles to check object predicates, interval/offset conversion, mismatched lookup, errors and entry caps. No physical availability is inferred. |
