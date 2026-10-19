@@ -3,9 +3,20 @@ import Foundation
 struct SavedReportAssessment {
     let lines: [String]
     let featureCapture: ForegroundFeatureCapture?
+    let alarmTrial: AlarmTrial?
     private struct Header: Decodable { let format: String? }
 
     init(report: TestReport) throws {
+        if report.kind == .fixedAlarm {
+            let trial = try AlarmTrial.decode(report)
+            alarmTrial = trial
+            featureCapture = nil
+            lines = [trial.historyDescription, "Original build: \(trial.origin?.build ?? "Unknown").",
+                "Owner observations are self-reports. A haptic request does not confirm perception or waking.",
+                "Missing perception, conditions and battery remain Unknown; this report does not automatically pass a trial."]
+            return
+        }
+        alarmTrial = nil
         if report.kind == .foreground, let data = report.diagnostics,
            try JSONDecoder().decode(Header.self, from: data).format == "foreground-motion-features" {
             let decoder = JSONDecoder()

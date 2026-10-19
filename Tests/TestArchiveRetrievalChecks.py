@@ -12,6 +12,23 @@ spec.loader.exec_module(archive)
 
 
 class RetrievalChecks(unittest.TestCase):
+    def test_fixed_alarm_trial_export(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)
+            identity = str(uuid.uuid4())
+            payload = {"schemaVersion": 1, "alarmID": identity, "fireDate": 1792000000.125,
+                       "origin": None, "observations": {"feltHaptic": "unknown"},
+                       "events": [{"date": 1792000000.625, "fireDate": 1792000000.125}]}
+            report = {"id": "fixedalarm-" + identity.lower(), "schemaVersion": 1,
+                      "kind": "fixedalarm", "createdAt": 1791999900.25,
+                      "diagnostics": base64.b64encode(json.dumps(payload).encode()).decode()}
+            (path / (report["id"] + ".json")).write_text(json.dumps(report))
+            reports, failures = archive.read_reports(path)
+            self.assertFalse(failures)
+            self.assertEqual(reports[0]["diagnostics"], payload)
+            self.assertIsNone(reports[0]["diagnostics"]["origin"])
+            self.assertEqual(reports[0]["diagnostics"]["events"][0]["date"] - payload["fireDate"], 0.5)
+
     def test_foreground_feature_payload_export(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder)

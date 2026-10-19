@@ -58,6 +58,12 @@ struct TestReportView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }.buttonStyle(.bordered)
             }
+            if let trial = assessment?.alarmTrial {
+                NavigationLink { AlarmTrialDetailView(id: trial.alarmID, store: AlarmTrialStore(archive: archive)) } label: {
+                    Text("Alarm observations").frame(maxWidth: .infinity, minHeight: 44)
+                        .fixedSize(horizontal: false, vertical: true)
+                }.buttonStyle(.bordered)
+            }
             ExperimentCard {
                 ExperimentHeading(title: report.title, symbol: "doc.text")
                 Text(report.status).font(.caption)

@@ -147,7 +147,8 @@ struct AlarmTrial: Codable, Sendable {
         try validate()
         var report = TestReport(id: reportID, kind: .fixedAlarm, createdAt: requestedAt,
             title: "Fixed alarm trial", status: "Software: \(phase.rawValue); owner observations \(observationsUpdatedAt == nil ? "unrecorded" : "saved")",
-            metrics: ["Original build": origin?.build ?? "Unknown", "Original watchOS": origin?.os ?? "Unknown",
+            metrics: ["Target (capture time zone)": fireDate.formatted(date: .abbreviated, time: .shortened),
+                "Original build": origin?.build ?? "Unknown", "Original watchOS": origin?.os ?? "Unknown",
                 "Original time zone": origin?.timeZone ?? "Unknown", "History": historyDescription,
                 "Felt haptic · owner report": observations.feltHaptic.title,
                 "Visible alert · owner report": observations.sawAlert.title,

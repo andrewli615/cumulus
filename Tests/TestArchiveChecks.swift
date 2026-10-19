@@ -88,6 +88,17 @@ import Foundation
         diagnostic.diagnostics = try TestReport.encodeDiagnostics(comparison)
         let batteryAssessment = try SavedReportAssessment(report: diagnostic)
         precondition(batteryAssessment.lines.contains { $0.contains("comparison inconclusive") })
+        let fixedRecord = AlarmRecord(id: UUID(), fireDate: origin.addingTimeInterval(180), createdAt: origin)
+        let fixedTrial = try AlarmTrial(record: fixedRecord, capturedAt: origin)
+        let fixedReport = try fixedTrial.report()
+        let fixedAssessment = try SavedReportAssessment(report: fixedReport)
+        precondition(fixedAssessment.alarmTrial?.alarmID == fixedRecord.id && fixedAssessment.featureCapture == nil)
+        precondition(fixedAssessment.lines.contains { $0.contains("does not automatically pass") })
+        var mismatchedFixed = TestReport(id: "fixedalarm-" + UUID().uuidString.lowercased(), kind: .fixedAlarm,
+            createdAt: origin, title: "Synthetic", status: "Synthetic", metrics: [:])
+        mismatchedFixed.diagnostics = fixedReport.diagnostics
+        do { _ = try SavedReportAssessment(report: mismatchedFixed); preconditionFailure("Mismatched fixed-alarm report accepted") }
+        catch AlarmTrialError.invalid { }
         print("Test archive checks passed: persistence, exact dates, updates, capacity, corrupt files, path validation, symlinks and deletion")
     }
 }

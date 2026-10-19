@@ -48,6 +48,7 @@
 		A0000000000000000000002A /* ForegroundFeatureHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002A /* ForegroundFeatureHistoryView.swift */; };
 		A0000000000000000000002B /* AlarmTrial.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002B /* AlarmTrial.swift */; };
 		A0000000000000000000002C /* AlarmTrialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002C /* AlarmTrialStore.swift */; };
+		A0000000000000000000002D /* AlarmTrialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000002D /* AlarmTrialView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -95,6 +96,7 @@
 		B0000000000000000000002A /* ForegroundFeatureHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForegroundFeatureHistoryView.swift; sourceTree = "<group>"; };
 		B0000000000000000000002B /* AlarmTrial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTrial.swift; sourceTree = "<group>"; };
 		B0000000000000000000002C /* AlarmTrialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTrialStore.swift; sourceTree = "<group>"; };
+		B0000000000000000000002D /* AlarmTrialView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTrialView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +146,7 @@
 			children = (
 				B00000000000000000000001 /* CumulusApp.swift */,
 				B00000000000000000000025 /* AlarmView.swift */,
+				B0000000000000000000002D /* AlarmTrialView.swift */,
 				B0000000000000000000002C /* AlarmTrialStore.swift */,
 				B0000000000000000000002B /* AlarmTrial.swift */,
 				B00000000000000000000024 /* AlarmCoordinator.swift */,
@@ -337,6 +340,7 @@
 				A00000000000000000000012 /* SleepHistoryView.swift in Sources */,
 				A00000000000000000000001 /* CumulusApp.swift in Sources */,
 				A00000000000000000000025 /* AlarmView.swift in Sources */,
+				A0000000000000000000002D /* AlarmTrialView.swift in Sources */,
 				A0000000000000000000002C /* AlarmTrialStore.swift in Sources */,
 				A0000000000000000000002B /* AlarmTrial.swift in Sources */,
 				A00000000000000000000024 /* AlarmCoordinator.swift in Sources */,

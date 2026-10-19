@@ -4,6 +4,7 @@ struct AlarmHomeView<Research: View>: View {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var coordinator: AlarmCoordinator
     @ObservedObject var owner: ExperimentSessionOwner
+    var trials: AlarmTrialStore? = nil
     @ViewBuilder var research: () -> Research
 
     var body: some View {
@@ -83,6 +84,7 @@ struct AlarmHomeView<Research: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
                 .buttonStyle(.bordered).frame(minHeight: 44)
+            if let trials { AlarmTrialNavigation(store: trials, currentRecord: coordinator.record) }
             NavigationLink(destination: research) {
                 Text("Research").frame(maxWidth: .infinity, minHeight: 44)
                     .fixedSize(horizontal: false, vertical: true)
@@ -191,7 +193,7 @@ struct AlarmHistoryView: View {
             if let error = coordinator.errorMessage { Text(error).foregroundStyle(.orange) }
         }
         .navigationTitle("History")
-        .confirmationDialog("Clear alarm history? Research reports are preserved.", isPresented: $confirmsClear) {
+        .confirmationDialog("Clear alarm history? Saved test reports are preserved.", isPresented: $confirmsClear) {
             Button("Clear history", role: .destructive) { coordinator.clearHistory() }
         }
     }

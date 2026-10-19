@@ -87,6 +87,8 @@ import Foundation
         alarm.record("Session invalidated (reason 0)", at: date.addingTimeInterval(201))
         expect(store.capture(alarm), "New lifecycle preserves draft revision")
         expect(store.saveObservations(observations, for: alarm.id, expectedRevision: beforeRevision), "Software refresh does not invalidate owner draft")
+        expect(!store.saveObservations(.init(), for: alarm.id, expectedRevision: beforeRevision),
+            "A reused owner revision is stale even when both saves use the same wall-clock date")
         expect(!store.saveObservations(.init(), for: alarm.id, expectedRevision: nil), "Stale owner draft rejected at storage boundary")
         let reloaded = AlarmTrialStore(archive: TestArchiveStore(directory: directory))
         let reloadedTrial = try reloaded.load(alarm.id)

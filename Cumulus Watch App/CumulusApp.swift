@@ -20,7 +20,8 @@ struct CumulusApp: App {
 
     private var home: some View {
         NavigationStack {
-            AlarmHomeView(coordinator: appDelegate.alarmCoordinator, owner: appDelegate.sessionOwner) { chooser }
+            AlarmHomeView(coordinator: appDelegate.alarmCoordinator, owner: appDelegate.sessionOwner,
+                trials: appDelegate.alarmTrials) { chooser }
         }.fontDesign(.serif)
     }
 

@@ -11,6 +11,9 @@ struct SimulatorPreviewScreen: View {
     private let trial: OvernightMotionTrial
     private let featureFixture: MotionFeatures
     private let savedFeatureFixture: ForegroundFeatureCapture
+    private let alarmTrialFixture: AlarmTrial
+    private let alarmTrialStore: AlarmTrialStore
+    @State private var previewBattery: AlarmTrial.BatteryReading?
     private var orderSummary: OvernightMotionSummary {
         var summary = OvernightMotionSummary(start: trial.start, end: trial.start.addingTimeInterval(1200))
         summary.receive(date: trial.start.addingTimeInterval(1), uptime: 1000, axesFinite: true, chunkStart: trial.start)
@@ -29,6 +32,17 @@ struct SimulatorPreviewScreen: View {
         let store = TestArchiveStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("CumulusUIFixtures"),
                                      build: "Synthetic UI fixture", os: "Simulated")
         _archive = StateObject(wrappedValue: store)
+        let trialStore = AlarmTrialStore(archive: store)
+        alarmTrialStore = trialStore
+        var syntheticAlarm = AlarmRecord(id: UUID(), fireDate: Date().addingTimeInterval(-60), createdAt: Date().addingTimeInterval(-240))
+        syntheticAlarm.origin = .init(build: "Synthetic 23", os: "Simulated", timeZone: "UTC")
+        syntheticAlarm.phase = .ended
+        syntheticAlarm.record("Schedule requested", at: syntheticAlarm.createdAt)
+        syntheticAlarm.record("Haptic requested (synthetic fixture)", at: syntheticAlarm.fireDate.addingTimeInterval(0.5))
+        syntheticAlarm.record("Session invalidated (synthetic fixture)", at: syntheticAlarm.fireDate.addingTimeInterval(10))
+        trialStore.capture(syntheticAlarm)
+        do { alarmTrialFixture = try trialStore.load(syntheticAlarm.id) }
+        catch { fatalError("Could not prepare synthetic alarm-trial fixture") }
         let fixtureOwner = ExperimentSessionOwner(defaults: UserDefaults(suiteName: "CumulusUIFixtures.\(UUID())")!)
         _owner = StateObject(wrappedValue: fixtureOwner)
         let alarmStore = AlarmFileStore(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("alarm.json"))
@@ -74,6 +88,10 @@ struct SimulatorPreviewScreen: View {
                 AlarmHomeView(coordinator: alarm, owner: owner) { Text("Synthetic research destination") }
             case "alarm-setup": AlarmTimeSelectionView(coordinator: alarm, editing: false)
             case "alarm-history": AlarmHistoryView(coordinator: alarm)
+            case "alarm-trials": AlarmTrialListView(store: alarmTrialStore, currentRecord: nil)
+            case "alarm-trial": AlarmTrialDetailView(id: alarmTrialFixture.alarmID, store: alarmTrialStore)
+            case "alarm-observations": AlarmTrialEditView(trial: alarmTrialFixture, store: alarmTrialStore)
+            case "alarm-battery": AlarmTrialBatteryView(title: "Synthetic battery", reading: $previewBattery)
             case "motion-features":
                 ExperimentPage {
                     ExperimentCard { MotionFeatureSection(features: featureFixture, isMonitoring: false) }

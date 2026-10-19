@@ -6,10 +6,10 @@ The [current MVP plan](docs/BUILD_PLAN.md#current-mvp-plan--october-18) keeps ov
 
 ## MVP path — October 18
 
-Current code is **0.1 (22)**. The fixed alarm is built; the awake movement-feature comparison is complete. Nine Swift suites, five Python checks and signing-free Watch/Simulator builds pass in the October 18 audit. Physical acceptance remains incomplete; this audit did not run new Watch trials.
+Current code is **0.1 (23)**. The fixed alarm, bounded alarm-trial records and awake movement-feature comparison are implemented. Ten Swift suites, six Python checks and signing-free Watch/Simulator builds pass at the October 19 implementation checkpoint. Physical form/read-back and overall acceptance remain incomplete; no new Watch trial was run.
 
-1. **Next coding chunk:** retain per-alarm test observations in the app—build/OS, associated lifecycle evidence and owner-reported perception, conditions and battery—with Unknown for missed details. This is planned, not implemented; no sensing is added to the alarm.
-2. **Harden the product:** check small-screen scrolling, larger text, VoiceOver, edit/stop, unverified recovery and independent clearing; fix specific problems found.
+1. **Implemented:** Alarm → **Alarm tests** now retains per-configuration lifecycle evidence and editable owner-reported perception, conditions and manual battery readings. New alarms record originating build/OS; old provenance and missed observations stay Unknown. This does not add sensing or automatically pass a trial.
+2. **Next—check and harden the product:** follow [the build-23 observation walkthrough](docs/experiments/008-fixed-alarm.md#build-23-observation-workflow--october-19), then check small-screen scrolling, larger text, VoiceOver, edit/stop, unverified recovery and independent clearing. Fix specific problems found.
 3. **Finish acceptance when resumed:** retain the passed cancellation and prior trials; complete only missing physical evidence and two qualifying overnight deliveries under the unchanged timing/battery criteria. Overnight validation stays deferred by the owner.
 4. **Freeze the personal candidate:** record the accepted build and tested limits. No automatic publishing or guaranteed-wake claim.
 
@@ -34,7 +34,9 @@ Build **0.1 (6)** adds a manual pilot guide, saved-report evidence explanations,
 
 ## Saved tests
 
-Open **Saved tests** to inspect locally retained run summaries, conditions, counts, and lifecycle events. Existing retained alert/background/overnight histories are imported on app launch; old discarded data cannot be recovered. Foreground reads save diagnostic counts/status; opt-in build-21 runs also save bounded derived movement windows and timing. HealthKit reads retain counts/status only. Raw acceleration and individual health records remain unrecorded.
+Open **Alarm tests** from the alarm home to inspect per-alarm software evidence and edit your observations. Changes persist only with **Save observations**. Manual battery Record now timestamps the current tap; missed older readings remain Unknown. Archive failures are visible and do not block the separate alarm action.
+
+Open **Saved tests** to inspect locally retained run summaries, conditions, counts, and lifecycle events, including the same fixed-alarm reports. Existing retained alert/background/overnight histories are imported on app launch; old discarded data cannot be recovered. Foreground reads save diagnostic counts/status; opt-in build-21 runs also save bounded derived movement windows and timing. HealthKit reads retain counts/status only. Raw acceleration and individual health records remain unrecorded.
 
 The archive retains up to 200 reports or 32 MB without silently evicting old reports. Storage failures are shown. **Delete completed test data** also clears completed recovery histories and pilot qualification; pending/unresolved work blocks deletion. No automatic upload occurs. See [storage boundaries](docs/ARCHITECTURE.md#storage-boundaries).
 
@@ -46,7 +48,7 @@ python3 scripts/retrieve-test-archive.py --output /tmp/cumulus-private-test-repo
 
 This read-only tool copies the app's archive and decodes its diagnostic snapshots into `evaluation.json`. It does not start recording or read HealthKit. The output is private, can include sensitive timing/count metadata, and must remain outside Git. App deletion does not delete exported copies. It cannot infer unknown conditions or confirm a perceived alert.
 
-For the separate fixed-alarm lifecycle history, use `--alarm-only` with a new private output directory. The file uses Foundation reference dates (seconds since 2001), explicitly labeled in its output; research report dates use Unix seconds. See [the alarm trial procedure](docs/experiments/008-fixed-alarm.md#private-evaluation). Alarm history and research Saved tests are cleared separately; neither removes private exported copies.
+For the separate fixed-alarm lifecycle history, use `--alarm-only` with a new private output directory. The file uses Foundation reference dates (seconds since 2001), explicitly labeled in its output; research report dates use Unix seconds. See [the alarm trial procedure](docs/experiments/008-fixed-alarm.md#private-evaluation). Live alarm history and Saved tests are cleared separately; archived alarm-trial copies belong to Saved tests alongside research reports. Neither operation removes private exported copies. Startup import honors deletion markers.
 
 The cloud identity now wears a simple nightcap and uses an editable [SVG master](design/cumulus-app-icon.svg) adapted from Lucide, with its license retained and bundled. See [visual sources and checks](docs/EXPERIENCE.md#cloud-identity-and-visual-pass--build-18-october-9).
 
@@ -67,6 +69,7 @@ The owner reports completing the previous UI and sleep-history checks on 2026-10
 Run the synthetic suites from the repository root:
 
 ```sh
+./scripts/check-alarm-trials.sh
 ./scripts/check-motion-features.sh
 ./scripts/check-foreground-capture.sh
 ./scripts/check-background-motion.sh
@@ -94,7 +97,7 @@ Xcode groups organize the files by responsibility; source files remain in `Cumul
 | Xcode group | Files and purpose |
 | --- | --- |
 | App | `CumulusApp.swift`, `ExperimentChooserView.swift`, `WatchAppDelegate.swift`, `ExperimentSessionOwner.swift`: entry, navigation, relaunch routing, and exclusive session ownership. `ExperimentStyle.swift` supplies shared page, card, heading, and metric views. |
-| Alarm | `AlarmView.swift`, `AlarmCoordinator.swift`, `AlarmRecord.swift`: product home/setup/history, one-time session lifecycle, absolute time resolution and separate persisted configuration/events. Trial perception/battery capture is planned. |
+| Alarm | `AlarmView.swift`, `AlarmCoordinator.swift`, `AlarmRecord.swift`: product home/setup/history, one-time session lifecycle, absolute time resolution and separate persisted configuration/events. `AlarmTrial.swift`, `AlarmTrialStore.swift` and `AlarmTrialView.swift` retain and review per-alarm evidence plus optional owner observations. |
 | Foreground probe | `ContentView.swift`, `MotionMonitor.swift`, `HeartRateReader.swift`: screen, motion callbacks, and read-only heart records. `MotionFeatures.swift`, `ForegroundFeatureCapture.swift`, `MotionFeatureSection.swift`, `ForegroundFeatureHistoryView.swift`: streaming calculations, optional saved summaries/action labels and review UI. |
 | Scheduled alert | `ScheduledAlertView.swift`, `ScheduledAlertCoordinator.swift`: controls, lifecycle, and event history. |
 | Background motion | `BackgroundMotionView.swift`, `BackgroundMotionCoordinator.swift`, `BackgroundMotionTrial.swift`: trial setup, collection lifetime, and bounded summaries. |
