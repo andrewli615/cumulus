@@ -251,3 +251,9 @@ Merging the fresh history with preserved snapshots gives **60 unique events acro
 **Next:** retain this result; do not automatically repeat a successful delivery or cancellation. Complete only genuinely missing current-build usability/recovery/clearing observations and, when acceptance validation resumes, the outstanding per-night conditions/battery evidence. Missed historical battery readings stay Unknown. No sensor experiment or classifier is introduced.
 
 Learning exercise: a report captured by build 25 can contain an alarm scheduled by an unknown earlier build; capture provenance cannot fill missing original provenance.
+
+## Battery clarification and next work — October 19
+
+**Owner report:** battery use for the reported night should be fine; treat it as acceptable by owner report. Numerical start/end readings and observation times were not supplied. This does not establish the existing no-charging, at-most-25-point loss or at-least-20%-remaining criteria; those dimensions remain unverified. Preserve the successful timely haptic request and reported waking without automatically repeating delivery. No in-app observation is fabricated or changed.
+
+**Next authorized work:** inspect the current alarm/observation UI locally at normal/larger text on a small Watch simulator, fix concrete findings and run relevant checks/builds. Simulator services now list an available watchOS 27 runtime; earlier unavailable-service observations remain historical. Runtime availability alone is not UI verification. Physical VoiceOver, wear/battery and recovery evidence remain separate. Experiment 006 stays paused; no sensor/model scope is added.
