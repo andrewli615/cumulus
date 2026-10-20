@@ -6,7 +6,7 @@ The [current MVP plan](docs/BUILD_PLAN.md#current-mvp-plan--october-18) keeps ov
 
 ## MVP path — October 18
 
-Current code is **0.1 (25)**. The fixed alarm, bounded alarm-trial records and awake movement-feature comparison are implemented. Ten Swift suites, six Python checks and signing-free Debug Watch/Simulator plus Release Watch builds pass at the October 19 hardening checkpoint. Physical form/read-back and overall acceptance remain incomplete; no new Watch trial was run.
+Current code is **0.1 (25)**. The fixed alarm, bounded alarm-trial records and awake movement-feature comparison are implemented. Ten Swift suites, six Python checks and signing-free Debug Watch/Simulator plus Release Watch builds pass at the October 19 hardening checkpoint. An October 19 read-back validates seventeen saved reports and corroborates the owner-reported morning alarm: one haptic request at +1.154 seconds, normal invalidation and reported waking. Battery/conditions and originating scheduling build remain unknown; physical form checks and full acceptance remain incomplete.
 
 1. **Implemented:** Alarm → **Alarm tests** now retains per-configuration lifecycle evidence and editable owner-reported perception, conditions and manual battery readings. New alarms record originating build/OS; old provenance and missed observations stay Unknown. This does not add sensing or automatically pass a trial.
 2. **Next—check build 25 on Watch:** follow [the current work order](docs/BUILD_PLAN.md#immediate-work-order-after-build-25--october-19) for observation save/reopen, normal/larger text, scrolling, VoiceOver and remaining recovery/clearing checks. Preserve existing data; fix demonstrated issues in small verified commits. Do not assign another build just to advance its number.
