@@ -91,7 +91,7 @@ struct SimulatorPreviewScreen: View {
             case "alarm-trials": AlarmTrialListView(store: alarmTrialStore, currentRecord: nil)
             case "alarm-trial": AlarmTrialDetailView(id: alarmTrialFixture.alarmID, store: alarmTrialStore)
             case "alarm-observations": AlarmTrialEditView(trial: alarmTrialFixture, store: alarmTrialStore)
-            case "alarm-battery": AlarmTrialBatteryView(title: "Synthetic battery", reading: $previewBattery)
+            case "alarm-battery": AlarmTrialBatteryView(title: "Start battery", reading: $previewBattery)
             case "motion-features":
                 ExperimentPage {
                     ExperimentCard { MotionFeatureSection(features: featureFixture, isMonitoring: false) }

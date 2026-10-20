@@ -73,15 +73,18 @@ struct AlarmTrialDetailView: View {
         ExperimentPage {
             if let trial {
                 ExperimentCard {
-                    ExperimentPageHeading { ExperimentHeading(title: "Alarm test", symbol: "checklist") }
-                    Text(trial.fireDate.formatted(date: .complete, time: .shortened))
-                        .font(.headline).fixedSize(horizontal: false, vertical: true)
-                    Text("Target shown in current time zone. This report does not set or cancel an alarm.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    ExperimentPageHeading(compact: true) {
+                        Text("Alarm").font(.headline).accessibilityAddTraits(.isHeader)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text(trial.fireDate.formatted(date: .abbreviated, time: .shortened))
+                        .font(.body.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
                     NavigationLink { AlarmTrialEditView(trial: trial, store: store) } label: {
-                        Text("Edit observations").frame(maxWidth: .infinity, minHeight: 44)
+                        Text("Edit report").frame(maxWidth: .infinity, minHeight: 44)
                             .fixedSize(horizontal: false, vertical: true)
                     }.buttonStyle(.borderedProminent)
+                    Text("Only your observations are editable. Target shown in current time zone. This report does not set or cancel an alarm.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 ExperimentCard {
                     ExperimentHeading(title: "Software evidence", symbol: "clock")
@@ -168,15 +171,6 @@ struct AlarmTrialEditView: View {
     var body: some View {
         Form {
             Section {
-                Text(trial.fireDate.formatted(date: .complete, time: .shortened))
-                    .font(.headline).fixedSize(horizontal: false, vertical: true)
-                Text("Alarm \(trial.alarmID.uuidString.prefix(8))").font(.body)
-                Text(observations == original ? "Review observations" : "Unsaved changes")
-                    .font(.body).accessibilityAddTraits(.isHeader)
-                Text("Changes, including battery readings, save only with Save observations. Going back without saving discards this form. Leave missed details Unknown.")
-                    .font(.body).fixedSize(horizontal: false, vertical: true)
-            }
-            Section("Trial") {
                 Picker("Type", selection: $observations.kind) {
                     ForEach(AlarmTrial.Kind.allCases, id: \.self) { Text($0.title).tag($0) }
                 }.pickerStyle(.navigationLink)
@@ -194,6 +188,16 @@ struct AlarmTrialEditView: View {
                     Text("Conditions & settings").font(.body).frame(minHeight: 44)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+            } header: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trial.fireDate.formatted(date: .abbreviated, time: .shortened))
+                        .font(.body.weight(.semibold))
+                    Text("Alarm \(trial.alarmID.uuidString.prefix(8))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.textCase(nil).fixedSize(horizontal: false, vertical: true)
+            } footer: {
+                Text("Draft only. Save below; Back discards changes. Leave missed details Unknown.")
+                    .font(.caption).fixedSize(horizontal: false, vertical: true)
             }
             Section("Battery · manual readings") {
                 batteryLink("Start battery", $observations.startBattery)
@@ -202,6 +206,8 @@ struct AlarmTrialEditView: View {
                     .font(.body).fixedSize(horizontal: false, vertical: true)
             }
             Section("Save this alarm's observations") {
+                Text(observations == original ? "Review then save" : "Unsaved changes")
+                    .font(.body).fixedSize(horizontal: false, vertical: true)
                 if let problem = observations.validationMessage {
                     Text(problem).font(.body).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
                 }
@@ -218,7 +224,7 @@ struct AlarmTrialEditView: View {
                 Text("Your report does not schedule, cancel or qualify an alarm.").font(.caption)
                     .fixedSize(horizontal: false, vertical: true)
             }
-        }.fontDesign(.serif).tint(.blue).navigationTitle("Observations")
+        }.fontDesign(.serif).tint(.blue).navigationTitle("Report")
     }
     private func batteryLink(_ title: String, _ reading: Binding<AlarmTrial.BatteryReading?>) -> some View {
         NavigationLink { AlarmTrialBatteryView(title: title, reading: reading) } label: {
